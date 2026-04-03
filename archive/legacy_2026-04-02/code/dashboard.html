@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>B.C. Life Sciences — Look West Strategy Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+  :root {
+    --color-primary:     #003366;
+    --color-primary-lt:  #1A5276;
+    --color-primary-xlt: #EBF2FA;
+    --color-accent:      #FCBA19;
+    --color-bg:          #F2F5F9;
+    --color-card:        #FFFFFF;
+    --color-border:      #D6DCE4;
+    --color-text:        #1A202C;
+    --color-text-muted:  #4A5568;
+    --color-text-subtle: #718096;
+    --rag-red:     #C53030; --rag-red-bg:   #FFF5F5; --rag-red-br:   #FC8181;
+    --rag-amber:   #C05621; --rag-amber-bg: #FFFBEB; --rag-amber-br: #F6AD55;
+    --rag-green:   #276749; --rag-green-bg: #F0FFF4; --rag-green-br: #68D391;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 14px; line-height: 1.5; color: var(--color-text); background: var(--color-bg);
+    -webkit-font-smoothing: antialiased; }
+  a { color: var(--color-primary); } a:hover { text-decoration: underline; }
+
+  /* ── HEADER ── */
+  .site-header { background: var(--color-primary); color:#fff; height:62px; padding:0 28px;
+    display:flex; align-items:center; gap:18px; position:sticky; top:0; z-index:200;
+    border-bottom:3px solid var(--color-accent); box-shadow:0 2px 10px rgba(0,0,0,.3); }
+  .hdr-logo-img { height:38px; width:auto; flex-shrink:0; display:block; }
+  .hdr-divider { width:1px; height:32px; background:rgba(255,255,255,.25); flex-shrink:0; }
+  .hdr-text { flex:1; }
+  .hdr-text h1 { font-size:15px; font-weight:600; line-height:1.2; }
+  .hdr-text p  { font-size:11px; color:rgba(255,255,255,.6); margin-top:1px; }
+  .hdr-right   { display:flex; align-items:center; gap:12px; }
+  .hdr-meta    { text-align:right; font-size:11px; color:rgba(255,255,255,.55); }
+  .hdr-meta strong { display:block; color:#fff; font-size:12px; }
+  .badge-internal { background:var(--color-accent); color:var(--color-primary);
+    font-size:9px; font-weight:800; letter-spacing:.6px; text-transform:uppercase;
+    padding:2px 8px; border-radius:3px; display:inline-block; margin-top:4px; }
+  .btn-refresh { display:flex; align-items:center; gap:5px; padding:6px 13px;
+    background:rgba(255,255,255,.13); border:1px solid rgba(255,255,255,.3);
+    border-radius:5px; color:#fff; font-size:11px; font-weight:600; cursor:pointer;
+    white-space:nowrap; transition:background .15s; flex-shrink:0; }
+  .btn-refresh:hover { background:rgba(255,255,255,.22); }
+  .btn-refresh:disabled { opacity:.5; cursor:default; }
+
+  /* ── MOCK BANNER ── */
+  .mock-banner { background:var(--rag-amber-bg); border-bottom:2px solid var(--color-accent);
+    padding:9px 28px; display:flex; align-items:center; gap:10px;
+    font-size:12px; color:#92400E; }
+  .mock-banner strong { font-weight:600; }
+  .mock-banner button { margin-left:auto; background:none; border:1px solid #D97706;
+    border-radius:4px; padding:3px 10px; font-size:11px; color:#92400E; cursor:pointer; }
+  .mock-banner button:hover { background:#FEF3C7; }
+
+  /* ── MAIN ── */
+  .main { max-width:1340px; margin:0 auto; padding:22px 28px 56px; }
+
+  /* ── SECTION ── */
+  .section { margin-bottom:28px; }
+  .section-head { display:flex; align-items:center; gap:10px;
+    border-bottom:2px solid var(--color-border); padding-bottom:9px; margin-bottom:16px; }
+  .section-head h2 { font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:1px; color:var(--color-primary); }
+  .section-head .sh-sub { font-size:11px; color:var(--color-text-subtle); }
+  .section-head .sh-action { margin-left:auto; font-size:11px; color:var(--color-primary);
+    cursor:pointer; background:none; border:none; text-decoration:underline; }
+  .section-head .sh-collapse { margin-left:auto; background:none; border:1px solid var(--color-border);
+    border-radius:4px; padding:3px 10px; font-size:11px; color:var(--color-text-muted); cursor:pointer;
+    display:flex; align-items:center; gap:5px; }
+  .section-head .sh-collapse:hover { background:var(--color-primary-xlt); }
+  .section-head .sh-collapse .arrow { transition:transform .2s; }
+  .section-head .sh-collapse.collapsed .arrow { transform:rotate(-90deg); }
+  .collapsible-body { overflow:hidden; transition:max-height .3s ease; }
+  .collapsible-body.collapsed { max-height:0 !important; }
+
+  /* ── CARD ── */
+  .card { background:var(--color-card); border:1px solid var(--color-border);
+    border-radius:var(--radius); box-shadow:var(--shadow); }
+
+  /* ── SECTOR DEF ── */
+  .sector-def { border-left:4px solid var(--color-primary); padding:14px 18px; margin-bottom:20px; }
+  .sector-def-title { font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:5px; }
+  .sector-def-body  { font-size:12px; color:var(--color-text-muted); line-height:1.7; }
+
+  /* ── WHAT'S NEW ── */
+  .wn-toggle { width:100%; background:var(--color-primary-xlt); border:none; padding:11px 16px;
+    display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:600;
+    color:var(--color-primary); border-radius:var(--radius) var(--radius) 0 0; }
+  .wn-toggle .arrow { margin-left:auto; font-size:10px; transition:transform .2s; }
+  .wn-toggle.open .arrow { transform:rotate(180deg); }
+  .wn-body { display:none; }
+  .wn-body.open { display:block; }
+  .wn-row { padding:10px 16px; border-top:1px solid var(--color-border);
+    display:flex; gap:12px; align-items:flex-start; }
+  .wn-row:hover { background:#FAFBFC; }
+  .wn-meta { width:150px; flex-shrink:0; }
+  .wn-date { font-size:11px; color:var(--color-text-subtle); }
+  .wn-cat  { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--color-primary-lt); margin-top:2px; }
+  .wn-p    { font-size:9px; font-weight:700; text-transform:uppercase; padding:1px 5px; border-radius:2px; margin-top:3px; display:inline-block; }
+  .wn-p.CRITICAL { background:var(--rag-red-bg); color:var(--rag-red); border:1px solid var(--rag-red-br); }
+  .wn-p.HIGH     { background:var(--rag-amber-bg); color:var(--rag-amber); border:1px solid var(--rag-amber-br); }
+  .wn-p.MEDIUM   { background:var(--color-primary-xlt); color:var(--color-primary); border:1px solid var(--color-border); }
+  .wn-p.LOW      { background:#F7FAFC; color:var(--color-text-subtle); border:1px solid var(--color-border); }
+  .wn-content { flex:1; }
+  .wn-headline { font-size:12px; font-weight:500; }
+  .wn-blurb    { font-size:11px; color:var(--color-text-muted); margin-top:2px; line-height:1.45; }
+
+  /* ── SUBSECTOR TABS ── */
+  .subsector-tab-bar { display:flex; overflow-x:auto; border-bottom:3px solid var(--color-border);
+    margin-bottom:24px; scrollbar-width:none; gap:2px; }
+  .subsector-tab-bar::-webkit-scrollbar { display:none; }
+  .sub-tab-btn { display:flex; flex-direction:column; align-items:flex-start;
+    padding:11px 22px 10px; border:none; background:none; cursor:pointer;
+    white-space:nowrap; flex-shrink:0; border-bottom:3px solid transparent;
+    margin-bottom:-3px; transition:all .15s; border-radius:var(--radius) var(--radius) 0 0; }
+  .sub-tab-btn:hover { background:var(--color-primary-xlt); }
+  .sub-tab-btn.active { border-bottom-color:var(--tab-color,var(--color-primary));
+    background:var(--color-card); box-shadow:0 -2px 8px rgba(0,0,0,.06); }
+  .sub-tab-name { font-size:13px; font-weight:600; color:var(--color-text-muted);
+    display:flex; align-items:center; gap:8px; }
+  .sub-tab-btn.active .sub-tab-name { color:var(--tab-color,var(--color-primary)); }
+  .sub-tab-dot { width:8px; height:8px; border-radius:50%;
+    background:var(--tab-color,var(--color-border)); flex-shrink:0; }
+  .sub-tab-naics { font-size:10px; color:var(--color-text-subtle); margin-top:2px; }
+  .sub-tab-badge { font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px;
+    text-transform:uppercase; letter-spacing:.3px; margin-top:4px; display:inline-block; }
+  .sub-tab-badge.good    { background:var(--rag-green-bg); color:var(--rag-green); border:1px solid var(--rag-green-br); }
+  .sub-tab-badge.partial { background:var(--rag-amber-bg); color:var(--rag-amber); border:1px solid var(--rag-amber-br); }
+  .sub-tab-badge.none    { background:#F7FAFC; color:var(--color-text-subtle); border:1px solid var(--color-border); }
+
+  /* ── SUBSECTOR PANELS ── */
+  .subsector-panel { display:none; }
+  .subsector-panel.active { display:block; }
+
+  /* ── SUBSECTOR HEADER CARD ── */
+  .sub-panel-header { padding:16px 20px; margin-bottom:22px;
+    border-left-width:4px; border-left-style:solid; }
+  .sub-panel-hdr-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+  .sub-panel-title { font-size:16px; font-weight:700; margin-bottom:3px; }
+  .sub-panel-naics { font-size:11px; color:var(--color-text-subtle); margin-bottom:6px; font-family:monospace; }
+  .sub-panel-desc  { font-size:12px; color:var(--color-text-muted); line-height:1.7; max-width:820px; }
+  .sub-panel-avail { margin-top:8px; font-size:11px; color:var(--color-text-subtle); font-style:italic; }
+  .data-quality-badge { flex-shrink:0; text-align:right; }
+  .dq-pill { font-size:11px; font-weight:600; padding:4px 12px; border-radius:20px; white-space:nowrap; }
+  .dq-pill.good    { background:var(--rag-green-bg); color:var(--rag-green); border:1px solid var(--rag-green-br); }
+  .dq-pill.partial { background:var(--rag-amber-bg); color:var(--rag-amber); border:1px solid var(--rag-amber-br); }
+  .dq-pill.none    { background:#F7FAFC; color:var(--color-text-subtle); border:1px solid var(--color-border); }
+
+  /* ── KPI GRID ── */
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:14px; }
+  .kpi-card { padding:18px 18px 14px; position:relative; overflow:hidden; }
+  .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0;
+    height:3px; background:var(--color-primary); }
+  .kpi-card.partial::before { background:var(--rag-amber); }
+  .kpi-label { font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.6px; color:var(--color-text-muted); margin-bottom:9px; }
+  .kpi-value { font-size:30px; font-weight:700; color:var(--color-primary);
+    line-height:1; letter-spacing:-1px; }
+  .kpi-unit  { font-size:11px; color:var(--color-text-subtle); margin-top:3px; }
+  .kpi-trend { font-size:11px; margin-top:7px; font-weight:600; }
+  .kpi-trend.up   { color:var(--rag-green); }
+  .kpi-trend.down { color:var(--rag-red); }
+  .kpi-trend.flat { color:var(--color-text-subtle); }
+  .kpi-base  { font-size:10px; color:var(--color-text-subtle); margin-top:4px; }
+  .kpi-tags  { margin-top:10px; display:flex; gap:4px; flex-wrap:wrap; }
+  .tag { font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px;
+    text-transform:uppercase; letter-spacing:.3px; }
+  .tag.mock     { background:#FEF3C7; color:#92400E; border:1px solid #F6AD55; }
+  .tag.official { background:#EBF2FA; color:#003366; border:1px solid #93C4E4; }
+  .tag.proxy    { background:#F3E8FF; color:#6B21A8; border:1px solid #C084FC; }
+  .tag.manual   { background:#D1FAE5; color:#065F46; border:1px solid #6EE7B7; }
+  .tag.na       { background:#F7FAFC; color:var(--color-text-subtle); border:1px solid var(--color-border); }
+  .conf-legend  { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-top:14px; }
+  .conf-item    { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--color-text-subtle); }
+  .conf-swatch  { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+  .no-kpi-notice { padding:20px; text-align:center; color:var(--color-text-subtle);
+    font-size:12px; font-style:italic; }
+
+  /* ── LOOK WEST ── */
+  .lw-goals-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px; }
+  .lw-goal { padding:16px; position:relative; }
+  .lw-goal-top { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
+  .rag-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+  .rag-dot.RED   { background:var(--rag-red);   box-shadow:0 0 0 3px var(--rag-red-bg); }
+  .rag-dot.AMBER { background:var(--rag-amber); box-shadow:0 0 0 3px var(--rag-amber-bg); }
+  .rag-dot.GREEN { background:var(--rag-green); box-shadow:0 0 0 3px var(--rag-green-bg); }
+  .lw-goal-name { font-size:12px; font-weight:600; line-height:1.4; flex:1; }
+  .lw-pillar-tag { display:inline-block; font-size:9px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.3px; padding:2px 7px; border-radius:3px;
+    background:var(--color-primary-xlt); color:var(--color-primary);
+    border:1px solid var(--color-border); margin-bottom:6px; }
+  .lw-goal-bar  { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .lw-track { flex:1; height:7px; background:var(--color-border); border-radius:4px; overflow:hidden; }
+  .lw-fill  { height:100%; border-radius:4px; transition:width .4s; }
+  .lw-fill.RED   { background:var(--rag-red); }
+  .lw-fill.AMBER { background:var(--rag-amber); }
+  .lw-fill.GREEN { background:var(--rag-green); }
+  .lw-pct  { font-size:11px; font-weight:700; color:var(--color-text-muted); white-space:nowrap; min-width:36px; text-align:right; }
+  .lw-tgt  { font-size:10px; color:var(--color-text-subtle); }
+  .lw-summary-row { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+    gap:12px; margin-bottom:16px; }
+  .lw-sum-card { padding:16px 18px; text-align:center; }
+  .lw-sum-num  { font-size:36px; font-weight:700; letter-spacing:-2px; line-height:1; }
+  .lw-sum-num.amber { color:var(--rag-amber); }
+  .lw-sum-num.green { color:var(--rag-green); }
+  .lw-sum-num.blue  { color:var(--color-primary); }
+  .lw-sum-lbl  { font-size:10px; color:var(--color-text-subtle); margin-top:4px;
+    text-transform:uppercase; letter-spacing:.5px; }
+
+  /* ── CHARTS ── */
+  .charts-section-head { display:flex; align-items:center; gap:10px;
+    border-bottom:2px solid var(--color-border); padding-bottom:9px; margin-bottom:16px; }
+  .charts-section-head h2 { font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:1px; color:var(--color-primary); }
+  .charts-section-head .sh-sub { font-size:11px; color:var(--color-text-subtle); }
+  .chart-settings-btn { margin-left:auto; background:none; border:1px solid var(--color-border);
+    border-radius:6px; padding:4px 12px; font-size:11px; color:var(--color-text-muted);
+    cursor:pointer; display:flex; align-items:center; gap:5px; }
+  .chart-settings-btn:hover { background:var(--color-primary-xlt); border-color:var(--color-primary); color:var(--color-primary); }
+  .charts-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(400px,1fr)); gap:16px; }
+  .chart-card { padding:18px; }
+  .chart-title    { font-size:13px; font-weight:600; margin-bottom:2px; color:var(--color-text); }
+  .chart-subtitle { font-size:11px; color:var(--color-text-subtle); margin-bottom:12px; }
+  .chart-container { position:relative; height:230px; }
+  .chart-caveat   { font-size:10px; color:var(--color-text-subtle); margin-top:10px; font-style:italic; }
+
+  /* Chart settings panel */
+  .chart-settings-panel { display:none; background:var(--color-card);
+    border:1px solid var(--color-border); border-radius:var(--radius);
+    box-shadow:var(--shadow-md); padding:16px; margin-bottom:16px; }
+  .chart-settings-panel.open { display:block; }
+  .csp-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px;
+    color:var(--color-primary); margin-bottom:12px; }
+  .csp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px; }
+  .csp-item { display:flex; align-items:center; gap:8px; padding:7px 10px;
+    border:1px solid var(--color-border); border-radius:6px; cursor:pointer;
+    transition:background .12s; }
+  .csp-item:hover { background:var(--color-primary-xlt); }
+  .csp-item input[type=checkbox] { width:15px; height:15px; accent-color:var(--color-primary);
+    cursor:pointer; flex-shrink:0; }
+  .csp-label { font-size:12px; color:var(--color-text-muted); }
+  .csp-close { margin-left:auto; font-size:11px; color:var(--color-text-subtle);
+    background:none; border:none; cursor:pointer; text-decoration:underline; }
+
+  /* ── INITIATIVES ── */
+  .init-toolbar { display:flex; gap:8px; align-items:center;
+    padding:10px 14px; background:var(--color-primary-xlt);
+    border-bottom:1px solid var(--color-border);
+    border-radius:var(--radius) var(--radius) 0 0; flex-wrap:wrap; }
+  .tb-lbl { font-size:10px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.5px; color:var(--color-text-subtle); }
+  .init-toolbar select, .init-toolbar input {
+    font-size:12px; padding:5px 9px; border:1px solid var(--color-border);
+    border-radius:4px; background:#fff; }
+  .init-toolbar input { flex:1; min-width:140px; }
+  .init-toolbar input:focus, .init-toolbar select:focus { outline:2px solid var(--color-primary); outline-offset:1px; }
+  .init-count { font-size:11px; color:var(--color-text-subtle); margin-left:auto; }
+  .table-scroll { overflow-x:auto; border-radius:0 0 var(--radius) var(--radius);
+    border:1px solid var(--color-border); border-top:none; }
+  .init-table { width:100%; border-collapse:collapse; font-size:12px; background:var(--color-card); }
+  .init-table th { padding:9px 12px; text-align:left; font-size:10px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.4px; background:#F8FAFC;
+    border-bottom:1px solid var(--color-border); white-space:nowrap; cursor:pointer; user-select:none; }
+  .init-table th:hover { background:#E8EFF7; }
+  .init-table td { padding:9px 12px; border-bottom:1px solid #EEF2F7; vertical-align:top; }
+  .init-table tr:last-child td { border-bottom:none; }
+  .init-table tr:hover td { background:#FAFBFD; }
+  .rag-pill { font-size:9px; font-weight:700; padding:2px 7px; border-radius:10px;
+    text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; }
+  .rag-pill.RED   { background:var(--rag-red-bg);   color:var(--rag-red);   border:1px solid var(--rag-red-br); }
+  .rag-pill.AMBER { background:var(--rag-amber-bg); color:var(--rag-amber); border:1px solid var(--rag-amber-br); }
+  .rag-pill.GREEN { background:var(--rag-green-bg); color:var(--rag-green); border:1px solid var(--rag-green-br); }
+  .status-badge { font-size:9px; font-weight:700; padding:2px 7px; border-radius:3px;
+    text-transform:uppercase; background:var(--color-primary-xlt); color:var(--color-primary);
+    border:1px solid var(--color-border); white-space:nowrap; }
+  .status-badge.Complete { background:var(--rag-green-bg); color:var(--rag-green); border-color:var(--rag-green-br); }
+  .status-badge.Paused   { background:var(--rag-red-bg);   color:var(--rag-red);   border-color:var(--rag-red-br); }
+  .prog-track { height:5px; background:var(--color-border); border-radius:2px; width:60px; margin-top:3px; }
+  .prog-fill  { height:100%; border-radius:2px; }
+  .prog-fill.RED   { background:var(--rag-red); }
+  .prog-fill.AMBER { background:var(--rag-amber); }
+  .prog-fill.GREEN { background:var(--rag-green); }
+  .ev-badge { display:inline-block; background:var(--color-primary); color:#fff;
+    font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; }
+  .btn-edit { font-size:10px; padding:3px 8px; border:1px solid var(--color-border);
+    border-radius:3px; background:#fff; cursor:pointer; color:var(--color-primary); }
+  .btn-edit:hover { background:var(--color-primary-xlt); }
+
+  /* ── INNER TABS (Evidence/Risks) ── */
+  .tab-bar { display:flex; gap:2px; border-bottom:2px solid var(--color-border); margin-bottom:16px; }
+  .tab-btn { padding:7px 16px; border:none; background:none; cursor:pointer;
+    font-size:12px; font-weight:500; color:var(--color-text-muted);
+    border-bottom:2px solid transparent; margin-bottom:-2px; }
+  .tab-btn.active { color:var(--color-primary); border-bottom-color:var(--color-primary); }
+  .tab-btn:hover  { color:var(--color-primary); }
+  .tab-pane { display:none; }
+  .tab-pane.active { display:block; }
+
+  /* ── EVIDENCE & RISKS ── */
+  .ev-toolbar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .ev-toolbar input, .ev-toolbar select { font-size:12px; padding:5px 9px;
+    border:1px solid var(--color-border); border-radius:4px; background:#fff; }
+  .ev-toolbar input { flex:1; min-width:180px; }
+  .ev-toolbar input:focus, .ev-toolbar select:focus { outline:2px solid var(--color-primary); outline-offset:1px; }
+  .ev-table, .risk-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .ev-table th, .risk-table th { padding:8px 12px; text-align:left; font-size:10px;
+    font-weight:700; text-transform:uppercase; letter-spacing:.4px;
+    background:#F8FAFC; border-bottom:1px solid var(--color-border); white-space:nowrap; }
+  .ev-table td, .risk-table td { padding:9px 12px; border-bottom:1px solid #EEF2F7; vertical-align:top; }
+  .ev-table tr:hover td, .risk-table tr:hover td { background:#FAFBFD; }
+  .ev-type { font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px;
+    text-transform:uppercase; background:var(--color-primary-xlt);
+    color:var(--color-primary); border:1px solid var(--color-border); white-space:nowrap; }
+  .ev-link { font-size:11px; color:var(--color-primary); font-weight:500; white-space:nowrap; }
+  .risk-cat { font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px;
+    background:#EEF2FF; color:#3730A3; border:1px solid #C7D2FE; text-transform:uppercase; white-space:nowrap; }
+  .sev-badge { font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px; text-transform:uppercase; white-space:nowrap; }
+  .sev-badge.CRITICAL { background:var(--rag-red-bg);   color:var(--rag-red);   border:1px solid var(--rag-red-br); }
+  .sev-badge.HIGH     { background:var(--rag-amber-bg); color:var(--rag-amber); border:1px solid var(--rag-amber-br); }
+  .sev-badge.MEDIUM   { background:var(--color-primary-xlt); color:var(--color-primary); border:1px solid var(--color-border); }
+  .sev-badge.LOW      { background:#F7FAFC; color:var(--color-text-subtle); border:1px solid var(--color-border); }
+
+  /* ── MODAL ── */
+  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
+    z-index:500; align-items:center; justify-content:center; }
+  .modal-overlay.open { display:flex; }
+  .modal { background:#fff; border-radius:10px; width:540px; max-width:95vw;
+    box-shadow:0 16px 48px rgba(0,0,0,.22); }
+  .modal-header { padding:16px 20px; border-bottom:1px solid var(--color-border);
+    display:flex; align-items:center; justify-content:space-between; }
+  .modal-header h3 { font-size:13px; font-weight:600; }
+  .modal-close { background:none; border:none; font-size:18px; cursor:pointer; color:var(--color-text-subtle); }
+  .modal-body { padding:16px 20px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .modal-body label { font-size:11px; font-weight:600; color:var(--color-text-muted); text-transform:uppercase; letter-spacing:.4px; }
+  .modal-body .field { display:flex; flex-direction:column; gap:4px; }
+  .modal-body .field.full { grid-column:1/-1; }
+  .modal-body input, .modal-body select, .modal-body textarea {
+    font-size:12px; padding:6px 9px; border:1px solid var(--color-border);
+    border-radius:4px; background:#fff; width:100%; }
+  .modal-body input:focus, .modal-body select:focus, .modal-body textarea:focus { outline:2px solid var(--color-primary); outline-offset:1px; }
+  .modal-body textarea { min-height:60px; resize:vertical; }
+  .modal-footer { padding:12px 20px; border-top:1px solid var(--color-border);
+    display:flex; justify-content:flex-end; gap:8px; }
+  .btn-primary { background:var(--color-primary); color:#fff; border:none;
+    border-radius:5px; padding:7px 18px; font-size:12px; font-weight:600; cursor:pointer; }
+  .btn-primary:hover { background:var(--color-primary-lt); }
+  .btn-secondary { background:#fff; color:var(--color-text-muted);
+    border:1px solid var(--color-border); border-radius:5px;
+    padding:7px 16px; font-size:12px; cursor:pointer; }
+  .btn-secondary:hover { background:#F7FAFC; }
+  .modal-note { font-size:10px; color:var(--color-text-subtle); margin-right:auto; }
+
+  /* ── LOADING / ERROR ── */
+  .screen-center { min-height:60vh; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:40px; }
+  .screen-center h2 { font-size:18px; font-weight:600; margin-bottom:10px; }
+  .screen-center p  { font-size:13px; color:var(--color-text-muted); max-width:500px; }
+  .spinner { width:42px; height:42px; border:3px solid var(--color-border);
+    border-top-color:var(--color-primary); border-radius:50%;
+    animation:spin .8s linear infinite; margin-bottom:18px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .err-icon { font-size:36px; margin-bottom:12px; }
+
+  /* ── SERVER OVERLAY ── */
+  .server-overlay { display:none; background:rgba(0,0,0,.6); position:fixed; inset:0;
+    z-index:400; align-items:center; justify-content:center; }
+  .server-overlay.show { display:flex; }
+  .server-box { background:#fff; border-radius:10px; padding:32px 36px;
+    max-width:560px; width:95%; box-shadow:0 16px 48px rgba(0,0,0,.3); }
+  .server-box h2 { font-size:17px; font-weight:700; margin-bottom:10px; }
+  .server-box p  { font-size:13px; color:var(--color-text-muted); margin-bottom:12px; line-height:1.6; }
+  code { display:block; background:#1A202C; color:#68D391;
+    font-family:'Courier New',monospace; font-size:13px;
+    padding:10px 14px; border-radius:4px; margin:8px 0; user-select:all; }
+
+  /* ── FOOTER ── */
+  .site-footer { background:var(--color-primary); color:rgba(255,255,255,.5);
+    padding:12px 28px; font-size:11px; display:flex; gap:14px; align-items:center; }
+  .site-footer strong { color:#fff; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <img class="hdr-logo-img" src="../docs/logo/BCID_H_RGB_rev.png" alt="Government of British Columbia">
+  <div class="hdr-divider"></div>
+  <div class="hdr-text">
+    <h1 id="hdr-title">B.C. Life Sciences Sector Dashboard</h1>
+    <p id="hdr-subtitle">Look West Strategy · 2030 Target Monitoring</p>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-meta">
+      <strong>Updated <span id="hdr-updated">—</span></strong>
+      <div class="badge-internal" id="badge-internal">Internal Working Document</div>
+    </div>
+    <button class="btn-refresh" id="btn-refresh" onclick="document.getElementById('xl-file-input').click()" title="Load updated Excel workbook to refresh all data">
+      ↺ Refresh Data
+    </button>
+    <input type="file" id="xl-file-input" accept=".xlsx" style="display:none" onchange="loadExcelFile(this)">
+  </div>
+</header>
+
+<div class="mock-banner" id="mock-banner">
+  <span>⚠</span>
+  <span><strong>Mock / Sample Data</strong> — All figures are illustrative. Replace data in <em>BCLS_Dashboard_Data.xlsx</em>, then run <em>bundle.py</em>.</span>
+  <button onclick="this.parentElement.style.display='none'">Dismiss</button>
+</div>
+
+<div id="screen-loading">
+  <div class="screen-center">
+    <div class="spinner"></div>
+    <h2>Loading dashboard…</h2>
+    <p>Fetching data files.</p>
+  </div>
+</div>
+
+<div id="screen-error" style="display:none;">
+  <div class="screen-center">
+    <div class="err-icon">⚠️</div>
+    <h2>Could not load dashboard data</h2>
+    <p id="error-message">Check the browser console for details.</p>
+  </div>
+</div>
+
+<div class="server-overlay" id="server-overlay">
+  <div class="server-box">
+    <h2>📡 Server not detected</h2>
+    <p>This dashboard loads data via HTTP. Use the standalone file instead, or start the local server:</p>
+    <p><strong>Option 1 — Standalone file (no server needed):</strong><br>
+       Double-click <strong>output/dashboard_standalone.html</strong></p>
+    <p><strong>Option 2 — Local server:</strong></p>
+    <code>cd /path/to/BCLS &amp;&amp; python code/serve.py</code>
+    <p>Then open <a href="http://localhost:8000/code/dashboard.html" target="_blank">http://localhost:8000/code/dashboard.html</a></p>
+  </div>
+</div>
+
+<main class="main" id="main" style="display:none;">
+  <div id="sector-def"></div>
+  <div class="section" id="whats-new-section" style="display:none;">
+    <div class="card" id="whats-new-panel"></div>
+  </div>
+  <div class="subsector-tab-bar" id="subsector-tab-bar"></div>
+  <div id="subsector-panels"></div>
+
+  <!-- GLOBAL: Evidence & Risks (collapsible) -->
+  <div class="section" id="section-global">
+    <div class="section-head">
+      <h2>Evidence &amp; Risks</h2>
+      <span class="sh-sub">Evidence library and risk register · all subsectors</span>
+      <button class="sh-collapse" id="ev-collapse-btn" onclick="toggleEvidenceSection()">
+        <span class="arrow">▼</span> <span id="ev-collapse-label">Collapse</span>
+      </button>
+    </div>
+    <div class="collapsible-body" id="ev-collapsible-body">
+      <div class="card" style="padding:18px;">
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchInnerTab('tab-evidence')">📄 Evidence Library (<span id="ev-count">—</span>)</button>
+          <button class="tab-btn" onclick="switchInnerTab('tab-risks')">⚠ Risks &amp; Gaps (<span id="risk-count">—</span>)</button>
+        </div>
+        <div class="tab-pane active" id="tab-evidence">
+          <div class="ev-toolbar">
+            <input type="text" id="ev-search" placeholder="Search evidence…" oninput="renderEvidence()">
+            <select id="ev-type-filter" onchange="renderEvidence()">
+              <option value="ALL">All Types</option>
+              <option>Policy Document</option><option>Research Report</option>
+              <option>Data Release</option><option>News Article</option>
+            </select>
+            <button class="btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="exportEvidence()">↓ Export</button>
+          </div>
+          <div class="table-scroll" style="border-radius:var(--radius);border:1px solid var(--color-border);">
+            <table class="ev-table">
+              <thead><tr><th>Type</th><th>Title</th><th>Summary</th><th>Author</th><th>Date</th><th>Confidence</th><th>Related</th><th>Link</th></tr></thead>
+              <tbody id="ev-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="tab-pane" id="tab-risks">
+          <div class="ev-toolbar">
+            <input type="text" id="risk-search" placeholder="Search risks…" oninput="renderRisks()">
+            <select id="risk-cat-filter" onchange="renderRisks()">
+              <option value="ALL">All Categories</option>
+              <option>Data &amp; Measurement</option><option>Policy</option>
+              <option>Workforce</option><option>Market Access</option><option>Funding</option>
+            </select>
+          </div>
+          <div class="table-scroll" style="border-radius:var(--radius);border:1px solid var(--color-border);">
+            <table class="risk-table">
+              <thead><tr><th>Category</th><th>Risk</th><th>Description</th><th>Severity</th><th>Likelihood</th><th>RAG</th><th>Owner</th><th>Mitigation</th><th>Reviewed</th></tr></thead>
+              <tbody id="risk-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <span>© Province of British Columbia</span>
+  <span>·</span>
+  <span><strong id="footer-strategy">Look West Strategy</strong></span>
+  <span>·</span>
+  <span>Data: <strong id="footer-data-status" style="color:var(--rag-amber-br);">Mock / Sample</strong></span>
+</footer>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Edit Initiative</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-initiative-id">
+      <div class="field full"><label>Initiative Name</label><input type="text" id="edit-name"></div>
+      <div class="field"><label>RAG Status</label>
+        <select id="edit-rag"><option>RED</option><option>AMBER</option><option>GREEN</option></select></div>
+      <div class="field"><label>Progress (%)</label><input type="number" id="edit-progress" min="0" max="100"></div>
+      <div class="field"><label>Status</label>
+        <select id="edit-status"><option>Active</option><option>Complete</option><option>Paused</option><option>Planning</option></select></div>
+      <div class="field"><label>Owner Ministry</label><input type="text" id="edit-owner"></div>
+      <div class="field full"><label>Next Milestone</label><input type="text" id="edit-milestone"></div>
+      <div class="field"><label>Milestone Date</label><input type="date" id="edit-milestone-date"></div>
+      <div class="field"><label>Confidence</label>
+        <select id="edit-confidence"><option>manual ministry input</option><option>mock sample data</option><option>official curated</option></select></div>
+      <div class="field full"><label>Commentary</label><textarea id="edit-commentary"></textarea></div>
+      <div class="field full"><label>Evidence Link</label><input type="url" id="edit-evidence-link"></div>
+    </div>
+    <div class="modal-footer">
+      <span class="modal-note">Changes saved locally in your browser.</span>
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveInitiativeEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── CONFIG (overridden by dashboardConfig from Excel) ─────────────────── */
+let CONFIG = {
+  strategy_name:    'Look West Strategy',
+  strategy_year:    2030,
+  province:         'British Columbia',
+  province_abbr:    'BC',
+  dashboard_title:  'B.C. Life Sciences Sector Dashboard',
+  dashboard_subtitle:'Look West Strategy · 2030 Target Monitoring',
+  last_updated:     '2024-11-01',
+  internal_only:    true,
+  data_root:        '../data',
+};
+
+/* ── THEME (overridden by dashboardConfig) ──────────────────────────────── */
+let THEME = {
+  subsectors: {
+    PHARMA:  { color:'#1B4F8A', label:'Pharma & Biopharma' },
+    MEDDEV:  { color:'#2E86AB', label:'Medical Devices' },
+    BIOTECH: { color:'#8E44AD', label:'Biotech R&D' },
+    CRO:     { color:'#E67E22', label:'Clinical Research & Labs' },
+    OTHER:   { color:'#718096', label:'Other / Emerging' },
+    ALL:     { color:'#003366', label:'Sector Total' },
+  },
+  provinces: { BC:'#003366', ON:'#2E86AB', QC:'#8E44AD', AB:'#E67E22', Canada:'#ADB5BD' },
+  chartDefaults: { font:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+    gridColor:'rgba(0,0,0,.05)', tickColor:'#718096', legendColor:'#4A5568' },
+};
+
+/* ── STATE ──────────────────────────────────────────────────────────────── */
+const STATE = {
+  data: {},
+  charts: {},
+  hasMockData: false,
+};
+
+/* ── CHART SETTINGS (per-user, localStorage + config defaults) ─────────── */
+const DEFAULT_CHARTS = {
+  emp_trend:true, gdp_trend:true, biz_count:true, exports:true,
+  regional:true, province_compare:true, research_activity:true,
+  funding:false, talent_pipeline:false,
+};
+
+function getChartSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('bcls_chart_settings') || 'null');
+    if (saved) return saved;
+  } catch(e) {}
+  // Use config defaults if available
+  const cfg = STATE.data.dashboardConfig;
+  if (cfg && cfg.charts) return Object.assign({}, DEFAULT_CHARTS, cfg.charts);
+  return Object.assign({}, DEFAULT_CHARTS);
+}
+
+function saveChartSettings(settings) {
+  try { localStorage.setItem('bcls_chart_settings', JSON.stringify(settings)); } catch(e) {}
+}
+
+function isChartEnabled(chartId) {
+  return getChartSettings()[chartId] !== false;
+}
+
+/* ── DATA LOADING ───────────────────────────────────────────────────────── */
+async function loadCSV(relPath) {
+  const url = CONFIG.data_root + '/' + relPath;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
+  const result = Papa.parse(await resp.text(), { header:true, skipEmptyLines:true, dynamicTyping:false });
+  return result.data;
+}
+
+async function loadAllData() {
+  if (window.BCLS_INLINE_DATA) {
+    Object.assign(STATE.data, window.BCLS_INLINE_DATA);
+    STATE.hasMockData = (STATE.data.officialMetrics||[]).some(r=>r.source_tier==='mock-sample');
+    applyDashboardConfig();
+    return;
+  }
+  const files = {
+    sectorDef:'00_reference/sector_definition_notes.csv',
+    subsectors:'00_reference/subsector_naics_lookup.csv',
+    officialMetrics:'10_official_sector/official_sector_metrics.csv',
+    regionShares:'10_official_sector/official_sector_region_shares.csv',
+    provinceCompare:'10_official_sector/official_sector_province_compare.csv',
+    bizCounts:'20_public_metrics/public_business_counts.csv',
+    gdpMetrics:'20_public_metrics/public_gdp_metrics.csv',
+    goodsExports:'20_public_metrics/public_goods_exports.csv',
+    clinicalTrials:'20_public_metrics/public_clinical_trials.csv',
+    fundingProjects:'20_public_metrics/public_funding_projects.csv',
+    regionContext:'20_public_metrics/region_context.csv',
+    psiPipeline:'20_public_metrics/postsecondary_pipeline.csv',
+    lwGoals:'30_strategy/lookwest_goals.csv',
+    lwInitiatives:'30_strategy/lookwest_initiatives.csv',
+    risksGaps:'30_strategy/risks_and_gaps.csv',
+    evidenceLib:'40_manual/evidence_library.csv',
+    manualOverrides:'40_manual/manual_metric_overrides.csv',
+    whatsNew:'40_manual/whats_new_optional.csv',
+  };
+  const results = await Promise.allSettled(
+    Object.entries(files).map(async ([key, path]) => {
+      STATE.data[key] = await loadCSV(path); })
+  );
+  // Try config JSON
+  try {
+    const r = await fetch(CONFIG.data_root + '/00_reference/dashboard_config.json');
+    if (r.ok) STATE.data.dashboardConfig = await r.json();
+  } catch(e) {}
+  if (!Object.keys(STATE.data).length) throw new Error('No data loaded.');
+  STATE.hasMockData = (STATE.data.officialMetrics||[]).some(r=>r.source_tier==='mock-sample');
+  applyDashboardConfig();
+}
+
+function applyDashboardConfig() {
+  const cfg = STATE.data.dashboardConfig;
+  if (!cfg) return;
+  if (cfg.sector) {
+    const s = cfg.sector;
+    if (s.dashboard_title)    CONFIG.dashboard_title    = s.dashboard_title;
+    if (s.dashboard_subtitle) CONFIG.dashboard_subtitle = s.dashboard_subtitle;
+    if (s.strategy_name)      CONFIG.strategy_name      = s.strategy_name;
+    if (s.strategy_year)      CONFIG.strategy_year      = +s.strategy_year || CONFIG.strategy_year;
+    if (s.province_abbr)      CONFIG.province_abbr      = s.province_abbr;
+    if (s.province)           CONFIG.province           = s.province;
+    if (s.last_updated)       CONFIG.last_updated        = s.last_updated;
+    if (s.internal_only !== undefined) CONFIG.internal_only = s.internal_only;
+  }
+  if (cfg.colors) {
+    Object.entries(cfg.colors).forEach(([sid, color]) => {
+      if (!THEME.subsectors[sid]) THEME.subsectors[sid] = { color, label: sid };
+      else THEME.subsectors[sid].color = color;
+    });
+  }
+  if (cfg.labels) {
+    Object.entries(cfg.labels).forEach(([sid, label]) => {
+      if (!THEME.subsectors[sid]) THEME.subsectors[sid] = { color:'#718096', label };
+      else THEME.subsectors[sid].label = label;
+    });
+  }
+}
+
+/* ── DATA HELPERS ───────────────────────────────────────────────────────── */
+function getMetrics(metricId, province, subsectorId) {
+  province    = province    || CONFIG.province_abbr;
+  subsectorId = subsectorId || 'ALL';
+  return (STATE.data.officialMetrics||[])
+    .filter(r => r.metric_id===metricId && r.province===province &&
+                 r.subsector_id===subsectorId && r.value!=='')
+    .map(r => ({ year:+r.year, value:+r.value, tier:r.source_tier, confidence:r.confidence_tag }))
+    .sort((a,b) => a.year - b.year);
+}
+function getLatest(metricId, province, subsectorId) {
+  const s = getMetrics(metricId, province, subsectorId);
+  return s.length ? s[s.length-1] : null;
+}
+function getBaseline(metricId, province, subsectorId) {
+  province    = province    || CONFIG.province_abbr;
+  subsectorId = subsectorId || 'ALL';
+  const r = (STATE.data.officialMetrics||[]).find(
+    r => r.metric_id===metricId && r.province===province &&
+         r.subsector_id===subsectorId && r.baseline_value!=='');
+  return r ? { year:+r.baseline_year, value:+r.baseline_value } : null;
+}
+function pctChange(cur, base) {
+  if (!base||!cur) return null;
+  return ((cur-base)/base*100).toFixed(1);
+}
+function fmtNum(val, unit) {
+  if (val===null||val===undefined||val==='') return null;
+  const n = +val; if (isNaN(n)) return null;
+  if (unit==='millions CAD'||unit==='millions_cad') {
+    return n>=1000 ? '$'+(n/1000).toFixed(1)+'B' : '$'+n.toLocaleString('en-CA')+'M';
+  }
+  if (unit==='%') return n.toFixed(1)+'%';
+  if (n>=1000000) return (n/1000000).toFixed(1)+'M';
+  if (n>=1000)    return n.toLocaleString('en-CA');
+  return String(n);
+}
+function tierTag(tier) {
+  if (!tier) return 'tag na';
+  if (tier==='mock-sample') return 'tag mock';
+  if (tier==='official-curated'||tier==='public-direct') return 'tag official';
+  if (tier==='public-prepared') return 'tag proxy';
+  if (tier==='manual-ministry') return 'tag manual';
+  return 'tag na';
+}
+function appliesToSubsector(related, sid) {
+  if (!related||related==='ALL'||related==='') return true;
+  return related.split('|').map(s=>s.trim()).some(s=>s===sid||s==='ALL');
+}
+
+/* ── RENDER: HEADER ─────────────────────────────────────────────────────── */
+function renderHeader() {
+  document.getElementById('hdr-title').textContent     = CONFIG.dashboard_title;
+  document.getElementById('hdr-subtitle').textContent  = CONFIG.dashboard_subtitle;
+  document.getElementById('hdr-updated').textContent   = CONFIG.last_updated;
+  document.getElementById('footer-strategy').textContent = CONFIG.strategy_name;
+  document.title = CONFIG.dashboard_title;
+  if (!CONFIG.internal_only) document.getElementById('badge-internal').style.display='none';
+  if (!STATE.hasMockData) {
+    document.getElementById('mock-banner').style.display='none';
+    const s = document.getElementById('footer-data-status');
+    s.textContent='Live'; s.style.color='var(--rag-green-br)';
+  }
+}
+
+/* ── RENDER: SECTOR DEF ─────────────────────────────────────────────────── */
+function renderSectorDef() {
+  const def = (STATE.data.sectorDef||[]).find(r=>r.id==='DEF-001') || (STATE.data.sectorDef||[])[0];
+  if (!def) return;
+  document.getElementById('sector-def').innerHTML = `
+    <div class="card sector-def" style="margin-bottom:20px;">
+      <div class="sector-def-title">${CONFIG.dashboard_title}</div>
+      <div class="sector-def-body">${def.body_text||''}</div>
+      ${def.caveat?`<div style="font-size:11px;color:var(--color-text-subtle);margin-top:8px;font-style:italic;">ⓘ ${def.caveat}</div>`:''}
+    </div>`;
+}
+
+/* ── RENDER: WHAT'S NEW ─────────────────────────────────────────────────── */
+function renderWhatsNew() {
+  const rows = (STATE.data.whatsNew||[]).sort((a,b)=>b.date.localeCompare(a.date));
+  if (!rows.length) return;
+  document.getElementById('whats-new-section').style.display='';
+  document.getElementById('whats-new-panel').innerHTML = `
+    <button class="wn-toggle" id="wn-btn" onclick="toggleWhatsNew()">
+      <span>📋 What's New</span>
+      <span style="font-size:11px;font-weight:400;color:var(--color-text-muted);">${rows.length} item${rows.length!==1?'s':''} · last ${rows[0].date}</span>
+      <span class="arrow">▼</span>
+    </button>
+    <div class="wn-body" id="wn-body">
+      ${rows.map(r=>`<div class="wn-row">
+        <div class="wn-meta"><div class="wn-date">${r.date}</div><div class="wn-cat">${r.category}</div><div class="wn-p ${r.priority}">${r.priority}</div></div>
+        <div class="wn-content"><div class="wn-headline">${r.headline}</div><div class="wn-blurb">${r.body||''}</div></div>
+      </div>`).join('')}
+    </div>`;
+}
+function toggleWhatsNew() {
+  const btn=document.getElementById('wn-btn'), body=document.getElementById('wn-body');
+  const open=body.classList.toggle('open');
+  btn.classList.toggle('open',open);
+}
+
+/* ── RENDER: SUBSECTOR TABS ─────────────────────────────────────────────── */
+function getTabSubsectors() {
+  return (STATE.data.subsectors||[])
+    .filter(r=>r.show_as_tab==='TRUE')
+    .sort((a,b)=>+a.tab_order-+b.tab_order);
+}
+function dataBadge(rel) {
+  if (rel==='TRUE')    return '<span class="sub-tab-badge good">✓ Good data</span>';
+  if (rel==='PARTIAL') return '<span class="sub-tab-badge partial">⚠ Partial</span>';
+  return '<span class="sub-tab-badge none">✗ Data gap</span>';
+}
+
+function renderSubsectorTabs() {
+  const subs = getTabSubsectors();
+  const bar  = document.getElementById('subsector-tab-bar');
+  bar.innerHTML = subs.map((s,i) => {
+    const color = (THEME.subsectors[s.subsector_id]||{}).color || s.dashboard_color || '#718096';
+    const naics = [s.naics_4digit, s.naics_5digit].filter(Boolean).join('/');
+    return `<button class="sub-tab-btn${i===0?' active':''}"
+              id="subtab-${s.subsector_id}" style="--tab-color:${color};"
+              onclick="switchSubsectorTab('${s.subsector_id}')">
+      <span class="sub-tab-name"><span class="sub-tab-dot"></span>${s.subsector_name}</span>
+      ${naics?`<span class="sub-tab-naics">NAICS ${naics}</span>`:''}
+      ${dataBadge(s.has_reliable_data)}
+    </button>`;
+  }).join('');
+
+  const panels = document.getElementById('subsector-panels');
+  panels.innerHTML = subs.map((s,i)=>
+    `<div class="subsector-panel${i===0?' active':''}" id="panel-${s.subsector_id}" data-subsector="${s.subsector_id}"></div>`
+  ).join('');
+
+  if (subs.length) {
+    STATE.activeSubsector = subs[0].subsector_id;
+    buildPanelContent(subs[0]);
+  }
+}
+
+function switchSubsectorTab(sid) {
+  document.querySelectorAll('.sub-tab-btn').forEach(b=>b.classList.remove('active'));
+  const btn = document.getElementById('subtab-'+sid);
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.subsector-panel').forEach(p=>p.classList.remove('active'));
+  const panel = document.getElementById('panel-'+sid);
+  if (panel) panel.classList.add('active');
+  STATE.activeSubsector = sid;
+  const sub = getTabSubsectors().find(s=>s.subsector_id===sid);
+  if (sub && !panel.dataset.built) buildPanelContent(sub);
+  else Object.values(STATE.charts).forEach(c=>{ try{c.resize();}catch(e){} });
+}
+
+/* ── BUILD PANEL CONTENT ────────────────────────────────────────────────── */
+function buildPanelContent(s) {
+  const panel = document.getElementById('panel-'+s.subsector_id);
+  if (!panel||panel.dataset.built) return;
+  panel.dataset.built = '1';
+
+  const color    = (THEME.subsectors[s.subsector_id]||{}).color || s.dashboard_color || '#718096';
+  const rel      = s.has_reliable_data;
+  const dqClass  = rel==='TRUE'?'good': rel==='PARTIAL'?'partial':'none';
+  const dqLabel  = rel==='TRUE'?'✓ Reliable data': rel==='PARTIAL'?'⚠ Partial data':'✗ Data gap';
+  const naicsTxt = [s.naics_4digit&&'NAICS '+s.naics_4digit, s.naics_5digit&&'('+s.naics_5digit+')'].filter(Boolean).join(' ');
+
+  panel.innerHTML = `
+    <!-- Header -->
+    <div class="card sub-panel-header" style="border-left-color:${color};margin-bottom:22px;">
+      <div class="sub-panel-hdr-top">
+        <div>
+          <div class="sub-panel-title" style="color:${color};">${s.subsector_name}</div>
+          ${naicsTxt?`<div class="sub-panel-naics">${naicsTxt}</div>`:''}
+          <div class="sub-panel-desc">${s.naics_description||''}</div>
+          ${s.data_availability_note?`<div class="sub-panel-avail">ⓘ ${s.data_availability_note}</div>`:''}
+        </div>
+        <div class="data-quality-badge"><span class="dq-pill ${dqClass}">${dqLabel}</span></div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="section">
+      <div class="section-head">
+        <h2>Key Indicators</h2>
+        <span class="sh-sub">${s.subsector_name} · Latest available</span>
+      </div>
+      <div id="kpi-${s.subsector_id}" class="kpi-grid"></div>
+      <div class="conf-legend">
+        <div class="conf-item"><div class="conf-swatch" style="background:#D97706;"></div>Mock sample</div>
+        <div class="conf-item"><div class="conf-swatch" style="background:#003366;"></div>Official statistics</div>
+        <div class="conf-item"><div class="conf-swatch" style="background:#8E44AD;"></div>Proxy estimate</div>
+        <div class="conf-item"><div class="conf-swatch" style="background:#0E6655;"></div>Ministry input</div>
+      </div>
+    </div>
+
+    <!-- Look West Goals -->
+    <div class="section">
+      <div class="section-head">
+        <h2>Look West Strategy Goals</h2>
+        <span class="sh-sub">Goals relevant to ${s.subsector_name}</span>
+      </div>
+      <div class="lw-summary-row" id="lw-sum-${s.subsector_id}"></div>
+      <div class="lw-goals-grid" id="lw-goals-${s.subsector_id}"></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="section">
+      <div class="charts-section-head">
+        <h2>Sector Trends</h2>
+        <span class="sh-sub">${s.subsector_name} · Mock sample data</span>
+        <button class="chart-settings-btn" onclick="toggleChartSettings('${s.subsector_id}')">
+          ⚙ Customize charts
+        </button>
+      </div>
+      <!-- Chart settings panel -->
+      <div class="chart-settings-panel" id="csp-${s.subsector_id}">
+        <div class="csp-title">Show / hide charts</div>
+        <div class="csp-grid" id="csp-grid-${s.subsector_id}"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn-secondary" style="font-size:11px;padding:4px 12px;" onclick="resetChartSettings('${s.subsector_id}')">Reset to defaults</button>
+          <button class="btn-secondary" style="font-size:11px;padding:4px 12px;" onclick="toggleChartSettings('${s.subsector_id}')">Close</button>
+        </div>
+      </div>
+      <div class="charts-grid" id="charts-${s.subsector_id}"></div>
+    </div>
+
+    <!-- Initiatives -->
+    <div class="section">
+      <div class="section-head">
+        <h2>Initiative Tracker</h2>
+        <span class="sh-sub">Look West initiatives for ${s.subsector_name}</span>
+        <button class="sh-action" onclick="exportInitiativesCSV()">↓ Export</button>
+      </div>
+      <div class="init-toolbar">
+        <span class="tb-lbl">RAG</span>
+        <select id="init-rag-${s.subsector_id}" onchange="renderInitiativeTable('${s.subsector_id}')">
+          <option value="ALL">All</option><option value="RED">Red</option>
+          <option value="AMBER">Amber</option><option value="GREEN">Green</option>
+        </select>
+        <input type="text" id="init-search-${s.subsector_id}" placeholder="Search initiatives…"
+               oninput="renderInitiativeTable('${s.subsector_id}')">
+        <span class="init-count" id="init-count-${s.subsector_id}"></span>
+      </div>
+      <div class="table-scroll">
+        <table class="init-table">
+          <thead><tr>
+            <th onclick="sortInit('initiative_name','${s.subsector_id}')">Initiative ↕</th>
+            <th onclick="sortInit('pillar','${s.subsector_id}')">Pillar ↕</th>
+            <th>Owner</th>
+            <th onclick="sortInit('status','${s.subsector_id}')">Status ↕</th>
+            <th onclick="sortInit('rag_status','${s.subsector_id}')">RAG ↕</th>
+            <th>Progress</th>
+            <th>Next Milestone</th>
+            <th>Last Review</th>
+            <th>Edit</th>
+          </tr></thead>
+          <tbody id="init-tbody-${s.subsector_id}"></tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Populate
+  renderKPIs(s.subsector_id, color);
+  renderLookWest(s.subsector_id);
+  buildChartSettingsPanel(s.subsector_id);
+  buildCharts(s.subsector_id, color);
+  renderInitiativeTable(s.subsector_id);
+}
+
+/* ── KPI CARDS ──────────────────────────────────────────────────────────── */
+function renderKPIs(sid, color) {
+  const overrides = {};
+  (STATE.data.manualOverrides||[]).forEach(r=>{ overrides[r.metric_id+'_'+r.subsector_id]=r; });
+
+  const defs = [
+    { id:'EMP-TOTAL-BC',   label:'Employment',       unit:'FTE',          icon:'👥' },
+    { id:'GDP-TOTAL-BC',   label:'GDP Contribution', unit:'millions CAD', icon:'📈' },
+    { id:'REV-TOTAL-BC',   label:'Sector Revenue',   unit:'millions CAD', icon:'💰' },
+    { id:'BIZ-COUNT-BC',   label:'Business Count',   unit:'businesses',   icon:'🏢' },
+    { id:'EXP-GOODS-BC',   label:'Goods Exports',    unit:'millions CAD', icon:'🌏' },
+    { id:'FUND-PUBLIC-BC', label:'Public Funding',   unit:'millions CAD', icon:'🏛' },
+  ];
+
+  const grid = document.getElementById('kpi-'+sid);
+  if (!grid) return;
+  let cards = '';
+  let shown = 0;
+
+  defs.forEach(kpi => {
+    const latest   = getLatest(kpi.id, CONFIG.province_abbr, sid);
+    const baseline = getBaseline(kpi.id, CONFIG.province_abbr, sid);
+    const override = overrides[kpi.id+'_'+sid];
+
+    let value = latest ? +latest.value : null;
+    let tier  = latest ? latest.tier : null;
+
+    if (override && override.value!=='') {
+      value = +override.value;
+      tier  = override.source_tier;
+    }
+
+    // Hide cards with no data for this subsector
+    if (value===null || isNaN(value)) return;
+
+    let trendHtml = '';
+    if (baseline && baseline.value) {
+      const pct = pctChange(value, baseline.value);
+      if (pct!==null) {
+        const dir   = pct>0?'up':pct<0?'down':'flat';
+        const arrow = dir==='up'?'↑':dir==='down'?'↓':'→';
+        trendHtml = `<div class="kpi-trend ${dir}">${arrow} ${Math.abs(pct)}% since ${baseline.year}</div>`;
+      }
+    }
+
+    cards += `<div class="card kpi-card" style="--color-primary:${color};">
+      <div class="kpi-label">${kpi.icon} ${kpi.label}</div>
+      <div class="kpi-value">${fmtNum(value,kpi.unit)||'—'}</div>
+      <div class="kpi-unit">${kpi.unit}</div>
+      ${trendHtml}
+      ${baseline?`<div class="kpi-base">Baseline: ${fmtNum(baseline.value,kpi.unit)} (${baseline.year})</div>`:''}
+      <div class="kpi-tags"><span class="${tierTag(tier)}">${tier||'—'}</span></div>
+    </div>`;
+    shown++;
+  });
+
+  grid.innerHTML = shown > 0
+    ? cards
+    : `<div class="no-kpi-notice">No quantitative data available for ${sid}. Update Sector_Metrics in the Excel file.</div>`;
+}
+
+/* ── LOOK WEST GOALS ────────────────────────────────────────────────────── */
+function renderLookWest(sid) {
+  const goals = (STATE.data.lwGoals||[]).filter(g=>appliesToSubsector(g.related_subsectors, sid));
+  const sumEl  = document.getElementById('lw-sum-'+sid);
+  const glEl   = document.getElementById('lw-goals-'+sid);
+  if (!sumEl||!glEl) return;
+
+  if (!goals.length) {
+    sumEl.innerHTML='';
+    glEl.innerHTML='<div style="color:var(--color-text-subtle);font-size:12px;font-style:italic;padding:12px 0;">No strategy goals mapped to this subsector.</div>';
+    return;
+  }
+
+  const amber = goals.filter(g=>g.rag_status==='AMBER').length;
+  const green = goals.filter(g=>g.rag_status==='GREEN').length;
+
+  sumEl.innerHTML = `
+    <div class="card lw-sum-card">
+      <div class="lw-sum-num amber">${amber}</div>
+      <div class="lw-sum-lbl">Needs Attention</div>
+    </div>
+    <div class="card lw-sum-card">
+      <div class="lw-sum-num green">${green}</div>
+      <div class="lw-sum-lbl">On Track</div>
+    </div>
+    <div class="card lw-sum-card">
+      <div class="lw-sum-num blue">${goals.length}</div>
+      <div class="lw-sum-lbl">Total Goals</div>
+    </div>`;
+
+  glEl.innerHTML = goals.map(g => {
+    const pct = Math.min(100, Math.max(0, +g.progress_pct||0));
+    const tgt = g.target_value && g.target_unit
+      ? `Target: ${fmtNum(g.target_value,g.target_unit)} by ${g.target_year}`
+      : `By ${g.target_year}`;
+    return `<div class="card lw-goal">
+      <div class="lw-pillar-tag">${g.pillar}</div>
+      <div class="lw-goal-top">
+        <div class="rag-dot ${g.rag_status}"></div>
+        <div class="lw-goal-name">${g.goal_name}</div>
+      </div>
+      <div class="lw-goal-bar">
+        <div class="lw-track"><div class="lw-fill ${g.rag_status}" style="width:${pct}%"></div></div>
+        <div class="lw-pct">${pct.toFixed(0)}%</div>
+      </div>
+      <div class="lw-tgt">${tgt}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── CHART HELPERS ──────────────────────────────────────────────────────── */
+const COPTS = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{
+    legend:{ labels:{ font:{size:11,family:THEME.chartDefaults.font},
+      color:THEME.chartDefaults.legendColor, boxWidth:12, padding:12 } },
+    tooltip:{ backgroundColor:'rgba(0,0,0,.8)', titleFont:{size:11}, bodyFont:{size:11}, padding:8 }
+  },
+  scales:{
+    x:{ grid:{color:THEME.chartDefaults.gridColor}, ticks:{font:{size:11},color:THEME.chartDefaults.tickColor} },
+    y:{ grid:{color:THEME.chartDefaults.gridColor}, ticks:{font:{size:11},color:THEME.chartDefaults.tickColor} }
+  }
+};
+
+function mkChart(id, config) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return null;
+  if (STATE.charts[id]) { STATE.charts[id].destroy(); delete STATE.charts[id]; }
+  canvas.parentElement.style.height='230px';
+  return STATE.charts[id] = new Chart(canvas, config);
+}
+
+function merge(a, b) {
+  const out = Object.assign({}, a);
+  for (const k in b) {
+    out[k] = (b[k] && typeof b[k]==='object' && !Array.isArray(b[k]))
+      ? merge(a[k]||{}, b[k]) : b[k];
+  }
+  return out;
+}
+
+/* ── CHART SETTINGS PANEL ───────────────────────────────────────────────── */
+const CHART_DEFS = [
+  { id:'emp_trend',        label:'Employment Trend' },
+  { id:'gdp_trend',        label:'GDP Contribution' },
+  { id:'biz_count',        label:'Business Count' },
+  { id:'exports',          label:'Goods Exports' },
+  { id:'regional',         label:'Regional Employment' },
+  { id:'province_compare', label:'Province Comparison' },
+  { id:'research_activity',label:'Research Activity' },
+  { id:'funding',          label:'Public Funding' },
+  { id:'talent_pipeline',  label:'Talent Pipeline' },
+];
+
+function buildChartSettingsPanel(sid) {
+  const grid = document.getElementById('csp-grid-'+sid);
+  if (!grid) return;
+  const settings = getChartSettings();
+  grid.innerHTML = CHART_DEFS.map(c => `
+    <label class="csp-item">
+      <input type="checkbox" ${settings[c.id]!==false?'checked':''}
+             onchange="onChartToggle('${sid}','${c.id}',this.checked)">
+      <span class="csp-label">${c.label}</span>
+    </label>`).join('');
+}
+
+function toggleChartSettings(sid) {
+  const panel = document.getElementById('csp-'+sid);
+  if (panel) panel.classList.toggle('open');
+}
+
+function onChartToggle(sid, chartId, checked) {
+  const settings = getChartSettings();
+  settings[chartId] = checked;
+  saveChartSettings(settings);
+  buildCharts(sid, (THEME.subsectors[sid]||{}).color||'#003366');
+}
+
+function resetChartSettings(sid) {
+  localStorage.removeItem('bcls_chart_settings');
+  buildChartSettingsPanel(sid);
+  buildCharts(sid, (THEME.subsectors[sid]||{}).color||'#003366');
+}
+
+/* ── BUILD ALL CHARTS FOR A SUBSECTOR ──────────────────────────────────── */
+function buildCharts(sid, color) {
+  const settings = getChartSettings();
+  const container = document.getElementById('charts-'+sid);
+  if (!container) return;
+
+  // Destroy old charts for this panel
+  CHART_DEFS.forEach(c => {
+    const id = 'chart-'+c.id+'-'+sid;
+    if (STATE.charts[id]) { STATE.charts[id].destroy(); delete STATE.charts[id]; }
+  });
+
+  // Build HTML for enabled charts
+  const enabled = CHART_DEFS.filter(c => settings[c.id]!==false);
+  if (!enabled.length) {
+    container.innerHTML='<div style="padding:20px;color:var(--color-text-subtle);font-size:12px;font-style:italic;">No charts selected. Use ⚙ Customize charts to enable some.</div>';
+    return;
+  }
+
+  const chartHtml = {
+    emp_trend:       `<div class="card chart-card"><div class="chart-title">Employment Trend (FTE)</div><div class="chart-subtitle">${(THEME.subsectors[sid]||{}).label||sid} · 2019–2024 with target</div><div class="chart-container"><canvas id="chart-emp_trend-${sid}"></canvas></div><div class="chart-caveat">Mock data · Statistics Canada.</div></div>`,
+    gdp_trend:       `<div class="card chart-card"><div class="chart-title">GDP Contribution ($M CAD)</div><div class="chart-subtitle">${(THEME.subsectors[sid]||{}).label||sid} · GDP at basic prices</div><div class="chart-container"><canvas id="chart-gdp_trend-${sid}"></canvas></div><div class="chart-caveat">Mock data · Statistics Canada CSNA Table 36-10-0402.</div></div>`,
+    biz_count:       `<div class="card chart-card"><div class="chart-title">Business Count</div><div class="chart-subtitle">${(THEME.subsectors[sid]||{}).label||sid} · Total registered businesses</div><div class="chart-container"><canvas id="chart-biz_count-${sid}"></canvas></div><div class="chart-caveat">Mock data · Statistics Canada Business Register.</div></div>`,
+    exports:         `<div class="card chart-card"><div class="chart-title">Goods Exports ($M CAD)</div><div class="chart-subtitle">${(THEME.subsectors[sid]||{}).label||sid} · Total by year</div><div class="chart-container"><canvas id="chart-exports-${sid}"></canvas></div><div class="chart-caveat">Mock data · Statistics Canada Trade Data Online.</div></div>`,
+    regional:        `<div class="card chart-card"><div class="chart-title">Employment by Region (2024)</div><div class="chart-subtitle">B.C. regions · FTE share</div><div class="chart-container"><canvas id="chart-regional-${sid}"></canvas></div><div class="chart-caveat">Mock data · BC Stats proxy business location data.</div></div>`,
+    province_compare:`<div class="card chart-card"><div class="chart-title">Province Comparison (2024)</div><div class="chart-subtitle">Life sciences FTEs · BC vs other provinces</div><div class="chart-container"><canvas id="chart-province_compare-${sid}"></canvas></div><div class="chart-caveat">Mock data · Statistics Canada LFS.</div></div>`,
+    research_activity:`<div class="card chart-card"><div class="chart-title">Research Activity (Active Trials)</div><div class="chart-subtitle">Active clinical trials with B.C. site</div><div class="chart-container"><canvas id="chart-research_activity-${sid}"></canvas></div><div class="chart-caveat">Mock data · ClinicalTrials.gov / Health Canada CTDB.</div></div>`,
+    funding:         `<div class="card chart-card"><div class="chart-title">Public Funding by Program ($M CAD)</div><div class="chart-subtitle">Federal + provincial programs · 2024</div><div class="chart-container"><canvas id="chart-funding-${sid}"></canvas></div><div class="chart-caveat">Mock data · ISED, CIHR, NSERC, BC MTIT.</div></div>`,
+    talent_pipeline: `<div class="card chart-card"><div class="chart-title">Talent Pipeline (Graduates)</div><div class="chart-subtitle">Post-secondary life sciences graduates · B.C.</div><div class="chart-container"><canvas id="chart-talent_pipeline-${sid}"></canvas></div><div class="chart-caveat">Mock data · BCCAT / HEABC graduate data.</div></div>`,
+  };
+
+  container.innerHTML = enabled.map(c => chartHtml[c.id]||'').join('');
+
+  // Now draw each enabled chart
+  if (settings.emp_trend!==false)         chartEmp(sid, color);
+  if (settings.gdp_trend!==false)         chartGdp(sid, color);
+  if (settings.biz_count!==false)         chartBiz(sid, color);
+  if (settings.exports!==false)           chartExports(sid, color);
+  if (settings.regional!==false)          chartRegional(sid, color);
+  if (settings.province_compare!==false)  chartProvince(sid, color);
+  if (settings.research_activity!==false) chartResearch(sid, color);
+  if (settings.funding!==false)           chartFunding(sid, color);
+  if (settings.talent_pipeline!==false)   chartTalent(sid, color);
+}
+
+/* ── INDIVIDUAL CHART FUNCTIONS ─────────────────────────────────────────── */
+function chartEmp(sid, color) {
+  const series = getMetrics('EMP-TOTAL-BC', CONFIG.province_abbr, sid);
+  if (!series.length) return;
+  const years = series.map(r=>r.year);
+  const goal  = (STATE.data.lwGoals||[]).find(g=>g.goal_id==='LW-G01' && appliesToSubsector(g.related_subsectors,sid));
+  const tgtY  = goal ? +goal.target_year : CONFIG.strategy_year;
+  const tgtV  = goal ? +goal.target_value : null;
+  const allY  = tgtV ? [...new Set([...years,tgtY])].sort() : years;
+  const datasets = [{
+    label:'Employment (FTE)', fill:true, tension:0.35,
+    data: allY.map(y=>{ const p=series.find(r=>r.year===y); return p?p.value:null; }),
+    borderColor:color, backgroundColor:color+'20', borderWidth:2.5,
+    pointRadius:4, pointHoverRadius:6, spanGaps:true,
+  }];
+  if (tgtV) datasets.push({
+    label:`${tgtY} Target (${tgtV.toLocaleString()})`,
+    data: allY.map(y=>y===tgtY?tgtV:null),
+    borderColor:'#D97706', borderWidth:2, borderDash:[6,4],
+    pointRadius: allY.map(y=>y===tgtY?5:0), pointBackgroundColor:'#D97706', fill:false,
+  });
+  mkChart('chart-emp_trend-'+sid, { type:'line', data:{labels:allY,datasets},
+    options:merge(COPTS,{plugins:{legend:{position:'bottom'}},
+      scales:{y:{beginAtZero:false,ticks:{callback:v=>v.toLocaleString()}}}}) });
+}
+
+function chartGdp(sid, color) {
+  const rows = (STATE.data.gdpMetrics||[]).filter(r=>r.subsector_id===sid && r.province===CONFIG.province_abbr);
+  if (!rows.length) return;
+  const years = [...new Set(rows.map(r=>r.year))].sort();
+  const vals  = years.map(y=>{ const r=rows.find(r=>r.year===y); return r?+r.value_millions_cad:null; });
+  mkChart('chart-gdp_trend-'+sid, { type:'bar', data:{labels:years,datasets:[{
+    label:'GDP ($M CAD)', data:vals, backgroundColor:color+'CC',
+    borderColor:color, borderWidth:1, borderRadius:4,
+  }]}, options:merge(COPTS,{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString()+'M'}}}}) });
+}
+
+function chartBiz(sid, color) {
+  const rows = (STATE.data.bizCounts||[]).filter(r=>r.subsector_id===sid && r.province===CONFIG.province_abbr);
+  if (!rows.length) return;
+  const years = [...new Set(rows.map(r=>r.year))].sort();
+  const totals = years.map(y => rows.filter(r=>r.year===y).reduce((s,r)=>s+(+r.count||0),0));
+  mkChart('chart-biz_count-'+sid, { type:'bar', data:{labels:years,datasets:[{
+    label:'Businesses', data:totals, backgroundColor:color+'BB',
+    borderColor:color, borderWidth:1, borderRadius:4,
+  }]}, options:merge(COPTS,{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>v.toLocaleString()}}}}) });
+}
+
+function chartExports(sid, color) {
+  const rows = (STATE.data.goodsExports||[]).filter(r=>
+    r.subsector_id===sid && r.province===CONFIG.province_abbr);
+  if (!rows.length) return;
+  const years  = [...new Set(rows.map(r=>r.year))].sort();
+  const totals = years.map(y => rows.filter(r=>r.year===y).reduce((s,r)=>s+(+r.value_millions_cad||0),0));
+  mkChart('chart-exports-'+sid, { type:'line', data:{labels:years,datasets:[{
+    label:'Exports ($M CAD)', data:totals, fill:true,
+    borderColor:color, backgroundColor:color+'18',
+    borderWidth:2.5, pointRadius:4, tension:0.3, spanGaps:true,
+  }]}, options:merge(COPTS,{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>'$'+v.toLocaleString()+'M'}}}}) });
+}
+
+function chartRegional(sid, color) {
+  const rows = (STATE.data.regionShares||[])
+    .filter(r=>r.metric_id==='EMP-TOTAL-BC' && r.year==='2024')
+    .sort((a,b)=>+b.value-+a.value);
+  if (!rows.length) return;
+  const labels = rows.map(r=>r.region_name);
+  const vals   = rows.map(r=>+r.value);
+  const pcts   = rows.map(r=>parseFloat(r.share_pct));
+  mkChart('chart-regional-'+sid, { type:'bar', data:{labels,datasets:[{
+    label:'FTEs', data:vals,
+    backgroundColor:['#003366','#1A5276','#2E86AB','#8E44AD','#E67E22','#ADB5BD'],
+    borderRadius:3,
+  }]}, options:merge(COPTS,{indexAxis:'y', plugins:{legend:{display:false},
+    tooltip:{callbacks:{label:(ctx)=>` ${ctx.raw.toLocaleString()} FTEs (${pcts[ctx.dataIndex]}%)`}}},
+    scales:{x:{ticks:{callback:v=>v.toLocaleString()}}}}) });
+}
+
+function chartProvince(sid, color) {
+  const rows = (STATE.data.provinceCompare||[])
+    .filter(r=>r.metric_id==='EMP-TOTAL-BC' && r.year==='2024' && r.province!=='Canada')
+    .sort((a,b)=>+b.value-+a.value);
+  if (!rows.length) return;
+  const provs = rows.map(r=>r.province);
+  const vals  = rows.map(r=>+r.value);
+  const cols  = provs.map(p=>p===CONFIG.province_abbr ? color : (THEME.provinces[p]||'#ADB5BD'));
+  mkChart('chart-province_compare-'+sid, { type:'bar', data:{labels:provs,datasets:[{
+    label:'Employment (FTE, 2024)', data:vals, backgroundColor:cols, borderRadius:3,
+  }]}, options:merge(COPTS,{plugins:{legend:{display:false}},
+    scales:{y:{ticks:{callback:v=>v.toLocaleString()}}}}) });
+}
+
+function chartResearch(sid, color) {
+  const rows = (STATE.data.clinicalTrials||[])
+    .filter(r=>r.phase==='ALL' && r.province===CONFIG.province_abbr && r.therapeutic_area==='ALL')
+    .sort((a,b)=>+a.year-+b.year);
+  if (!rows.length) return;
+  const goal   = (STATE.data.lwGoals||[]).find(g=>g.goal_id==='LW-G07');
+  const tgtV   = goal ? +goal.target_value : null;
+  const years  = rows.map(r=>r.year);
+  const counts = rows.map(r=>+r.trial_count);
+  const ds = [{ label:'Active Trials (B.C.)', data:counts,
+    backgroundColor:color+'CC', borderColor:color, borderWidth:1, borderRadius:3 }];
+  if (tgtV) ds.push({ label:`Target: ${tgtV} by ${goal.target_year}`,
+    data:years.map(()=>tgtV), type:'line', borderColor:'#D97706',
+    borderWidth:2, borderDash:[5,4], pointRadius:0, fill:false });
+  mkChart('chart-research_activity-'+sid, { type:'bar', data:{labels:years,datasets:ds},
+    options:merge(COPTS,{plugins:{legend:{position:'bottom'}}}) });
+}
+
+function chartFunding(sid, color) {
+  const rows = (STATE.data.fundingProjects||[]).filter(r=>r.year==='2024'&&r.recipient_subsector==='ALL');
+  if (!rows.length) return;
+  mkChart('chart-funding-'+sid, { type:'bar',
+    data:{ labels:rows.map(r=>r.program_name), datasets:[{
+      label:'Funding ($M CAD)', data:rows.map(r=>+r.amount_millions_cad),
+      backgroundColor:['#003366','#1A5276','#2E86AB','#8E44AD','#E67E22','#C73E1D','#27AE60'],
+      borderRadius:3,
+    }]},
+    options:merge(COPTS,{indexAxis:'y', plugins:{legend:{display:false}},
+      scales:{x:{ticks:{callback:v=>'$'+v+'M'}}}}) });
+}
+
+function chartTalent(sid, color) {
+  const rows = (STATE.data.psiPipeline||[])
+    .filter(r=>r.institution==='ALL'&&r.credential_type==='ALL').sort((a,b)=>+a.year-+b.year);
+  if (!rows.length) return;
+  const goal = (STATE.data.lwGoals||[]).find(g=>g.goal_id==='LW-G08');
+  const tgt  = goal ? Math.round(+goal.baseline_value*1.25) : null;
+  const ds = [{ label:'Graduates', data:rows.map(r=>+r.graduates_count),
+    backgroundColor:color+'BB', borderColor:color, borderWidth:1, borderRadius:3 }];
+  if (tgt) ds.push({ label:`+25% Target (${tgt})`, data:rows.map(()=>tgt),
+    type:'line', borderColor:'#D97706', borderWidth:2, borderDash:[5,4],
+    pointRadius:0, fill:false });
+  mkChart('chart-talent_pipeline-'+sid, { type:'bar',
+    data:{labels:rows.map(r=>r.year),datasets:ds},
+    options:merge(COPTS,{plugins:{legend:{position:'bottom'}}}) });
+}
+
+/* ── INITIATIVE TRACKER ─────────────────────────────────────────────────── */
+let initSort = { col:null, dir:1, sid:null };
+
+function sortInit(col, sid) {
+  if (initSort.col===col && initSort.sid===sid) initSort.dir*=-1;
+  else { initSort.col=col; initSort.dir=1; initSort.sid=sid; }
+  renderInitiativeTable(sid);
+}
+
+function loadEdits() { try { return JSON.parse(localStorage.getItem('lw_init_edits')||'{}'); } catch(e){return{};} }
+function saveEdits(e){ try { localStorage.setItem('lw_init_edits',JSON.stringify(e)); } catch(er){} }
+
+function renderInitiativeTable(sid) {
+  const edits  = loadEdits();
+  const ragEl  = document.getElementById('init-rag-'+sid);
+  const srchEl = document.getElementById('init-search-'+sid);
+  const ragF   = ragEl ? ragEl.value : 'ALL';
+  const srch   = ((srchEl&&srchEl.value)||'').toLowerCase();
+
+  let rows = (STATE.data.lwInitiatives||[]).map(r=>{
+    const e=edits[r.initiative_id]; return e?Object.assign({},r,e):r;
+  }).filter(r=>appliesToSubsector(r.related_subsectors, sid));
+
+  if (ragF!=='ALL') rows=rows.filter(r=>r.rag_status===ragF);
+  if (srch) rows=rows.filter(r=>[r.initiative_name,r.pillar,r.owner_ministry,r.description,r.next_milestone].join(' ').toLowerCase().includes(srch));
+
+  if (initSort.col && initSort.sid===sid) {
+    rows=[...rows].sort((a,b)=>{
+      const av=(a[initSort.col]||'').toLowerCase(), bv=(b[initSort.col]||'').toLowerCase();
+      return av<bv?-initSort.dir:av>bv?initSort.dir:0;
+    });
+  }
+
+  const tbody = document.getElementById('init-tbody-'+sid);
+  if (!tbody) return;
+  const total = (STATE.data.lwInitiatives||[]).filter(r=>appliesToSubsector(r.related_subsectors,sid)).length;
+
+  tbody.innerHTML = !rows.length
+    ? `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--color-text-subtle);font-size:12px;font-style:italic;">No initiatives for this subsector.</td></tr>`
+    : rows.map(r => {
+      const pct = Math.min(100,Math.max(0,+r.progress_pct||0));
+      return `<tr>
+        <td style="max-width:220px;line-height:1.4;">${edits[r.initiative_id]?'<span style="color:var(--rag-amber);font-size:10px;" title="Locally edited">✎ </span>':''} ${r.initiative_name}</td>
+        <td style="white-space:nowrap;font-size:11px;color:var(--color-text-muted);">${r.pillar}</td>
+        <td style="font-size:11px;color:var(--color-text-muted);max-width:140px;">${r.owner_ministry}</td>
+        <td><span class="status-badge ${r.status}">${r.status}</span></td>
+        <td><span class="rag-pill ${r.rag_status}">${r.rag_status}</span></td>
+        <td><div style="font-size:11px;font-weight:600;">${pct}%</div><div class="prog-track"><div class="prog-fill ${r.rag_status}" style="width:${pct}%"></div></div></td>
+        <td style="font-size:11px;max-width:160px;line-height:1.4;">${r.next_milestone||'—'}${r.next_milestone_date?`<br><span style="color:var(--color-text-subtle);">${r.next_milestone_date}</span>`:''}</td>
+        <td style="font-size:11px;color:var(--color-text-subtle);">${r.last_review_date||'—'}</td>
+        <td><button class="btn-edit" onclick="openEditModal('${r.initiative_id}')">Edit</button></td>
+      </tr>`;
+    }).join('');
+
+  const cEl = document.getElementById('init-count-'+sid);
+  if (cEl) cEl.textContent = `${rows.length} of ${total}`;
+}
+
+/* ── EDIT MODAL ─────────────────────────────────────────────────────────── */
+function openEditModal(id) {
+  const edits = loadEdits();
+  const base  = (STATE.data.lwInitiatives||[]).find(r=>r.initiative_id===id)||{};
+  const data  = Object.assign({},base,edits[id]||{});
+  document.getElementById('edit-initiative-id').value  = id;
+  document.getElementById('edit-name').value           = data.initiative_name||'';
+  document.getElementById('edit-rag').value            = data.rag_status||'AMBER';
+  document.getElementById('edit-progress').value       = data.progress_pct||0;
+  document.getElementById('edit-status').value         = data.status||'Active';
+  document.getElementById('edit-milestone').value      = data.next_milestone||'';
+  document.getElementById('edit-milestone-date').value = data.next_milestone_date||'';
+  document.getElementById('edit-commentary').value     = data._commentary||'';
+  document.getElementById('edit-evidence-link').value  = data._evidence_link||'';
+  document.getElementById('edit-owner').value          = data.owner_ministry||'';
+  document.getElementById('edit-confidence').value     = data.confidence_tag||'manual ministry input';
+  document.getElementById('modal-title').textContent   = 'Edit: '+(data.initiative_name||id);
+  document.getElementById('edit-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('edit-modal').classList.remove('open'); }
+function saveInitiativeEdit() {
+  const id = document.getElementById('edit-initiative-id').value;
+  const edits = loadEdits();
+  edits[id] = {
+    rag_status: document.getElementById('edit-rag').value,
+    progress_pct: document.getElementById('edit-progress').value,
+    status: document.getElementById('edit-status').value,
+    next_milestone: document.getElementById('edit-milestone').value,
+    next_milestone_date: document.getElementById('edit-milestone-date').value,
+    owner_ministry: document.getElementById('edit-owner').value,
+    confidence_tag: document.getElementById('edit-confidence').value,
+    _commentary: document.getElementById('edit-commentary').value,
+    _evidence_link: document.getElementById('edit-evidence-link').value,
+    _edited_at: new Date().toISOString().split('T')[0],
+  };
+  saveEdits(edits);
+  closeModal();
+  document.querySelectorAll('.subsector-panel[data-built]').forEach(p => {
+    renderInitiativeTable(p.dataset.subsector);
+  });
+}
+function exportInitiativesCSV() {
+  const edits = loadEdits();
+  downloadCSV((STATE.data.lwInitiatives||[]).map(r=>{ const e=edits[r.initiative_id]; return e?Object.assign({},r,e):r; }), 'lookwest_initiatives_export.csv');
+}
+
+/* ── COLLAPSIBLE EVIDENCE & RISKS ───────────────────────────────────────── */
+let evExpanded = true;
+function toggleEvidenceSection() {
+  evExpanded = !evExpanded;
+  const body = document.getElementById('ev-collapsible-body');
+  const btn  = document.getElementById('ev-collapse-btn');
+  const lbl  = document.getElementById('ev-collapse-label');
+  if (evExpanded) {
+    body.style.maxHeight = body.scrollHeight + 'px';
+    btn.classList.remove('collapsed');
+    lbl.textContent = 'Collapse';
+  } else {
+    body.style.maxHeight = body.scrollHeight + 'px'; // force reflow
+    requestAnimationFrame(() => { body.style.maxHeight='0'; });
+    btn.classList.add('collapsed');
+    lbl.textContent = 'Expand';
+  }
+}
+function initEvidenceCollapse() {
+  const body = document.getElementById('ev-collapsible-body');
+  body.style.maxHeight = '9999px'; // open by default
+}
+
+/* ── EVIDENCE LIBRARY ───────────────────────────────────────────────────── */
+function renderEvidence() {
+  const srch  = (document.getElementById('ev-search').value||'').toLowerCase();
+  const typeF = document.getElementById('ev-type-filter').value;
+  let rows = (STATE.data.evidenceLib||[]);
+  if (typeF!=='ALL') rows=rows.filter(r=>r.type===typeF);
+  if (srch) rows=rows.filter(r=>[r.title,r.summary,r.author,r.related_goal_id,r.related_initiative_id].join(' ').toLowerCase().includes(srch));
+  rows=rows.sort((a,b)=>(b.publication_date||'').localeCompare(a.publication_date||''));
+  const tbody=document.getElementById('ev-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=rows.map(r=>{
+    const rel=[r.related_goal_id,r.related_initiative_id].filter(Boolean).join(', ')||'—';
+    return `<tr>
+      <td><span class="ev-type">${r.type||'—'}</span></td>
+      <td style="max-width:200px;font-weight:500;line-height:1.4;">${r.title}</td>
+      <td style="max-width:240px;font-size:11px;color:var(--color-text-muted);line-height:1.4;">${r.summary||'—'}</td>
+      <td style="font-size:11px;color:var(--color-text-subtle);white-space:nowrap;">${r.author||'—'}</td>
+      <td style="font-size:11px;color:var(--color-text-subtle);white-space:nowrap;">${r.publication_date||'—'}</td>
+      <td><span class="${tierTag(r.source_tier)} tag" style="font-size:9px;">${r.confidence_tag||'—'}</span></td>
+      <td style="font-size:11px;color:var(--color-text-subtle);">${rel}</td>
+      <td>${r.link&&r.link!==''?`<a class="ev-link" href="${r.link}" target="_blank" rel="noopener">→ Open</a>`:'—'}</td>
+    </tr>`;
+  }).join('');
+  const c=document.getElementById('ev-count'); if(c)c.textContent=rows.length;
+}
+function exportEvidence(){ downloadCSV(STATE.data.evidenceLib||[],'evidence_export.csv'); }
+
+/* ── RISKS ──────────────────────────────────────────────────────────────── */
+function renderRisks() {
+  const srch = (document.getElementById('risk-search').value||'').toLowerCase();
+  const catF = document.getElementById('risk-cat-filter').value;
+  let rows = (STATE.data.risksGaps||[]);
+  if (catF!=='ALL') rows=rows.filter(r=>r.category===catF);
+  if (srch) rows=rows.filter(r=>[r.risk_name,r.description,r.mitigation,r.owner,r.category].join(' ').toLowerCase().includes(srch));
+  const ord={RED:0,AMBER:1,GREEN:2};
+  rows=rows.sort((a,b)=>(ord[a.rag_status]||2)-(ord[b.rag_status]||2));
+  const tbody=document.getElementById('risk-tbody'); if(!tbody)return;
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td><span class="risk-cat">${r.category}</span></td>
+    <td style="font-weight:500;max-width:180px;line-height:1.4;">${r.risk_name}</td>
+    <td style="max-width:260px;font-size:11px;color:var(--color-text-muted);line-height:1.4;">${r.description}</td>
+    <td><span class="sev-badge ${r.severity}">${r.severity}</span></td>
+    <td style="font-size:11px;">${r.likelihood}</td>
+    <td><span class="rag-pill ${r.rag_status}">${r.rag_status}</span></td>
+    <td style="font-size:11px;color:var(--color-text-muted);">${r.owner}</td>
+    <td style="max-width:200px;font-size:11px;color:var(--color-text-muted);line-height:1.4;">${r.mitigation}</td>
+    <td style="font-size:11px;color:var(--color-text-subtle);white-space:nowrap;">${r.last_reviewed}</td>
+  </tr>`).join('');
+  const c=document.getElementById('risk-count'); if(c)c.textContent=rows.length;
+}
+
+/* ── INNER TAB SWITCH ───────────────────────────────────────────────────── */
+function switchInnerTab(activeId) {
+  document.querySelectorAll('#section-global .tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('onclick')&&b.getAttribute('onclick').includes(activeId));
+  });
+  document.querySelectorAll('#section-global .tab-pane').forEach(p=>p.classList.remove('active'));
+  const t=document.getElementById(activeId); if(t) t.classList.add('active');
+}
+
+/* ── CSV EXPORT ─────────────────────────────────────────────────────────── */
+function downloadCSV(rows, filename) {
+  if (!rows||!rows.length){ alert('No data.'); return; }
+  const hdrs=Object.keys(rows[0]);
+  const lines=[hdrs.join(',')];
+  rows.forEach(r=>lines.push(hdrs.map(h=>{
+    const v=(r[h]===null||r[h]===undefined)?'':String(r[h]);
+    return v.includes(',')||v.includes('"')||v.includes('\n')?'"'+v.replace(/"/g,'""')+'"':v;
+  }).join(',')));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'}));
+  a.download=filename; a.click();
+}
+
+/* ── EXCEL REFRESH (SheetJS) ─────────────────────────────────────────────── */
+const XL_SHEET_MAP = {
+  'Subsectors':           'subsectors',
+  'Sector_Definition':    'sectorDef',
+  'Sector_Metrics':       'officialMetrics',
+  'Region_Shares':        'regionShares',
+  'Province_Compare':     'provinceCompare',
+  'Business_Counts':      'bizCounts',
+  'GDP_Metrics':          'gdpMetrics',
+  'IO_Multipliers':       'ioMultipliers',
+  'Goods_Exports':        'goodsExports',
+  'Research_Activity':    'clinicalTrials',
+  'Funding_Projects':     'fundingProjects',
+  'Region_Context':       'regionContext',
+  'Talent_Pipeline':      'psiPipeline',
+  'Strategy_Goals':       'lwGoals',
+  'Strategy_Initiatives': 'lwInitiatives',
+  'Risks_Gaps':           'risksGaps',
+  'Evidence':             'evidenceLib',
+  'Manual_Overrides':     'manualOverrides',
+  'Anchor_Companies':     'anchorCompanies',
+  'Whats_New':            'whatsNew',
+};
+
+function xlCellStr(v) {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  if (v instanceof Date) return v.toISOString().slice(0,10);
+  return String(v).trim();
+}
+
+function parseExcelConfigSheet(ws) {
+  const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+  const cfg = { sector:{}, charts:{}, chart_tabs:{}, colors:{}, labels:{} };
+  let section = null, skipNext = false;
+
+  for (const row of rows) {
+    const first = xlCellStr(row[0]).toUpperCase();
+    if (first.includes('SECTOR SETTINGS'))  { section='sector';  skipNext=false; continue; }
+    if (first.includes('CHART SETTINGS'))   { section='charts';  skipNext=true;  continue; }
+    if (first.includes('SUBSECTOR COLORS')) { section='colors';  skipNext=true;  continue; }
+    if (skipNext) { skipNext=false; continue; }
+    if (!row[0]) continue;
+
+    if (section==='sector') {
+      const key=xlCellStr(row[0]), val=xlCellStr(row[1]);
+      if (key && !key.startsWith('#') && key.toLowerCase()!=='key') cfg.sector[key]=val;
+    } else if (section==='charts') {
+      const id=xlCellStr(row[0]);
+      if (id && id!=='chart_id') {
+        cfg.charts[id]    = xlCellStr(row[2]).toUpperCase()==='TRUE';
+        cfg.chart_tabs[id]= xlCellStr(row[3]).split(',').map(s=>s.trim()).filter(Boolean);
+      }
+    } else if (section==='colors') {
+      const sid=xlCellStr(row[0]);
+      if (sid && sid!=='subsector_id') {
+        cfg.colors[sid]  = xlCellStr(row[1]);
+        cfg.labels[sid]  = xlCellStr(row[2]);
+      }
+    }
+  }
+  return cfg;
+}
+
+function parseExcelDataSheet(ws) {
+  // Row 0 = description (skip), Row 1 = headers, Row 2+ = data
+  const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+  if (rows.length < 2) return [];
+  const headers = rows[1].map(h => xlCellStr(h));
+  const result  = [];
+  for (let i=2; i<rows.length; i++) {
+    const row=rows[i], obj={};
+    let hasData=false;
+    for (let j=0; j<headers.length; j++) {
+      if (!headers[j]) continue;
+      const v = xlCellStr(row[j]);
+      obj[headers[j]] = v;
+      if (v) hasData=true;
+    }
+    if (hasData) result.push(obj);
+  }
+  return result;
+}
+
+function parseExcelWorkbook(wb) {
+  const data = {};
+  if (wb.SheetNames.includes('CONFIG')) {
+    data.dashboardConfig = parseExcelConfigSheet(wb.Sheets['CONFIG']);
+  }
+  for (const [sheetName, dataKey] of Object.entries(XL_SHEET_MAP)) {
+    if (wb.SheetNames.includes(sheetName)) {
+      data[dataKey] = parseExcelDataSheet(wb.Sheets[sheetName]);
+    }
+  }
+  return data;
+}
+
+async function loadExcelFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  const btn = document.getElementById('btn-refresh');
+  if (btn) { btn.textContent='⟳ Loading…'; btn.disabled=true; }
+  try {
+    const ab   = await file.arrayBuffer();
+    const wb   = XLSX.read(new Uint8Array(ab), { type:'array' });
+    const data = parseExcelWorkbook(wb);
+    // Merge into STATE
+    Object.assign(STATE.data, data);
+    STATE.hasMockData = (STATE.data.officialMetrics||[]).some(r=>r.source_tier==='mock-sample');
+    applyDashboardConfig();
+    // Destroy cached charts so panels rebuild cleanly
+    Object.values(STATE.charts).forEach(c=>{ try{c.destroy();}catch(e){} });
+    STATE.charts = {};
+    // Re-render
+    renderHeader();
+    renderSectorDef();
+    renderWhatsNew();
+    renderSubsectorTabs();
+    renderEvidence();
+    renderRisks();
+    // Mock banner
+    const mb = document.getElementById('mock-banner');
+    if (mb) mb.style.display = STATE.hasMockData ? '' : 'none';
+    // Flash button
+    if (btn) {
+      btn.textContent='✓ Refreshed';
+      setTimeout(()=>{ btn.textContent='↺ Refresh Data'; btn.disabled=false; }, 2000);
+    }
+  } catch(e) {
+    console.error('Excel refresh error:', e);
+    alert('Could not load Excel file: ' + e.message);
+    if (btn) { btn.textContent='↺ Refresh Data'; btn.disabled=false; }
+  }
+}
+
+/* ── INIT ────────────────────────────────────────────────────────────────── */
+async function init() {
+  try {
+    await loadAllData();
+    document.getElementById('screen-loading').style.display='none';
+    document.getElementById('main').style.display='';
+    renderHeader();
+    renderSectorDef();
+    renderWhatsNew();
+    renderSubsectorTabs();
+    renderEvidence();
+    renderRisks();
+    initEvidenceCollapse();
+  } catch(err) {
+    console.error('Dashboard init error:', err);
+    const isFetch = err.message&&(err.message.includes('HTTP')||err.message.includes('fetch'));
+    document.getElementById('screen-loading').style.display='none';
+    if (isFetch) {
+      document.getElementById('server-overlay').classList.add('show');
+    } else {
+      document.getElementById('screen-error').style.display='';
+      document.getElementById('error-message').textContent=err.message||'Unknown error';
+    }
+    document.querySelector('.site-footer').style.display='none';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
