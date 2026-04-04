@@ -465,22 +465,24 @@ body {
 .sector-iframe-wrap { margin-top: 16px; }
 .sector-iframe {
   width: 100%;
-  height: calc(100vh - 220px);
-  min-height: 900px;
+  height: 1200px;
+  min-height: calc(100vh - 220px);
   border: 0;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   background: #fff;
+  overflow: hidden;
 }
 .dashboard-iframe-wrap { margin-top: 8px; }
 .dashboard-iframe {
   width: 100%;
-  height: calc(100vh - 220px);
-  min-height: 900px;
+  height: 1200px;
+  min-height: calc(100vh - 220px);
   border: 0;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   background: #fff;
+  overflow: hidden;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -546,13 +548,6 @@ body {
 /* ══════════════════════════════════════════════════════════════════════════
    FOOTER
 ══════════════════════════════════════════════════════════════════════════ */
-.app-footer {
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  padding: 13px 28px;
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 11px; color: var(--muted);
-}
 
 /* ══════════════════════════════════════════════════════════════════════════
    RESPONSIVE
@@ -600,26 +595,25 @@ body {
   <div class="nav-inner">
 
     <button class="nav-btn active" data-section="macro" onclick="navigate('macro')">
-      <span class="nav-icon">ME</span> Macro Economy
+      B.C. Economy Snapshot
     </button>
 
     <button class="nav-btn" data-section="strategy" onclick="navigate('strategy')">
-      <span class="nav-icon">LW</span> Look West Strategy
+      Look West Strategy
     </button>
 
     <div class="nav-dropdown-wrap">
-  <a onclick="navigate('sectors')">Back to All Sectors</a>
-        <span class="nav-icon">SC</span> Sectors
+      <button class="nav-btn" data-section="sectors" onclick="navigate('sectors')">
+        Sectors
         <span class="nav-chevron">v</span>
       </button>
       <div class="nav-dropdown" id="sectors-dd">
-        <div class="nav-dd-header">BC Industry Sectors</div>
         <!-- filled by JS -->
       </div>
     </div>
 
     <button class="nav-btn" data-section="projects" onclick="navigate('projects')">
-      <span class="nav-icon">PR</span> Projects
+      Projects
       <span class="nav-tag">Phase 5</span>
     </button>
 
@@ -642,7 +636,7 @@ body {
   <section class="section-panel active" id="panel-macro">
     <div class="section-wrap">
       <div class="dashboard-iframe-wrap">
-        <iframe class="dashboard-iframe" src="../../bc_macroeconomy/html/dashboard.html" title="BC Macroeconomy Dashboard"></iframe>
+        <iframe class="dashboard-iframe" src="../../bc_macroeconomy/html/dashboard.html" title="BC Macroeconomy Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
       </div>
     </div>
   </section>
@@ -651,7 +645,7 @@ body {
   <section class="section-panel" id="panel-strategy">
     <div class="section-wrap">
       <div class="dashboard-iframe-wrap">
-        <iframe class="dashboard-iframe" src="../../look_west_strategy/html/dashboard.html" title="Look West Strategy Dashboard"></iframe>
+        <iframe class="dashboard-iframe" src="../../look_west_strategy/html/dashboard.html" title="Look West Strategy Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
       </div>
     </div>
   </section>
@@ -702,7 +696,7 @@ body {
   <section class="section-panel" id="panel-projects">
     <div class="section-wrap">
       <div class="dashboard-iframe-wrap">
-        <iframe class="dashboard-iframe" src="../../projects/html/dashboard.html" title="Projects Dashboard"></iframe>
+        <iframe class="dashboard-iframe" src="../../projects/html/dashboard.html" title="Projects Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
       </div>
     </div>
   </section>
@@ -712,10 +706,6 @@ body {
 <!-- ══════════════════════════════════════════════════════════════════════
      FOOTER
 ══════════════════════════════════════════════════════════════════════════ -->
-<footer class="app-footer">
-  <span>© Government of British Columbia · BC Dashboard Hub</span>
-  <span>Data: Statistics Canada · BC Stats · Bank of Canada · CMHC</span>
-</footer>
 
 <script>
 /* ══════════════════════════════════════════════════════════════════════════
@@ -821,6 +811,37 @@ const SECTIONS = {
 ══════════════════════════════════════════════════════════════════════════ */
 const APP = { section: 'macro', sector: null, data: {} };
 
+function fitEmbeddedFrameHeight(frame) {
+  try {
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    if (!doc) return;
+    const body = doc.body;
+    const html = doc.documentElement;
+    const h = Math.max(
+      body ? body.scrollHeight : 0,
+      body ? body.offsetHeight : 0,
+      html ? html.clientHeight : 0,
+      html ? html.scrollHeight : 0,
+      html ? html.offsetHeight : 0
+    );
+    if (h > 0) frame.style.height = (h + 20) + 'px';
+    frame.style.overflow = 'hidden';
+  } catch (e) {
+    // Cross-origin or transient load states: keep fallback fixed height.
+  }
+}
+
+function onEmbeddedFrameLoad(frame) {
+  fitEmbeddedFrameHeight(frame);
+  setTimeout(() => fitEmbeddedFrameHeight(frame), 120);
+  setTimeout(() => fitEmbeddedFrameHeight(frame), 600);
+  setTimeout(() => fitEmbeddedFrameHeight(frame), 1500);
+}
+
+function fitVisibleFrames() {
+  document.querySelectorAll('.section-panel.active iframe').forEach(f => fitEmbeddedFrameHeight(f));
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════════════════════ */
@@ -867,11 +888,13 @@ function navigate(section, sectorId) {
     bc.style.display = '';
     bcLabel.textContent = s ? (s.icon + '  ' + s.name) : sectorId;
     renderSectorDetail(sectorId);
+    setTimeout(fitVisibleFrames, 80);
   } else {
     bc.style.display = 'none';
   }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(fitVisibleFrames, 80);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -884,15 +907,8 @@ function sectorIconHtml(s, cls) {
 
 function buildSectorsDropdown() {
   const dd = document.getElementById('sectors-dd');
-  const existing = dd.querySelector('.nav-dd-header');
   dd.innerHTML = '';
-  if (existing) dd.appendChild(existing);
   const visibleSectors = getVisibleSectors();
-
-  const header = document.createElement('div');
-  header.className = 'nav-dd-header';
-  header.textContent = 'BC Industry Sectors';
-  dd.appendChild(header);
 
   visibleSectors.forEach(s => {
     const item = document.createElement('div');
@@ -976,12 +992,13 @@ function renderSectorDetail(sectorId) {
 function renderSectorEmbed(s) {
   return `
     <div class="sector-iframe-wrap">
-      <iframe class="sector-iframe" src="${s.dashboard}" title="${s.name} Dashboard" onload="onSectorFrameLoad(this)"></iframe>
+      <iframe class="sector-iframe" src="${s.dashboard}" title="${s.name} Dashboard" onload="onSectorFrameLoad(this)" scrolling="no"></iframe>
     </div>
   `;
 }
 
 function onSectorFrameLoad(frame) {
+  onEmbeddedFrameLoad(frame);
   try {
     const doc = frame.contentDocument || frame.contentWindow.document;
     if (!doc) return;
@@ -1478,6 +1495,10 @@ function init() {
 
   /* Set initial accent color */
   document.documentElement.style.setProperty('--accent', SECTIONS.macro.color);
+
+  /* Avoid inner iframe scrollbars where possible by auto-fitting iframe height. */
+  setTimeout(fitVisibleFrames, 120);
+  window.addEventListener('resize', fitVisibleFrames);
 
   /* Child dashboards are embedded by iframe, so no extra parent-side data boot is required. */
 }

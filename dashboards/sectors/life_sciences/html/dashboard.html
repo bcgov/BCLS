@@ -603,15 +603,6 @@
 
 </main>
 
-<footer class="site-footer">
-  <span>© Province of British Columbia</span>
-  <span>·</span>
-  <span><strong id="footer-strategy">Look West Strategy</strong></span>
-  <span>·</span>
-  <span>Data: <strong id="footer-data-status" style="color:var(--rag-amber-br);">Mock / Sample</strong></span>
-</footer>
-
-
 <script>
 /* ── CONFIG (overridden by dashboardConfig from Excel) ─────────────────── */
 let CONFIG = {
@@ -1023,13 +1014,14 @@ function renderHeader() {
   document.getElementById('hdr-title').textContent     = CONFIG.dashboard_title;
   document.getElementById('hdr-subtitle').textContent  = CONFIG.dashboard_subtitle;
   document.getElementById('hdr-updated').textContent   = CONFIG.last_updated;
-  document.getElementById('footer-strategy').textContent = CONFIG.strategy_name;
   document.title = CONFIG.dashboard_title;
+  const footerStrategy = document.getElementById('footer-strategy');
+  if (footerStrategy) footerStrategy.textContent = CONFIG.strategy_name;
   if (!CONFIG.internal_only) document.getElementById('badge-internal').style.display='none';
   if (!STATE.hasMockData) {
     document.getElementById('mock-banner').style.display='none';
     const s = document.getElementById('footer-data-status');
-    s.textContent='Live'; s.style.color='var(--rag-green-br)';
+    if (s) { s.textContent='Live'; s.style.color='var(--rag-green-br)'; }
   }
 }
 
