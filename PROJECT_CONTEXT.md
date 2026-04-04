@@ -1,46 +1,50 @@
 # Project Context
 
 **What This Project Is**
-A dashboard workspace with 13 standalone dashboards plus one parent dashboard named `BC Dashboard Hub`.
+A BC economic dashboard workspace: multiple standalone dashboards plus a parent hub (`BC Dashboard Hub`) that embeds child dashboards.
 
 **Current Goal**
-Keep each dashboard independently editable in its own folder while the parent hub automatically reflects those child dashboards through embedding.
+Finalize the macro dashboard UX/data behavior, then bring other child dashboards (Look West, Projects, sectors) up to the same maturity.
 
 **Stack**
-- Frontend: standalone HTML dashboards
-- Data: dashboard-specific Excel files stored beside each dashboard in `data/`
+- Frontend: standalone HTML/CSS/JS dashboards (Chart.js)
+- Data: dashboard-specific Excel files + live StatsCan API/table pulls
 - Local server: `scripts/serve.py`
 
 **Architecture Summary**
-- `dashboards/bc_dashboard_hub/html/dashboard.html` is the parent dashboard.
-- `dashboards/bc_macroeconomy/html/dashboard.html`, `dashboards/look_west_strategy/html/dashboard.html`, `dashboards/projects/html/dashboard.html`, and `dashboards/sectors/*/html/dashboard.html` are standalone child dashboards.
-- Each dashboard folder follows `html/`, `data/`, `docs/`.
-- Legacy material is preserved under `archive/`.
+- Hub entry: `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
+- Macro child: `C:/Users/smehd/BCLS/dashboards/bc_macroeconomy/html/dashboard.html`
+- Other children: `dashboards/look_west_strategy/`, `dashboards/projects/`, `dashboards/sectors/*/`
+- Legacy history: `archive/`
 
 **Key Constraints**
-- The parent hub should embed child dashboards, not duplicate their implementation.
-- Each child dashboard should keep its own workbook in its own `data/` folder.
-- Two sector placeholders are currently reserved because only 8 sector names are explicit in the repo/user notes, while the target structure calls for 10 sectors total. (Uncertain)
+- Child dashboards stay independently editable; hub embeds rather than reimplements.
+- Entry point convention remains `html/dashboard.html`.
+- Several non-macro dashboards are still placeholders pending workbook/content inputs.
+- Environment constraint: `rg.exe` not reliable (`Access is denied`) in current shell context.
 
 **Conventions**
-- Entry point for every dashboard is `html/dashboard.html`.
-- Workbook files live in the same dashboard folder under `data/`.
-- Shared visual assets live in `shared/assets/`.
+- Keep edits minimal and local to target dashboard.
+- Use repo-relative stable paths; avoid touching `archive/` unless restoring.
+- Verify visual/data behavior in browser after every macro change.
 
 **Important Files**
-- `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
 - `C:/Users/smehd/BCLS/dashboards/bc_macroeconomy/html/dashboard.html`
-- `C:/Users/smehd/BCLS/dashboards/sectors/life_sciences/html/dashboard.html`
+- `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
 - `C:/Users/smehd/BCLS/scripts/serve.py`
-- `C:/Users/smehd/BCLS/README.md`
+- `C:/Users/smehd/BCLS/HANDOFF.md`
+- `C:/Users/smehd/BCLS/TASKS.md`
 
 **Current Status**
-- New dashboard-per-folder structure is in place.
-- Parent hub embeds the standalone macroeconomy, strategy, projects, and sector dashboards.
-- Life Sciences is the only sector with a copied live workbook/dashboard; the other child dashboards are placeholders.
-- Old root `code/`, `docs/`, `output/`, and most of `data/` were moved into `archive/restructure_2026-04-02/root_working_state/`.
+- Macro dashboard is actively developed and now includes:
+  - Expanded KPI set/order and unit formatting
+  - GDP/GDP-share, employment/labour, CPI, CPI-contribution, and trade charts
+  - Industry movers table
+  - Clickable StatCan dataset links from chart source tags
+  - Fixed y-axis ranges for trade charts
+- Hub structure is stable; non-macro dashboards still need substantive build-out.
 
 **Top Next Steps**
-- Verify the hub and all child dashboard links render correctly in the browser.
-- Decide the final names for the remaining two sector placeholders.
-- Add real standalone dashboards and Excel workbooks for Look West, Projects, and the remaining sectors.
+- Run macro QA pass (layout, units, chart ranges, source links, update flow).
+- Normalize remaining text encoding artifacts in UI strings.
+- Implement real data/content for Look West, Projects, and remaining sectors.
