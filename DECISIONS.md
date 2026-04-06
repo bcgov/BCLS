@@ -1,35 +1,29 @@
 # Decisions
 
 - Parent dashboard name is `BC Dashboard Hub`.
-  Rationale: clearer than "mother dashboard".
+  Rationale: clear umbrella naming for embedded child dashboards.
   Consequence: docs/server links use hub paths.
 
 - Folder standard is per-dashboard `html/`, `data/`, `docs/`.
-  Rationale: independent maintainability and clear structure.
+  Rationale: independent maintainability and clear ownership.
   Consequence: new dashboards should follow this layout.
 
-- Hub integration uses iframes that embed child `html/dashboard.html` files.
-  Rationale: keeps child dashboards independent.
-  Consequence: child changes flow into hub without duplication.
+- Hub integration uses iframes to embed child `html/dashboard.html` files.
+  Rationale: keep child dashboards independently editable.
+  Consequence: parent should avoid duplicating child chart logic.
 
-- Legacy assets are archived, not deleted.
-  Rationale: preserve rollback/history.
-  Consequence: `archive/` is non-active unless restoring.
+- Life Sciences charts are treated as sector-level (not subsector-level).
+  Rationale: simplify UX and avoid per-subsector chart visibility complexity.
+  Consequence: chart config rows should use `subsector_id = ALL` in `CHART_CATALOG`.
 
-- Macro industry movers table uses fixed, hardcoded BC vectors from StatsCan table `14-10-0355-01` (no runtime metadata discovery).
-  Rationale: deterministic behavior in this environment.
-  Consequence: vector/map updates are manual if StatsCan changes.
+- Life Sciences display controls (`Select KPIs`, `Select Charts`, `Select Goals`) are local-cache only.
+  Rationale: user-specific temporary layout control without mutating workbook data.
+  Consequence: settings persist in browser localStorage, not in Excel.
 
-- Macro dataset source tags (`.ds-tag`) are clickable links to StatCan table pages (`tv.action?pid=...`) and open in new tabs.
-  Rationale: direct source traceability from each chart.
-  Consequence: dataset code formatting must stay consistent for link generation.
+- Life Sciences subsector content is summarized inline inside top sector definition.
+  Rationale: reduce page complexity after removing subsector section.
+  Consequence: no standalone subsector definition panel in current layout.
 
-- Trade chart axes are fixed:
-  - Interprovincial: left `10–40`, right `-20–20` ($B)
-  - International: left `50–100`, right `-40–20` ($B)
-  Rationale: consistent visual framing/comparison.
-  Consequence: revisit bounds if values move outside these ranges.
-
-- Macro KPI order is fixed as: GDP, Inflation, Employment, Unemployment, Labour Force.
-  Rationale: top-line macro first, labour detail second.
-  Consequence: future KPI additions should preserve this order unless explicitly changed.
+- Dashboard Hub footer removed.
+  Rationale: cleaner shell chrome around embedded dashboards.
+  Consequence: status/provenance text must live elsewhere if needed.

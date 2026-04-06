@@ -1,6 +1,8 @@
 # Look West Strategy
 
-- Status: Planned
-- Expected Excel file: `Look_West_Strategy.xlsx`
+- Status: Active (workbook-driven mock data)
+- Primary Excel files:
+  - `data/Look West media coverage - mock.xlsx`
+  - `data/LW related funding and investments - Mock.xlsx`
 - HTML entry point: `html/dashboard.html`
-- Notes: Placeholder dashboard for the Look West strategy workbook and related indicators.
+- Notes: Dashboard renders KPI cards + media tracker table + funding/investments table from workbook sheets.

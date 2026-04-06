@@ -1,24 +1,22 @@
 # Tasks
 
 **Now**
-- Stabilize and QA the macro dashboard after recent layout/axis/KPI/source-link changes.
-- Verify all macro charts load correctly after `Update Data`, including trade charts with fixed axis bounds.
-- Clean remaining visible punctuation/encoding artifacts in macro UI text.
+- Stabilize Life Sciences sector dashboard after major layout/interaction changes.
+- QA Dashboard Hub embed behavior (single-scroll target for macro iframe + tab navigation integrity).
+- Clean remaining visible encoding artifacts in active dashboards.
 
 **Next**
-- Build out non-macro child dashboards (Look West, Projects, remaining sectors) to the same production level.
-- Replace placeholder sector dashboards with workbook-driven implementations as files arrive.
-- Add a lightweight regression checklist (layout + key chart assertions) for future edits.
+- Finalize and apply the canonical `Life_Sciences_light.xlsx` migration (when workbook is not locked).
+- Remove dead/unused subsector-tab code paths from `life_sciences/html/dashboard.html` to reduce maintenance risk.
+- Align Look West/Projects dashboards with the same polish and navigation behavior.
 
 **Blocked**
-- Final names/content for two placeholder sectors are still not confirmed.
-- Most sector/workbook inputs are not yet provided.
-- `rg.exe` unavailable in environment (`Access is denied`), reducing fast code search options.
+- In-place workbook updates are blocked while `Life_Sciences_light.xlsx` is open/locked.
+- `rg.exe` unavailable in this environment (`Access is denied`), slowing bulk search/refactor tasks.
 
 **Recently Done**
-- Added macro dataset-code hyperlinks to StatCan table pages in new tabs.
-- Reordered macro KPI cards to: GDP, Inflation, Employment, Unemployment, Labour Force.
-- Switched Employment/Labour Force KPI display to millions.
-- Replaced `?` punctuation artifacts in key chart titles/subtitles with proper separators where updated.
-- Set explicit y-axis ranges for interprovincial/international trade charts.
-- Added thin bottom macro ribbon matching top hero color style.
+- Life Sciences: removed subsector section, moved KPIs into Sector Trends, added subsector tags on KPI cards.
+- Life Sciences: sector-level chart model and local cached display toggles (`Select KPIs/Charts/Goals`).
+- Life Sciences: integrated subsector definitions into top definition box; removed footer.
+- Dashboard Hub: removed footer, simplified top-nav labels/icons, removed duplicate sectors dropdown headers.
+- Dashboard Hub: added iframe auto-height fitting + `scrolling="no"` to reduce nested scrollbars.
