@@ -2,7 +2,7 @@
 
 - HTML entry point: `html/dashboard.html`
 - Canonical workbook (lightweight schema): `data/Life_Sciences_light.xlsx`
-- Legacy workbook (backward-compatible): `data/Life_Sciences.xlsx`
+- Data mode: Excel-only strict single-source (no legacy fallback workbook)
 - Source copied from the archived legacy Life Sciences standalone dashboard.
 
 Chart configuration model (Excel-first):

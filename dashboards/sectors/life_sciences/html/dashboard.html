@@ -644,37 +644,37 @@ const CHART_REGISTRY = {
   emp_trend: {
     label:'Employment Trend',
     title:'Employment Trend (FTE)',
-    subtitle:'{subsector} ? 2019?2024 with target',
+    subtitle:'{subsector} - 2019-2024 with target',
     caveat:'Official metrics + strategy targets',
   },
   gdp_trend: {
     label:'GDP Contribution',
     title:'GDP Contribution ($M CAD)',
-    subtitle:'{subsector} ? GDP at basic prices',
+    subtitle:'{subsector} - GDP at basic prices',
     caveat:'Statistics Canada CSNA Table 36-10-0402',
   },
   biz_count: {
     label:'Business Count',
     title:'Business Count',
-    subtitle:'{subsector} ? Total registered businesses',
+    subtitle:'{subsector} - Total registered businesses',
     caveat:'Statistics Canada Business Register',
   },
   exports: {
     label:'Goods Exports',
     title:'Goods Exports ($M CAD)',
-    subtitle:'{subsector} ? Total by year',
+    subtitle:'{subsector} - Total by year',
     caveat:'Statistics Canada Trade Data Online',
   },
   regional: {
     label:'Regional Employment',
     title:'Employment by Region (2024)',
-    subtitle:'B.C. regions ? FTE share',
+    subtitle:'B.C. regions - FTE share',
     caveat:'BC Stats proxy business location data',
   },
   province_compare: {
     label:'Province Comparison',
     title:'Province Comparison (2024)',
-    subtitle:'Life sciences FTEs ? BC vs other provinces',
+    subtitle:'Life sciences FTEs - BC vs other provinces',
     caveat:'Statistics Canada LFS',
   },
   research_activity: {
@@ -686,13 +686,13 @@ const CHART_REGISTRY = {
   funding: {
     label:'Public Funding',
     title:'Public Funding by Program ($M CAD)',
-    subtitle:'Federal + provincial programs ? 2024',
+    subtitle:'Federal + provincial programs - 2024',
     caveat:'ISED, CIHR, NSERC, BC MTIT',
   },
   talent_pipeline: {
     label:'Talent Pipeline',
     title:'Talent Pipeline (Graduates)',
-    subtitle:'Post-secondary life sciences graduates ? B.C.',
+    subtitle:'Post-secondary life sciences graduates - B.C.',
     caveat:'BCCAT / HEABC graduate data',
   },
 };
@@ -892,7 +892,6 @@ function buildDisplayPanels() {
 /* ── DATA LOADING ───────────────────────────────────────────────────────── */
 const DEFAULT_EXCEL_URLS = [
   '../data/Life_Sciences_light.xlsx',
-  '../data/Life_Sciences.xlsx',
 ];
 
 async function loadCSV(relPath) {
@@ -1029,6 +1028,11 @@ function renderHeader() {
 function renderSectorDef() {
   const def = (STATE.data.sectorDef||[]).find(r=>r.id==='DEF-001') || (STATE.data.sectorDef||[])[0];
   if (!def) return;
+  const cleanDefBody = String(def.body_text||'')
+    .split(/\r?\n/)
+    .map(x=>x.trim())
+    .filter(x=>x && !/^live dashboard$/i.test(x) && !/^data\s*:/i.test(x))
+    .join(' ');
   const subsectors = (STATE.data.subsectors||[])
     .filter(s => String(s.subsector_id||'').trim() && String(s.subsector_id||'').trim()!=='ALL')
     .sort((a,b)=>(+a.tab_order||999)-(+b.tab_order||999));
@@ -1046,7 +1050,7 @@ function renderSectorDef() {
   document.getElementById('sector-def').innerHTML = `
     <div class="card sector-def" style="margin-bottom:20px;">
       <div class="sector-def-title">${CONFIG.dashboard_title}</div>
-      <div class="sector-def-body">${def.body_text||''}</div>
+      <div class="sector-def-body">${cleanDefBody}</div>
       ${subHtml}
       ${def.caveat?`<div style="font-size:11px;color:var(--color-text-subtle);margin-top:8px;font-style:italic;">Note: ${def.caveat}</div>`:''}
     </div>`;
