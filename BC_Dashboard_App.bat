@@ -78,12 +78,9 @@ if %errorlevel% neq 0 (
   goto :detect_python
 )
 
-for /f "delims=" %%i in ('call "%~f0" :print_py_version') do set "PY_VER=%%i"
-for /f "delims=" %%i in ('call "%~f0" :print_py_exe') do set "PY_REAL_EXE=%%i"
-
 echo [OK] Python found.
-if defined PY_VER echo [INFO] !PY_VER!
-if defined PY_REAL_EXE echo [INFO] !PY_REAL_EXE!
+for /f "delims=" %%i in ('call :py_exec -V 2^>^&1') do echo [INFO] %%i
+for /f "delims=" %%i in ('call :py_exec -c "import sys; print(sys.executable)" 2^>nul') do echo [INFO] Python executable: %%i
 echo.
 
 call :py_exec -c "import openpyxl" >nul 2>nul
@@ -162,14 +159,6 @@ if "%PY_KIND%"=="exe" (
   goto :eof
 )
 exit /b 9009
-
-:print_py_version
-call :py_exec -V 2>&1
-goto :eof
-
-:print_py_exe
-call :py_exec -c "import sys; print(sys.executable)" 2>nul
-goto :eof
 
 :end_fail
 echo.
