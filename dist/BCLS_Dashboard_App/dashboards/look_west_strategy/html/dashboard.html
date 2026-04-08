@@ -514,7 +514,20 @@
 
     async function loadWorkbook(url) {
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`Failed to fetch ${url} (HTTP ${res.status})`);
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const ct = (res.headers.get('content-type') || '').toLowerCase();
+          if (ct.includes('application/json')) {
+            const j = await res.json();
+            detail = j && (j.error || j.details || '');
+          } else {
+            detail = (await res.text() || '').slice(0, 220);
+          }
+        } catch (_) {}
+        const suffix = detail ? `: ${detail}` : '';
+        throw new Error(`Failed to fetch ${url} (HTTP ${res.status})${suffix}`);
+      }
       const ab = await res.arrayBuffer();
       return XLSX.read(new Uint8Array(ab), { type: 'array' });
     }

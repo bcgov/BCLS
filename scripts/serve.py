@@ -29,10 +29,11 @@ except Exception:
 PORT = 8080
 PREFERRED_PORTS = [8080]
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-EXCEL_MAP_PATH = os.environ.get(
-    "BCLS_DATA_MAP_XLSX",
-    os.path.join(os.path.expanduser("~"), "BCLS", "DATA_FILE_MAP.xlsx"),
-)
+DEFAULT_HOME_MAP_PATH = os.path.join(os.path.expanduser("~"), "BCLS", "DATA_FILE_MAP.xlsx")
+DEFAULT_ROOT_MAP_PATH = os.path.join(ROOT, "DATA_FILE_MAP.xlsx")
+EXCEL_MAP_PATH = os.environ.get("BCLS_DATA_MAP_XLSX")
+if not EXCEL_MAP_PATH:
+    EXCEL_MAP_PATH = DEFAULT_ROOT_MAP_PATH if os.path.exists(DEFAULT_ROOT_MAP_PATH) else DEFAULT_HOME_MAP_PATH
 EXCEL_MAP_REQUIRED = [
     {
         "key": "life_sciences_main",
@@ -122,7 +123,8 @@ def validate_excel_map(path_str):
         key = req["key"]
         row = mapping.get(key, {})
         p = row.get("path", "")
-        exists = bool(p and os.path.exists(p))
+        is_url = str(p).lower().startswith(("http://", "https://"))
+        exists = bool(p and not is_url and os.path.exists(p))
         checks.append(
             {
                 "key": key,
@@ -130,6 +132,7 @@ def validate_excel_map(path_str):
                 "required": bool(req.get("required", True)),
                 "path": p,
                 "exists": exists,
+                "isUrl": is_url,
             }
         )
     missing = [c for c in checks if c["required"] and not c["exists"]]
@@ -191,6 +194,19 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
             file_path = row.get("path", "")
             if not file_path:
                 self._send_json(404, {"error": f"No path configured for key: {key}", "mapPath": EXCEL_MAP_PATH})
+                return
+            if str(file_path).lower().startswith(("http://", "https://")):
+                self._send_json(
+                    400,
+                    {
+                        "error": (
+                            f"Configured path for key '{key}' is a web URL. "
+                            "Use a local synced SharePoint/OneDrive file path (e.g., C:\\Users\\...\\OneDrive - ...\\file.xlsx)."
+                        ),
+                        "path": file_path,
+                        "mapPath": EXCEL_MAP_PATH,
+                    },
+                )
                 return
             if not os.path.exists(file_path):
                 self._send_json(404, {"error": f"Configured path not found for key: {key}", "path": file_path, "mapPath": EXCEL_MAP_PATH})
@@ -460,6 +476,7 @@ ok, state = ensure_excel_map_template(EXCEL_MAP_PATH)
 status = validate_excel_map(EXCEL_MAP_PATH)
 if state == "created":
     print(f"[INFO] Created Excel map template: {EXCEL_MAP_PATH}")
+print(f"[INFO] Excel map path in use: {EXCEL_MAP_PATH}")
 if status.get("missingRequired"):
     print("[WARN] Missing required mapped Excel files:")
     for m in status["missingRequired"]:

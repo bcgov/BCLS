@@ -39,6 +39,10 @@ Open that file and fill these keys with your local synced SharePoint file paths:
 - `look_west_media`
 - `look_west_funding`
 
+Important:
+- Do not paste a web URL like `https://...sharepoint.com/...`.
+- Use a local synced path (example: `C:\Users\<YourUser>\OneDrive - ...\...\file.xlsx`).
+
 If paths are blank or invalid, those dashboards show **Data not connected**.
 
 ## 5. Stop the app
