@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -337,6 +337,7 @@
       media: [],
       funding: [],
       loadedAt: null,
+      dataMode: 'unknown',
       sort: {
         media: { key: 'date', dir: 'desc' },
         fund: { key: 'date', dir: 'desc' }
@@ -532,7 +533,14 @@
         throw new Error(`Failed to fetch ${url} (HTTP ${res.status})${suffix}`);
       }
       const ab = await res.arrayBuffer();
-      return XLSX.read(new Uint8Array(ab), { type: 'array' });
+      const sourceHeader = String(res.headers.get('x-bcls-data-source') || '').toLowerCase();
+      let sourceKind = 'unknown';
+      if (sourceHeader === 'mapped-path') sourceKind = 'real';
+      if (sourceHeader === 'mock-fallback') sourceKind = 'mock';
+      return {
+        wb: XLSX.read(new Uint8Array(ab), { type: 'array' }),
+        sourceKind
+      };
     }
 
     async function loadWorkbookFromCandidates(candidates, label) {
@@ -552,9 +560,14 @@
         throw new Error('SheetJS library not loaded. Check internet access for CDN script.');
       }
 
-      const mediaWb = await loadWorkbookFromCandidates(MEDIA_FILE_CANDIDATES, 'Media');
-      const fundWb = await loadWorkbookFromCandidates(FUNDING_FILE_CANDIDATES, 'Funding');
-      parseWorkbooks(mediaWb, fundWb);
+      const mediaSrc = await loadWorkbookFromCandidates(MEDIA_FILE_CANDIDATES, 'Media');
+      const fundSrc = await loadWorkbookFromCandidates(FUNDING_FILE_CANDIDATES, 'Funding');
+      parseWorkbooks(mediaSrc.wb, fundSrc.wb);
+      const kinds = [mediaSrc.sourceKind, fundSrc.sourceKind];
+      if (kinds.every(k => k === 'real')) STATE.dataMode = 'real';
+      else if (kinds.every(k => k === 'mock')) STATE.dataMode = 'mock';
+      else if (kinds.includes('real') && kinds.includes('mock')) STATE.dataMode = 'mixed';
+      else STATE.dataMode = 'unknown';
     }
 
     function parseWorkbooks(mediaWb, fundWb) {
@@ -586,7 +599,8 @@
         const payload = {
           loadedAt: STATE.loadedAt ? STATE.loadedAt.toISOString() : null,
           media: STATE.media,
-          funding: STATE.funding
+          funding: STATE.funding,
+          dataMode: STATE.dataMode || 'unknown'
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
       } catch (_) {}
@@ -601,10 +615,18 @@
         STATE.media = payload.media;
         STATE.funding = payload.funding;
         STATE.loadedAt = payload.loadedAt ? new Date(payload.loadedAt) : null;
+        STATE.dataMode = payload.dataMode || 'unknown';
         return true;
       } catch (_) {
         return false;
       }
+    }
+
+    function dataModeLabel() {
+      if (STATE.dataMode === 'real') return 'Real';
+      if (STATE.dataMode === 'mock') return 'Mock';
+      if (STATE.dataMode === 'mixed') return 'Mixed';
+      return 'Unknown';
     }
 
     function sum(arr, fn) {
@@ -812,8 +834,9 @@
         return;
       }
       const when = STATE.loadedAt.toLocaleString('en-CA');
-      el.textContent = `${source} - Last updated: ${when}`;
-      if (cacheLine) cacheLine.textContent = `${source} · Last updated: ${when} · Click Update Data to refresh.`;
+      const mode = dataModeLabel();
+      el.textContent = source + ' (' + mode + ') - Last updated: ' + when;
+      if (cacheLine) cacheLine.textContent = source + ' (' + mode + ') - Last updated: ' + when + ' - Click Update Data to refresh.';
     }
 
     async function refreshData() {
@@ -865,3 +888,4 @@
   </script>
 </body>
 </html>
+
