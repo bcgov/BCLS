@@ -1,96 +1,180 @@
 @echo off
-setlocal
+setlocal EnableExtensions EnableDelayedExpansion
 cd /d "%~dp0"
 
 echo ============================================
-echo   British Columbia Dashboard Suite (Local)
+echo   BC Dashboard App
 echo ============================================
 echo.
 
 if not exist "scripts\serve.py" (
-  echo [ERROR] Could not find scripts\serve.py
-  echo Make sure the zip was fully extracted and folder structure is intact.
+  echo [ERROR] App files are incomplete.
+  echo Please unzip the full package again, then retry.
+  echo.
   pause
   exit /b 1
 )
 
-set "PY_CMD="
-python -V >nul 2>nul
-if %errorlevel%==0 set "PY_CMD=python"
+set "PY_KIND="
+set "PY_EXE="
 
-if "%PY_CMD%"=="" (
-  py -3 -V >nul 2>nul
-  if %errorlevel%==0 set "PY_CMD=py -3"
-)
+:detect_python
+call :auto_detect_python
+if defined PY_KIND goto :validate_python
 
-if "%PY_CMD%"=="" (
-  for /d %%D in ("%LocalAppData%\Programs\Python\Python3*") do (
-    if exist "%%D\python.exe" set "PY_CMD=%%D\python.exe"
-  )
-)
-
-if "%PY_CMD%"=="" (
-  for /d %%D in ("C:\Program Files\Python3*","C:\Program Files (x86)\Python3*") do (
-    if exist "%%D\python.exe" set "PY_CMD=%%D\python.exe"
-  )
-)
-
-if "%PY_CMD%"=="" goto :no_python
-goto :run
-
-:no_python
-echo [ERROR] Python was not found.
-echo Please install Python 3.11+ from https://www.python.org/downloads/windows/
-echo and check "Add Python to PATH" during install.
+echo [STEP] Python was not found automatically.
+echo Please choose:
+echo   [1] I know where Python is (enter path)
+echo   [2] Show me how to find Python
+echo   [3] Exit
+set /p "CHOICE=Enter 1, 2, or 3: "
+if /I "%CHOICE%"=="1" goto :manual_python
+if /I "%CHOICE%"=="2" goto :show_help
+if /I "%CHOICE%"=="3" goto :end_fail
+echo Invalid choice.
 echo.
-echo If Python is already installed, add these folders to User PATH:
-echo   1) %%LocalAppData%%\Programs\Python\Python3xx\
-echo   2) %%LocalAppData%%\Programs\Python\Python3xx\Scripts\
-echo Then open a new terminal and retry.
-pause
-exit /b 1
+goto :detect_python
 
-:run
-echo [INFO] Using Python command: %PY_CMD%
-for /f "delims=" %%i in ('%PY_CMD% -c "import sys; print(sys.executable)" 2^>nul') do set "PY_EXE=%%i"
-if not "%PY_EXE%"=="" echo [INFO] Python executable: %PY_EXE%
-for /f "delims=" %%i in ('%PY_CMD% -V 2^>^&1') do echo [INFO] %%i
-
-call %PY_CMD% -c "import openpyxl" >nul 2>nul
-if %errorlevel% neq 0 goto :missing_openpyxl
-
-echo [INFO] Starting local server...
-call %PY_CMD% "scripts\serve.py"
-set "EXIT_CODE=%errorlevel%"
-if not "%EXIT_CODE%"=="0" (
+:manual_python
+echo.
+echo Example path:
+echo   C:\Users\YOUR_USER\AppData\Local\Programs\Python\Python312\python.exe
+set /p "PY_IN=Paste full python.exe path: "
+if "%PY_IN%"=="" (
+  echo [WARN] No path entered.
   echo.
-  echo [ERROR] Server exited with code %EXIT_CODE%.
-  echo If this keeps happening, run this command manually and send the full error:
-  echo   python scripts\serve.py
+  goto :detect_python
 )
-echo.
-pause
-exit /b %EXIT_CODE%
+if not exist "%PY_IN%" (
+  echo [ERROR] File not found: %PY_IN%
+  echo.
+  goto :detect_python
+)
+set "PY_KIND=exe"
+set "PY_EXE=%PY_IN%"
+goto :validate_python
 
-:missing_openpyxl
+:show_help
 echo.
-echo [ERROR] Python package "openpyxl" is missing.
-set /p INSTALL_OXL=Install openpyxl now? (Y/N): 
-if /I "%INSTALL_OXL%"=="Y" goto :install_openpyxl
-echo Please run this command, then start again:
-echo   %PY_CMD% -m pip install --upgrade pip openpyxl
+echo In Command Prompt, run one of these:
+echo   where /r "%%LocalAppData%%\Programs\Python" python.exe
+echo   where /r "C:\Program Files" python.exe
+echo.
+echo If Python is not installed, install it from:
+echo   https://www.python.org/downloads/windows/
+echo During setup, check: Add Python to PATH
+echo.
 pause
-exit /b 1
+echo.
+goto :detect_python
+
+:validate_python
+call :py_exec -V >nul 2>nul
+if %errorlevel% neq 0 (
+  echo [ERROR] This Python path did not work.
+  set "PY_KIND="
+  set "PY_EXE="
+  echo.
+  goto :detect_python
+)
+
+for /f "delims=" %%i in ('call "%~f0" :print_py_version') do set "PY_VER=%%i"
+for /f "delims=" %%i in ('call "%~f0" :print_py_exe') do set "PY_REAL_EXE=%%i"
+
+echo [OK] Python found.
+if defined PY_VER echo [INFO] !PY_VER!
+if defined PY_REAL_EXE echo [INFO] !PY_REAL_EXE!
+echo.
+
+call :py_exec -c "import openpyxl" >nul 2>nul
+if %errorlevel% neq 0 goto :install_openpyxl
+goto :run_server
 
 :install_openpyxl
+echo [STEP] One required package is missing: openpyxl
+set /p "INS=Install openpyxl now? (Y/N): "
+if /I not "%INS%"=="Y" goto :end_fail
 echo [INFO] Installing openpyxl...
-call %PY_CMD% -m pip install --upgrade pip openpyxl
+call :py_exec -m pip install --upgrade pip openpyxl
 if %errorlevel% neq 0 (
-  echo [ERROR] Could not install openpyxl automatically.
-  echo Run this manually:
-  echo   %PY_CMD% -m pip install --upgrade pip openpyxl
+  echo [ERROR] Automatic install did not work.
+  echo Please run this command manually:
+  echo   python -m pip install --upgrade pip openpyxl
+  echo.
   pause
   exit /b 1
 )
 echo [OK] openpyxl installed.
-goto :run
+echo.
+goto :run_server
+
+:run_server
+echo [INFO] Starting local server...
+call :py_exec "scripts\serve.py"
+set "EXIT_CODE=%errorlevel%"
+echo.
+if not "%EXIT_CODE%"=="0" (
+  echo [ERROR] Server exited with code %EXIT_CODE%.
+  echo Please copy the full error text and share it with support.
+)
+pause
+exit /b %EXIT_CODE%
+
+:auto_detect_python
+set "PY_KIND="
+set "PY_EXE="
+python -V >nul 2>nul
+if %errorlevel%==0 (
+  set "PY_KIND=python"
+  goto :eof
+)
+py -3 -V >nul 2>nul
+if %errorlevel%==0 (
+  set "PY_KIND=py"
+  goto :eof
+)
+for /d %%D in ("%LocalAppData%\Programs\Python\Python3*") do (
+  if exist "%%D\python.exe" (
+    set "PY_KIND=exe"
+    set "PY_EXE=%%D\python.exe"
+  )
+)
+if defined PY_KIND goto :eof
+for /d %%D in ("C:\Program Files\Python3*" "C:\Program Files (x86)\Python3*") do (
+  if exist "%%D\python.exe" (
+    set "PY_KIND=exe"
+    set "PY_EXE=%%D\python.exe"
+  )
+)
+goto :eof
+
+:py_exec
+if "%PY_KIND%"=="python" (
+  python %*
+  goto :eof
+)
+if "%PY_KIND%"=="py" (
+  py -3 %*
+  goto :eof
+)
+if "%PY_KIND%"=="exe" (
+  "%PY_EXE%" %*
+  goto :eof
+)
+exit /b 9009
+
+:print_py_version
+call :py_exec -V 2>&1
+goto :eof
+
+:print_py_exe
+call :py_exec -c "import sys; print(sys.executable)" 2>nul
+goto :eof
+
+:end_fail
+echo.
+echo [INFO] Setup not completed.
+echo You can run this file again anytime.
+echo.
+pause
+exit /b 1
