@@ -401,7 +401,7 @@ body {
 
 .sectors-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px;
 }
 .sector-card {
@@ -430,16 +430,7 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   padding-top: 14px; border-top: 1px solid var(--border);
 }
-.sc-status {
-  font-size: 10px; font-weight: 700;
-  padding: 3px 9px; border-radius: 20px;
-  text-transform: uppercase; letter-spacing: .3px;
-}
-.sc-status.live { background: #C6F6D5; color: #276749; }
-.sc-status.dev  { background: #DBEAFE; color: #1D4ED8; }
-.sc-status.plan { background: #F1F5F9; color: #94A3B8; }
-.sc-cta { font-size: 12px; font-weight: 600; color: var(--sc-color); }
-.sc-cta:hover { text-decoration: underline; }
+.sc-meta { font-size: 11px; color: var(--muted); }
 
 /* ══════════════════════════════════════════════════════════════════════════
    SECTOR DETAIL (placeholder frame for Phase 4)
@@ -663,20 +654,6 @@ body {
             for each of BC's key industry sectors
           </div>
         </div>
-        <div class="sectors-hub-stats">
-          <div style="text-align:center">
-            <div class="hub-stat-val" id="hub-live">1</div>
-            <div class="hub-stat-lbl">Dashboard Live</div>
-          </div>
-          <div style="text-align:center">
-            <div class="hub-stat-val" id="hub-planned">9</div>
-            <div class="hub-stat-lbl">Planned</div>
-          </div>
-          <div style="text-align:center">
-            <div class="hub-stat-val" id="hub-total">10</div>
-            <div class="hub-stat-lbl">Total Sectors</div>
-          </div>
-        </div>
       </div>
 
       <!-- Sector card grid (filled by JS) -->
@@ -715,6 +692,7 @@ const SECTORS = [
   {
     id: 'life-sciences', name: 'Life Sciences',
     icon: 'LS', color: '#1B4F8A', status: 'live',
+    last_updated: 'Apr 7, 2026',
     desc: 'Pharmaceuticals, medical devices, biotech research and clinical services',
     logo: '../../sectors/life_sciences/docs/Logo.png',
     excel: 'dashboards/sectors/life_sciences/data/Life_Sciences_light.xlsx',
@@ -931,6 +909,11 @@ function buildSectorsGrid() {
   if (!grid) return;
   const visibleSectors = getVisibleSectors();
 
+  const cardMeta = (s) => {
+    if (s.last_updated) return `Last updated: ${s.last_updated}`;
+    return 'Coming Soon';
+  };
+
   grid.innerHTML = visibleSectors.map(s => `
     <div class="sector-card" style="--sc-color:${s.color}"
          onclick="navigate('sector-detail','${s.id}')">
@@ -940,22 +923,12 @@ function buildSectorsGrid() {
         <div class="sc-name">${s.name}</div>
         <div class="sc-desc">${s.desc}</div>
         <div class="sc-footer">
-          <span class="sc-status ${s.status}">${s.status === 'live' ? 'Live' : 'Planned'}</span>
-          <span class="sc-cta">Open</span>
+          <span class="sc-meta">${cardMeta(s)}</span>
         </div>
       </div>
     </div>
   `).join('');
 
-  const live = visibleSectors.filter(s => s.status === 'live').length;
-  const planned = visibleSectors.filter(s => s.status !== 'live').length;
-  const total = visibleSectors.length;
-  const el1 = document.getElementById('hub-live');
-  const el2 = document.getElementById('hub-planned');
-  const el3 = document.getElementById('hub-total');
-  if (el1) el1.textContent = live;
-  if (el2) el2.textContent = planned;
-  if (el3) el3.textContent = total;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -1065,8 +1038,41 @@ function renderSectorDevPlaceholder(s) {
 ══════════════════════════════════════════════════════════════════════════ */
 /* Stats Can WDS API — all endpoints are HTTP POST with JSON body arrays.
    Docs: https://www.statcan.gc.ca/en/developers/wds/user-guide          */
+function useLocalStatsCanProxy() {
+  const h = String(location.hostname || '').toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1';
+}
+
 const SC = {
   BASE: 'https://www150.statcan.gc.ca/t1/wds/rest',
+
+  /* Route through local Python proxy when on localhost (avoids CORS).
+     Falls back to direct Stats Can call if proxy is unavailable. */
+  async post(path, payload) {
+    if (useLocalStatsCanProxy()) {
+      // On localhost always use the proxy — direct StatsCan WDS calls are CORS-blocked.
+      const res = await fetch('/api/statcan-wds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ path, payload })
+      });
+      if (!res.ok) {
+        let detail = '';
+        try { const j = await res.json(); detail = j.error || j.details || ''; } catch(_) {}
+        throw new Error(`StatsCan WDS proxy error (HTTP ${res.status})${detail ? ': ' + detail : ''}`);
+      }
+      return await res.json();
+    }
+    // Non-localhost: call StatsCan directly.
+    const res = await fetch(`${this.BASE}/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  },
+
   /* Fetch by vector IDs — the reliable Stats Can method.
      getDataFromCubePidCoordAndLatestNPeriods has known bugs for some BC series
      (returns wrong values). getDataFromVectorsAndLatestNPeriods is consistent.
@@ -1075,13 +1081,7 @@ const SC = {
      by vector ID ascending.  We match each response item by its vectorId field. */
   async byVectors(vectorIds, nPeriods) {
     const body = vectorIds.map(v => ({ vectorId: v, latestN: nPeriods }));
-    const res = await fetch(`${this.BASE}/getDataFromVectorsAndLatestNPeriods`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const arr = await res.json();
+    const arr = await this.post('getDataFromVectorsAndLatestNPeriods', body);
 
     /* Build a lookup map: vectorId → parsed points */
     const byId = {};
@@ -1351,9 +1351,10 @@ async function handleMacroUpdate() {
   /* file:// guard */
   if (location.protocol === 'file:') {
     alert(
-      'Fetching live data requires a local HTTP server.\n\n' +
-      'Run:  python serve.py\n' +
-      'in the output folder, then open the link shown in your terminal.'
+      'Fetching live data requires the local server to be running.\n\n' +
+      'Start the server manually:\n' +
+      '  python scripts/serve.py\n' +
+      'then open:  http://localhost:8080/dashboards/bc_dashboard_hub/html/dashboard.html'
     );
     return;
   }

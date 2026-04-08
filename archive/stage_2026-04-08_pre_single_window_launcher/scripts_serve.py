@@ -9,7 +9,6 @@ Then open:  http://localhost:8080/dashboards/bc_dashboard_hub/html/dashboard.htm
 import http.server
 import json
 import os
-import socket
 import socketserver
 import threading
 import urllib.error
@@ -20,31 +19,18 @@ import ssl
 import subprocess
 
 PORT = 8080
-PREFERRED_PORTS = [8080, 8081, 8090, 0]
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 os.chdir(ROOT)
 
 
-def create_http_server(handler_cls, candidates):
-    last_err = None
-    for port in candidates:
-        try:
-            httpd = socketserver.TCPServer(("", port), handler_cls)
-            actual = httpd.server_address[1]
-            return httpd, actual
-        except OSError as e:
-            last_err = e
-            continue
-    if last_err:
-        raise last_err
-    raise OSError("No available port found")
-
-
-def open_browser(port):
+def open_browser():
     import time
     time.sleep(1.0)
-    webbrowser.open(f"http://localhost:{port}/dashboards/bc_dashboard_hub/html/dashboard.html")
+    webbrowser.open(f"http://localhost:{PORT}/dashboards/bc_dashboard_hub/html/dashboard.html")
+
+
+threading.Thread(target=open_browser, daemon=True).start()
 
 
 class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -318,9 +304,7 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
 
 
 Handler = UTF8RequestHandler
-httpd, PORT = create_http_server(Handler, PREFERRED_PORTS)
-threading.Thread(target=open_browser, args=(PORT,), daemon=True).start()
-with httpd:
+with socketserver.TCPServer(("", PORT), Handler) as httpd:
     print(f"[OK] Serving dashboard workspace from: {ROOT}")
     print(f"[OK] Hub URL:      http://localhost:{PORT}/dashboards/bc_dashboard_hub/html/dashboard.html")
     print(f"[OK] Macro URL:    http://localhost:{PORT}/dashboards/bc_macroeconomy/html/dashboard.html")

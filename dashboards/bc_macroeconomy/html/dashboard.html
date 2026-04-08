@@ -1364,7 +1364,40 @@ function renderSectorDevPlaceholder(s) {
    Docs: https://www.statcan.gc.ca/en/developers/wds/user-guide          */
 function useLocalStatsCanProxy() {
   const h = String(location.hostname || '').toLowerCase();
-  return h === 'localhost' || h === '127.0.0.1';
+  const p = String(location.protocol || '').toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h === '' || p === 'file:';
+}
+
+function proxyApiCandidates(path) {
+  const p = String(path || '');
+  const out = [];
+  try {
+    if (/^https?:/i.test(location.origin || '')) out.push(new URL(p, location.origin).href);
+  } catch (_) {}
+  [8080, 8081, 8090].forEach(port => {
+    out.push(`http://localhost:${port}${p}`);
+    out.push(`http://127.0.0.1:${port}${p}`);
+  });
+  return [...new Set(out)];
+}
+
+async function fetchProxyWithFallback(path, options) {
+  let lastErr = null;
+  const tried = [];
+  for (const url of proxyApiCandidates(path)) {
+    try {
+      tried.push(url);
+      return await fetch(url, options);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) {
+    throw new Error(
+      `Failed to reach local proxy (${path}). Tried: ${tried.join(', ')}. Last error: ${lastErr && lastErr.message ? lastErr.message : String(lastErr)}`
+    );
+  }
+  return fetch(path, options);
 }
 
 const SC = {
@@ -1372,18 +1405,24 @@ const SC = {
 
   async post(path, payload) {
     if (useLocalStatsCanProxy()) {
-      try {
-        const res = await fetch('/api/statcan-wds', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-          body: JSON.stringify({ path, payload })
-        });
-        if (res.ok) return await res.json();
-      } catch (_) {
-        // Fall through to direct endpoint below.
+      // On localhost always use the proxy — direct StatsCan WDS calls are CORS-blocked.
+      const res = await fetchProxyWithFallback('/api/statcan-wds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ path, payload })
+      });
+      if (!res.ok) {
+        let detail = '';
+        try {
+          const j = await res.json();
+          detail = [j.error, j.details].filter(Boolean).join(' | ');
+        } catch(_) {}
+        throw new Error(`StatsCan WDS proxy error (HTTP ${res.status})${detail ? ': ' + detail : ''}`);
       }
+      return await res.json();
     }
 
+    // Non-localhost: call StatsCan directly.
     const res = await fetch(`${this.BASE}/${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -2323,24 +2362,31 @@ async function fetchStatsCanCsvRows(pid, latestN, selectedMembers, checkedLevels
     endDate: ''
   };
 
-  // Use local proxy when served from localhost (avoids browser CORS/network issues).
+  // Use local proxy when served from localhost (avoids CORS).
+  // On localhost we never fall through to the direct call — that would always
+  // fail with a CORS error. Instead, surface whatever the proxy returns.
   if (useLocalStatsCanProxy()) {
-    try {
-      const res = await fetch('/api/statcan-csv', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'text/csv,text/plain,*/*' },
-        body: JSON.stringify(reqBody)
-      });
-      if (res.ok) {
-        const txt = await res.text();
-        if (!txt || txt.indexOf('REF_DATE') === -1) throw new Error('Unexpected CSV response from proxy');
-        return csvTextToRows(txt);
-      }
-    } catch (_) {
-      // Fall through to direct endpoint below.
+    const res = await fetchProxyWithFallback('/api/statcan-csv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/csv,text/plain,*/*' },
+      body: JSON.stringify(reqBody)
+    });
+    if (!res.ok) {
+      let detail = '';
+      try {
+        const j = await res.json();
+        detail = [j.error, j.details].filter(Boolean).join(' | ');
+      } catch(_) {}
+      throw new Error(`StatsCan CSV proxy error (HTTP ${res.status})${detail ? ': ' + detail : ''}`);
     }
+    const txt = await res.text();
+    if (!txt || txt.indexOf('REF_DATE') === -1) {
+      throw new Error('StatsCan CSV returned unexpected content — table may be unavailable or the API endpoint has changed.');
+    }
+    return csvTextToRows(txt);
   }
 
+  // Non-localhost: try the direct StatsCan endpoint (works when CORS is not a concern).
   const params = new URLSearchParams({
     pid: reqBody.pid,
     latestN: String(reqBody.latestN),
