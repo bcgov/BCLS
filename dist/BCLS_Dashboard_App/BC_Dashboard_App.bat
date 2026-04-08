@@ -23,6 +23,18 @@ if "%PY_CMD%"=="" (
   if %errorlevel%==0 set "PY_CMD=py -3"
 )
 
+if "%PY_CMD%"=="" (
+  for /d %%D in ("%LocalAppData%\Programs\Python\Python3*") do (
+    if exist "%%D\python.exe" set "PY_CMD=%%D\python.exe"
+  )
+)
+
+if "%PY_CMD%"=="" (
+  for /d %%D in ("C:\Program Files\Python3*","C:\Program Files (x86)\Python3*") do (
+    if exist "%%D\python.exe" set "PY_CMD=%%D\python.exe"
+  )
+)
+
 if "%PY_CMD%"=="" goto :no_python
 goto :run
 
@@ -31,8 +43,10 @@ echo [ERROR] Python was not found.
 echo Please install Python 3.11+ from https://www.python.org/downloads/windows/
 echo and check "Add Python to PATH" during install.
 echo.
-echo If Python is already installed, disable Windows "App execution aliases"
-echo for python.exe / python3.exe, then run this file again.
+echo If Python is already installed, add these folders to User PATH:
+echo   1) %%LocalAppData%%\Programs\Python\Python3xx\
+echo   2) %%LocalAppData%%\Programs\Python\Python3xx\Scripts\
+echo Then open a new terminal and retry.
 pause
 exit /b 1
 
