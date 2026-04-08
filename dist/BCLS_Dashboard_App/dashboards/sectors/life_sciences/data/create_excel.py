@@ -4,7 +4,7 @@
 from pathlib import Path
 from openpyxl import Workbook
 
-OUT_PATH = Path(__file__).with_name("Life_Sciences_light.xlsx")
+OUT_PATH = Path(__file__).resolve().parents[4] / "data" / "sectors" / "life_sciences" / "Life_Sciences_light.xlsx"
 
 
 def add_sheet(ws, headers, rows):

@@ -1,6 +1,7 @@
 # Data
 
-`trade_composition_sample.json` is a development dataset for the BC Trade Analysis dashboard.
+`trade_composition_sample.json` was moved to:
+`C:/Users/smehd/BCLS/data/bc_trade_analysis/trade_composition_sample.json`.
 
 Source references:
 - Statistics Canada `36-10-0709-01`

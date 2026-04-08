@@ -1,7 +1,7 @@
 # Life Sciences
 
 - HTML entry point: `html/dashboard.html`
-- Canonical workbook (lightweight schema): `data/Life_Sciences_light.xlsx`
+- Canonical workbook (lightweight schema): `C:/Users/smehd/BCLS/data/sectors/life_sciences/Life_Sciences_light.xlsx`
 - Data mode: Excel-only strict single-source (no legacy fallback workbook)
 - Source copied from the archived legacy Life Sciences standalone dashboard.
 

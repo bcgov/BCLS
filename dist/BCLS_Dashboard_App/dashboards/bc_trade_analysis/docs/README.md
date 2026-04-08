@@ -6,7 +6,7 @@ Standalone one-page dashboard for international trade composition.
 - `html/dashboard.html`
 
 ## Data
-- `data/trade_composition_sample.json`
+- `C:/Users/smehd/BCLS/data/bc_trade_analysis/trade_composition_sample.json`
 
 Current dataset is a development sample aligned to:
 - Statistics Canada table `36-10-0709-01`

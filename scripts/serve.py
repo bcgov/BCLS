@@ -18,10 +18,38 @@ import urllib.request
 import webbrowser
 import ssl
 import subprocess
+from pathlib import Path
+
+try:
+    from openpyxl import Workbook, load_workbook
+except Exception:
+    Workbook = None
+    load_workbook = None
 
 PORT = 8080
 PREFERRED_PORTS = [8080, 8081, 8090, 0]
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+EXCEL_MAP_PATH = os.environ.get(
+    "BCLS_DATA_MAP_XLSX",
+    os.path.join(os.path.expanduser("~"), "BCLS", "DATA_FILE_MAP.xlsx"),
+)
+EXCEL_MAP_REQUIRED = [
+    {
+        "key": "life_sciences_main",
+        "description": "Life Sciences sector workbook",
+        "required": True,
+    },
+    {
+        "key": "look_west_media",
+        "description": "Look West media coverage workbook",
+        "required": True,
+    },
+    {
+        "key": "look_west_funding",
+        "description": "Look West funding/investments workbook",
+        "required": True,
+    },
+]
 
 os.chdir(ROOT)
 
@@ -45,6 +73,67 @@ def open_browser(port):
     import time
     time.sleep(1.0)
     webbrowser.open(f"http://localhost:{port}/dashboards/bc_dashboard_hub/html/dashboard.html")
+
+
+def ensure_excel_map_template(path_str):
+    if load_workbook is None or Workbook is None:
+        return False, "openpyxl not available"
+    p = Path(path_str)
+    if p.exists():
+        return True, "exists"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "FILE_MAP"
+    ws.append(["key", "path", "required", "description", "notes"])
+    for r in EXCEL_MAP_REQUIRED:
+        ws.append([r["key"], "", "TRUE" if r.get("required") else "FALSE", r.get("description", ""), "Enter local synced SharePoint path"])
+    wb.save(p)
+    return True, "created"
+
+
+def load_excel_map(path_str):
+    if load_workbook is None:
+        raise RuntimeError("openpyxl is required to read DATA_FILE_MAP.xlsx")
+    p = Path(path_str)
+    if not p.exists():
+        return {}
+    wb = load_workbook(p, data_only=True)
+    ws = wb["FILE_MAP"] if "FILE_MAP" in wb.sheetnames else wb[wb.sheetnames[0]]
+    mapping = {}
+    # Columns: key, path, required, description, notes
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        key = str(row[0] or "").strip()
+        if not key:
+            continue
+        raw_path = str(row[1] or "").strip()
+        if raw_path:
+            raw_path = os.path.expandvars(raw_path)
+            raw_path = os.path.expanduser(raw_path)
+        required = str(row[2] or "").strip().upper() in ("TRUE", "YES", "1")
+        mapping[key] = {"path": raw_path, "required": required}
+    return mapping
+
+
+def validate_excel_map(path_str):
+    mapping = load_excel_map(path_str)
+    checks = []
+    for req in EXCEL_MAP_REQUIRED:
+        key = req["key"]
+        row = mapping.get(key, {})
+        p = row.get("path", "")
+        exists = bool(p and os.path.exists(p))
+        checks.append(
+            {
+                "key": key,
+                "description": req.get("description", ""),
+                "required": bool(req.get("required", True)),
+                "path": p,
+                "exists": exists,
+            }
+        )
+    missing = [c for c in checks if c["required"] and not c["exists"]]
+    return {"mapPath": path_str, "checks": checks, "missingRequired": missing}
 
 
 class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
@@ -82,6 +171,40 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
             return json.loads(raw.decode("utf-8"))
         except Exception:
             return None
+
+    def _json_status_payload(self):
+        try:
+            return validate_excel_map(EXCEL_MAP_PATH)
+        except Exception as e:
+            return {"mapPath": EXCEL_MAP_PATH, "checks": [], "missingRequired": [], "error": str(e)}
+
+    def _serve_excel_file_by_key(self, key):
+        if not key:
+            self._send_json(400, {"error": "Missing key"})
+            return
+        try:
+            mapping = load_excel_map(EXCEL_MAP_PATH)
+            row = mapping.get(key)
+            if not row:
+                self._send_json(404, {"error": f"Map key not found: {key}", "mapPath": EXCEL_MAP_PATH})
+                return
+            file_path = row.get("path", "")
+            if not file_path:
+                self._send_json(404, {"error": f"No path configured for key: {key}", "mapPath": EXCEL_MAP_PATH})
+                return
+            if not os.path.exists(file_path):
+                self._send_json(404, {"error": f"Configured path not found for key: {key}", "path": file_path, "mapPath": EXCEL_MAP_PATH})
+                return
+            with open(file_path, "rb") as f:
+                data = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        except Exception as e:
+            self._send_json(500, {"error": "Failed to read mapped Excel file", "details": str(e), "key": key, "mapPath": EXCEL_MAP_PATH})
 
     def _urlopen_no_proxy(self, req, timeout):
         opener = urllib.request.build_opener(
@@ -316,8 +439,33 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
         except Exception as e:
             self._send_json(500, {"error": "Local proxy handler failure", "details": str(e)})
 
+    def do_GET(self):
+        try:
+            parsed = urllib.parse.urlparse(self.path)
+            if parsed.path == "/api/excel-map-status":
+                self._send_json(200, self._json_status_payload())
+                return
+            if parsed.path == "/api/excel-file":
+                q = urllib.parse.parse_qs(parsed.query or "")
+                key = str((q.get("key") or [""])[0]).strip()
+                self._serve_excel_file_by_key(key)
+                return
+            super().do_GET()
+        except Exception as e:
+            self._send_json(500, {"error": "Local proxy GET handler failure", "details": str(e)})
+
 
 Handler = UTF8RequestHandler
+ok, state = ensure_excel_map_template(EXCEL_MAP_PATH)
+status = validate_excel_map(EXCEL_MAP_PATH)
+if state == "created":
+    print(f"[INFO] Created Excel map template: {EXCEL_MAP_PATH}")
+if status.get("missingRequired"):
+    print("[WARN] Missing required mapped Excel files:")
+    for m in status["missingRequired"]:
+        print(f"  - {m['key']}: {m.get('description','')} (configured path: {m.get('path') or '<blank>'})")
+    print(f"[INFO] Edit mapping workbook: {EXCEL_MAP_PATH}\n")
+
 httpd, PORT = create_http_server(Handler, PREFERRED_PORTS)
 threading.Thread(target=open_browser, args=(PORT,), daemon=True).start()
 with httpd:
