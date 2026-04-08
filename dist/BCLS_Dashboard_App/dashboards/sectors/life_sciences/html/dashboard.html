@@ -891,8 +891,9 @@ function buildDisplayPanels() {
 
 /* ── DATA LOADING ───────────────────────────────────────────────────────── */
 const DEFAULT_EXCEL_URLS = [
-  '../../../../data/sectors/life_sciences/Life_Sciences_light.xlsx',
+  '/api/excel-file?key=life_sciences_main',
 ];
+const EXCEL_MAP_STATUS_URL = '/api/excel-map-status';
 
 async function loadCSV(relPath) {
   const url = CONFIG.data_root + '/' + relPath;
@@ -911,6 +912,17 @@ async function loadWorkbookFromUrl(url) {
 }
 
 async function loadAllData() {
+  try {
+    const st = await fetch(EXCEL_MAP_STATUS_URL, { cache:'no-store' });
+    if (st.ok) {
+      const js = await st.json();
+      const miss = (js.missingRequired||[]).filter(x => x.key === 'life_sciences_main');
+      if (miss.length) {
+        const m = miss[0];
+        throw new Error(`Data not connected. Missing mapped file: ${m.key}. Edit mapping workbook: ${js.mapPath || 'DATA_FILE_MAP.xlsx'}`);
+      }
+    }
+  } catch (_) {}
   // Excel-only strict mode: always load from workbook files in this folder.
   const attempts = [];
   for (const url of DEFAULT_EXCEL_URLS) {

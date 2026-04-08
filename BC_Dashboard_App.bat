@@ -37,6 +37,14 @@ pause
 exit /b 1
 
 :run
+echo [INFO] Using Python command: %PY_CMD%
+for /f "delims=" %%i in ('%PY_CMD% -c "import sys; print(sys.executable)" 2^>nul') do set "PY_EXE=%%i"
+if not "%PY_EXE%"=="" echo [INFO] Python executable: %PY_EXE%
+for /f "delims=" %%i in ('%PY_CMD% -V 2^>^&1') do echo [INFO] %%i
+
+call %PY_CMD% -c "import openpyxl" >nul 2>nul
+if %errorlevel% neq 0 goto :missing_openpyxl
+
 echo [INFO] Starting local server...
 call %PY_CMD% "scripts\serve.py"
 set "EXIT_CODE=%errorlevel%"
@@ -49,3 +57,26 @@ if not "%EXIT_CODE%"=="0" (
 echo.
 pause
 exit /b %EXIT_CODE%
+
+:missing_openpyxl
+echo.
+echo [ERROR] Python package "openpyxl" is missing.
+set /p INSTALL_OXL=Install openpyxl now? (Y/N): 
+if /I "%INSTALL_OXL%"=="Y" goto :install_openpyxl
+echo Please run this command, then start again:
+echo   %PY_CMD% -m pip install --upgrade pip openpyxl
+pause
+exit /b 1
+
+:install_openpyxl
+echo [INFO] Installing openpyxl...
+call %PY_CMD% -m pip install --upgrade pip openpyxl
+if %errorlevel% neq 0 (
+  echo [ERROR] Could not install openpyxl automatically.
+  echo Run this manually:
+  echo   %PY_CMD% -m pip install --upgrade pip openpyxl
+  pause
+  exit /b 1
+)
+echo [OK] openpyxl installed.
+goto :run
