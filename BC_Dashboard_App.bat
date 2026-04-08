@@ -15,19 +15,24 @@ if not exist "scripts\serve.py" (
 )
 
 set "PY_CMD="
-where python >nul 2>nul
+python -V >nul 2>nul
 if %errorlevel%==0 set "PY_CMD=python"
 
-where py >nul 2>nul
-if "%PY_CMD%"=="" if %errorlevel%==0 set "PY_CMD=py -3"
+if "%PY_CMD%"=="" (
+  py -3 -V >nul 2>nul
+  if %errorlevel%==0 set "PY_CMD=py -3"
+)
 
 if "%PY_CMD%"=="" goto :no_python
 goto :run
 
 :no_python
 echo [ERROR] Python was not found.
-echo Please install Python 3.11+ and enable "Add Python to PATH".
-echo Then run this file again.
+echo Please install Python 3.11+ from https://www.python.org/downloads/windows/
+echo and check "Add Python to PATH" during install.
+echo.
+echo If Python is already installed, disable Windows "App execution aliases"
+echo for python.exe / python3.exe, then run this file again.
 pause
 exit /b 1
 

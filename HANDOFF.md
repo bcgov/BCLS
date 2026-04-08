@@ -19,7 +19,7 @@
   - `scripts/serve.py` now auto-selects port (`8080`, `8081`, `8090`, fallback any free port) to avoid WinError 10048.
   - Added Windows handoff package assets:
     - `BC_Dashboard_App.bat`
-    - `INSTALL_WINDOWS_ONE_PAGE.md`
+    - `INSTALLATION_INSTRUCTION.md`
     - `scripts/package_windows_zip.ps1`
     - built `dist/BCLS_Dashboard_App.zip`
   - Removed launcher stack per user direction (kept simple `serve.py` flow):
@@ -34,7 +34,7 @@
 - `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
 - `C:/Users/smehd/BCLS/scripts/serve.py`
 - `C:/Users/smehd/BCLS/BC_Dashboard_App.bat` (new)
-- `C:/Users/smehd/BCLS/INSTALL_WINDOWS_ONE_PAGE.md` (new)
+- `C:/Users/smehd/BCLS/INSTALLATION_INSTRUCTION.md` (new)
 - `C:/Users/smehd/BCLS/scripts/package_windows_zip.ps1` (new)
 - `C:/Users/smehd/BCLS/archive/stage_2026-04-08_pre_single_window_launcher/*` (snapshot backup)
 

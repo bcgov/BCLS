@@ -17,7 +17,7 @@ $items = @(
   "scripts",
   "shared",
   "BC_Dashboard_App.bat",
-  "INSTALL_WINDOWS_ONE_PAGE.md"
+  "INSTALLATION_INSTRUCTION.md"
 )
 
 foreach ($item in $items) {
@@ -32,4 +32,3 @@ if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zipPath
 
 Write-Host "[OK] Package created: $zipPath"
-

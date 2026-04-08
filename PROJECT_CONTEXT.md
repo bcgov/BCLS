@@ -20,7 +20,7 @@ Stabilize local runtime + user handoff for Windows:
 - Life Sciences workbook (single source): `.../life_sciences/data/Life_Sciences_light.xlsx`
 - Windows distribution artifacts:
   - `C:/Users/smehd/BCLS/BC_Dashboard_App.bat`
-  - `C:/Users/smehd/BCLS/INSTALL_WINDOWS_ONE_PAGE.md`
+  - `C:/Users/smehd/BCLS/INSTALLATION_INSTRUCTION.md`
   - `C:/Users/smehd/BCLS/scripts/package_windows_zip.ps1`
   - `C:/Users/smehd/BCLS/dist/BCLS_Dashboard_App.zip`
 
