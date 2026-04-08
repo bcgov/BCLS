@@ -79,8 +79,10 @@ if %errorlevel% neq 0 (
 )
 
 echo [OK] Python found.
-for /f "delims=" %%i in ('call :py_exec -V 2^>^&1') do echo [INFO] %%i
-for /f "delims=" %%i in ('call :py_exec -c "import sys; print(sys.executable)" 2^>nul') do echo [INFO] Python executable: %%i
+echo [INFO] Python version:
+call :py_exec -V
+echo [INFO] Python executable:
+call :py_exec -c "import sys; print(sys.executable)"
 echo.
 
 call :py_exec -c "import openpyxl" >nul 2>nul

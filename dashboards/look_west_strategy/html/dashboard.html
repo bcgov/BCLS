@@ -43,6 +43,13 @@
     .header-sub { font-size: 12px; opacity: 0.9; margin-top: 3px; }
     .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
     .header-meta { font-size: 11px; opacity: 0.95; }
+    .cache-line {
+      margin: 0 24px;
+      padding: 8px 0 12px;
+      font-size: 12px;
+      color: #4a5f7f;
+      border-bottom: 1px solid #dbe6f4;
+    }
 
     .btn {
       border: 1px solid rgba(255,255,255,0.45);
@@ -206,11 +213,10 @@
     </div>
     <div class="header-right">
       <button class="btn" id="btn-refresh" onclick="refreshData()">Update Data</button>
-      <button class="btn" onclick="document.getElementById('local-files').click()">Load Local Files</button>
-      <input id="local-files" type="file" accept=".xlsx" multiple style="display:none" onchange="loadFromLocalFiles(this.files)" />
       <div class="header-meta" id="meta-status">Loading...</div>
     </div>
   </header>
+  <div class="cache-line" id="cache-line">No cached data - click Update Data to load.</div>
 
   <main class="main">
     <section class="card">
@@ -331,15 +337,12 @@
       media: [],
       funding: [],
       loadedAt: null,
-      pendingLocal: {
-        mediaWb: null,
-        fundWb: null
-      },
       sort: {
         media: { key: 'date', dir: 'desc' },
         fund: { key: 'date', dir: 'desc' }
       }
     };
+    const CACHE_KEY = 'LW_DASHBOARD_CACHE_V1';
 
     function normalizeText(v) {
       return String(v || '').replace(/\s+/g, ' ').trim();
@@ -565,7 +568,10 @@
         rows.forEach(r => mediaRows.push(normalizeMediaRow(sheetName, r)));
       }
 
-      const fundWs = fundWb.Sheets['Funding and Investments'];
+      const fundSheetName = (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'funding and investments')
+        || (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase().includes('funding and investments'))
+        || 'Funding and Investments';
+      const fundWs = fundWb.Sheets[fundSheetName];
       const fundingRows = fundWs
         ? sheetToObjects(fundWs, 'Date Announced').map(normalizeFundingRow).filter(r => normalizeText(r.project))
         : [];
@@ -575,60 +581,29 @@
       STATE.loadedAt = new Date();
     }
 
-    async function fileToWorkbook(file) {
-      const ab = await file.arrayBuffer();
-      return XLSX.read(new Uint8Array(ab), { type: 'array' });
+    function storageSave() {
+      try {
+        const payload = {
+          loadedAt: STATE.loadedAt ? STATE.loadedAt.toISOString() : null,
+          media: STATE.media,
+          funding: STATE.funding
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+      } catch (_) {}
     }
 
-    async function loadFromLocalFiles(fileList) {
-      clearError();
+    function storageLoad() {
       try {
-        const files = Array.from(fileList || []);
-        if (!files.length) return;
-
-        let foundMedia = false;
-        let foundFunding = false;
-
-        for (const f of files) {
-          if (!/\.xlsx$/i.test(f.name)) continue;
-          const wb = await fileToWorkbook(f);
-          const sheetNames = new Set((wb.SheetNames || []).map(s => String(s).trim()));
-          const hasMedia = MEDIA_SHEETS.some(s => sheetNames.has(s));
-          const hasFunding = sheetNames.has('Funding and Investments');
-
-          if (hasMedia) {
-            STATE.pendingLocal.mediaWb = wb;
-            foundMedia = true;
-          }
-          if (hasFunding) {
-            STATE.pendingLocal.fundWb = wb;
-            foundFunding = true;
-          }
-        }
-
-        if (!STATE.pendingLocal.mediaWb || !STATE.pendingLocal.fundWb) {
-          const missing = [];
-          if (!STATE.pendingLocal.mediaWb) missing.push('media workbook');
-          if (!STATE.pendingLocal.fundWb) missing.push('funding workbook');
-          const note = (foundMedia || foundFunding)
-            ? ' One file was accepted. Please load the missing file next.'
-            : ' No recognized workbook detected in selected file(s).';
-          throw new Error(`Still missing: ${missing.join(' and ')}.${note}`);
-        }
-
-        parseWorkbooks(STATE.pendingLocal.mediaWb, STATE.pendingLocal.fundWb);
-        renderKPIs();
-        buildFilters();
-        renderMediaTable();
-        renderFundingTable();
-        updateMeta();
-        STATE.pendingLocal.mediaWb = null;
-        STATE.pendingLocal.fundWb = null;
-      } catch (e) {
-        showError('Local file load failed: ' + (e && e.message ? e.message : e));
-      } finally {
-        const inp = document.getElementById('local-files');
-        if (inp) inp.value = '';
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return false;
+        const payload = JSON.parse(raw);
+        if (!payload || !Array.isArray(payload.media) || !Array.isArray(payload.funding)) return false;
+        STATE.media = payload.media;
+        STATE.funding = payload.funding;
+        STATE.loadedAt = payload.loadedAt ? new Date(payload.loadedAt) : null;
+        return true;
+      } catch (_) {
+        return false;
       }
     }
 
@@ -827,13 +802,18 @@
       document.getElementById('error-box').innerHTML = `<div class="error" style="background:#eef6ff;border-color:#b8d8ff;color:#124b86;">${msg}</div>`;
     }
 
-    function updateMeta() {
+    function updateMeta(sourceLabel) {
       const el = document.getElementById('meta-status');
+      const cacheLine = document.getElementById('cache-line');
+      const source = sourceLabel || 'Cached data';
       if (!STATE.loadedAt) {
         el.textContent = 'No data loaded';
+        if (cacheLine) cacheLine.textContent = 'No cached data - click Update Data to load.';
         return;
       }
-      el.textContent = `Cached data - Last updated: ${STATE.loadedAt.toLocaleString('en-CA')}`;
+      const when = STATE.loadedAt.toLocaleString('en-CA');
+      el.textContent = `${source} - Last updated: ${when}`;
+      if (cacheLine) cacheLine.textContent = `${source} · Last updated: ${when} · Click Update Data to refresh.`;
     }
 
     async function refreshData() {
@@ -847,11 +827,12 @@
         buildFilters();
         renderMediaTable();
         renderFundingTable();
-        updateMeta();
+        updateMeta('Live data');
+        storageSave();
         btn.textContent = 'Updated';
       } catch (e) {
         console.error(e);
-        const protoHint = location.protocol === 'file:' ? 'You are opening this file directly. Start local server (python scripts/serve.py) or use \"Load Local Files\".' : '';
+        const protoHint = location.protocol === 'file:' ? 'You are opening this file directly. Start local server (python scripts/serve.py).' : '';
         showError('Could not load Look West data: ' + (e && e.message ? e.message : e) + (protoHint ? ' ' + protoHint : ''));
         btn.textContent = 'Update Data';
       } finally {
@@ -864,11 +845,22 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       if (location.protocol === 'file:') {
-        document.getElementById('meta-status').textContent = 'File mode - waiting for local workbook selection';
-        showInfo('Opened as local file. Click "Load Local Files" and select the media and funding workbooks, or run python scripts/serve.py and open via http://localhost:8080.');
+        document.getElementById('meta-status').textContent = 'File mode - server required';
+        showInfo('Opened as local file. Run python scripts/serve.py and open via http://localhost:8080.');
         return;
       }
-      refreshData();
+      const hasCache = storageLoad();
+      if (hasCache) {
+        renderKPIs();
+        buildFilters();
+        renderMediaTable();
+        renderFundingTable();
+        updateMeta('Cached data');
+        refreshData();
+      } else {
+        updateMeta();
+        refreshData();
+      }
     });
   </script>
 </body>
