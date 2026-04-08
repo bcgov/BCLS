@@ -27,7 +27,7 @@ except Exception:
     load_workbook = None
 
 PORT = 8080
-PREFERRED_PORTS = [8080, 8081, 8090, 0]
+PREFERRED_PORTS = [8080]
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXCEL_MAP_PATH = os.environ.get(
     "BCLS_DATA_MAP_XLSX",
@@ -466,7 +466,15 @@ if status.get("missingRequired"):
         print(f"  - {m['key']}: {m.get('description','')} (configured path: {m.get('path') or '<blank>'})")
     print(f"[INFO] Edit mapping workbook: {EXCEL_MAP_PATH}\n")
 
-httpd, PORT = create_http_server(Handler, PREFERRED_PORTS)
+try:
+    httpd, PORT = create_http_server(Handler, PREFERRED_PORTS)
+except OSError as e:
+    if getattr(e, "winerror", None) == 10048:
+        print("[INFO] Port 8080 is already in use. Reusing existing local server on 8080.")
+        open_browser(8080)
+        raise SystemExit(0)
+    raise
+
 threading.Thread(target=open_browser, args=(PORT,), daemon=True).start()
 with httpd:
     print(f"[OK] Serving dashboard workspace from: {ROOT}")
