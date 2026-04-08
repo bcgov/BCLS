@@ -27,3 +27,19 @@
 - Dashboard Hub footer removed.
   Rationale: cleaner shell chrome around embedded dashboards.
   Consequence: status/provenance text must live elsewhere if needed.
+
+- Life Sciences dashboard data source is strict single workbook: `Life_Sciences_light.xlsx`.
+  Rationale: prevent split-source drift and simplify maintenance.
+  Consequence: legacy `Life_Sciences.xlsx` fallback removed.
+
+- Windows handoff format is ZIP + Python prerequisite (no installer).
+  Rationale: fastest user distribution path without deployment work.
+  Consequence: package includes `BC_Dashboard_App.bat` and one-page setup doc.
+
+- Startup flow standardized to `scripts/serve.py` / `BC_Dashboard_App.bat`; launcher stack removed.
+  Rationale: reduce runtime complexity and user confusion from multiple windows/entrypoints.
+  Consequence: `run_dashboard_launcher.bat` and related launcher code/files were deleted.
+
+- `scripts/serve.py` must tolerate occupied ports.
+  Rationale: avoid WinError 10048 on machines with existing local servers.
+  Consequence: server now selects from preferred ports and falls back to any free port.

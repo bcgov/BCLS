@@ -4,25 +4,30 @@
 A BC dashboard workspace with multiple standalone dashboards and a parent shell (`BC Dashboard Hub`) that embeds them.
 
 **Current Goal**
-Stabilize two active surfaces:
-- `life_sciences` sector dashboard UX/data flow
-- `bc_dashboard_hub` embedding/navigation behavior
+Stabilize local runtime + user handoff for Windows:
+- reliable local server start (`scripts/serve.py`)
+- simple non-technical launch flow (`BC_Dashboard_App.bat`)
+- maintain Hub + Life Sciences UX polish
 
 **Stack**
 - Frontend: standalone HTML/CSS/JS dashboards (Chart.js)
 - Data: dashboard-specific Excel files + some live StatsCan usage in macro
-- Local server: `scripts/serve.py`
+- Local server/proxy: `scripts/serve.py`
 
 **Architecture Summary**
 - Hub: `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
 - Life Sciences: `C:/Users/smehd/BCLS/dashboards/sectors/life_sciences/html/dashboard.html`
-- Workbook/template:
-  - `.../life_sciences/data/Life_Sciences_light.xlsx`
-  - `.../life_sciences/data/Life_Sciences_light_template.xlsx`
+- Life Sciences workbook (single source): `.../life_sciences/data/Life_Sciences_light.xlsx`
+- Windows distribution artifacts:
+  - `C:/Users/smehd/BCLS/BC_Dashboard_App.bat`
+  - `C:/Users/smehd/BCLS/INSTALL_WINDOWS_ONE_PAGE.md`
+  - `C:/Users/smehd/BCLS/scripts/package_windows_zip.ps1`
+  - `C:/Users/smehd/BCLS/dist/BCLS_Dashboard_App.zip`
 
 **Key Constraints**
 - Child dashboards remain independently editable; hub embeds via iframe.
 - Life Sciences charts are sector-level in current UX.
+- Life Sciences data is strict Excel single-source (no legacy fallback workbook).
 - Display toggles are local-cache only (no Excel writes).
 - Environment: `rg.exe` unreliable (`Access is denied`), use PowerShell/Python search.
 
@@ -34,15 +39,17 @@ Stabilize two active surfaces:
 **Important Files**
 - `C:/Users/smehd/BCLS/dashboards/sectors/life_sciences/html/dashboard.html`
 - `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
-- `C:/Users/smehd/BCLS/dashboards/sectors/life_sciences/data/create_excel.py`
+- `C:/Users/smehd/BCLS/scripts/serve.py`
+- `C:/Users/smehd/BCLS/BC_Dashboard_App.bat`
 - `C:/Users/smehd/BCLS/HANDOFF.md`
 - `C:/Users/smehd/BCLS/TASKS.md`
 
 **Current Status**
-- Life Sciences: subsector section removed from active flow; KPIs + charts centralized in sector trends; local display selectors added; footer removed.
-- Hub: footer removed; nav labels simplified; dropdown header duplication removed; iframe auto-height logic added to reduce nested scrolling.
+- Life Sciences: top-box cleanup done; subtitle encoding artifacts fixed; strict single-workbook mode applied.
+- Hub sectors page: 4-column card layout, `Last updated`/`Coming Soon` footer text, no top counters.
+- Runtime: `serve.py` auto-selects available port; `launch_dashboard_hub.bat` replaced by `BC_Dashboard_App.bat` as the single app entrypoint.
 
 **Top Next Steps**
-- Smoke-test Life Sciences + Hub end-to-end using local server.
-- Finalize workbook migration while workbook file is unlocked.
-- Clean residual encoding artifacts and prune dead code paths.
+- Validate packaged ZIP on a clean Windows laptop.
+- Verify `Update Data` reliability via `scripts/serve.py` path.
+- Continue residual encoding cleanup where still visible.
