@@ -109,12 +109,7 @@ goto :run_server
 
 :run_server
 echo [INFO] Checking port 8080...
-for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":8080 .*LISTENING"') do (
-  if not "%%P"=="0" (
-    echo [INFO] Closing existing process on 8080 (PID %%P)...
-    taskkill /PID %%P /F >nul 2>nul
-  )
-)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$p=Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; if($p){ foreach($id in $p){ Write-Host ('[INFO] Closing existing process on 8080 (PID ' + $id + ')...'); Stop-Process -Id $id -Force -ErrorAction SilentlyContinue } } else { Write-Host '[INFO] Port 8080 is free.' }" >nul 2>nul
 echo [INFO] Starting local server...
 call :py_exec "scripts\serve.py"
 set "EXIT_CODE=%errorlevel%"
