@@ -104,6 +104,23 @@ def ensure_excel_map_template(path_str):
         return False, "openpyxl not available"
     p = Path(path_str)
     if p.exists():
+        wb = load_workbook(p)
+        changed = False
+        if "FILE_MAP" not in wb.sheetnames:
+            ws = wb.create_sheet("FILE_MAP", 0)
+            ws.append(["key", "path", "required", "description", "notes"])
+            for r in EXCEL_MAP_REQUIRED:
+                ws.append([r["key"], "", "TRUE" if r.get("required") else "FALSE", r.get("description", ""), "Enter local synced SharePoint path OR SharePoint URL"])
+            changed = True
+        if "SETTINGS" not in wb.sheetnames:
+            cfg = wb.create_sheet("SETTINGS")
+            cfg.append(["key", "value", "notes"])
+            cfg.append(["BCLS_GRAPH_CLIENT_ID", "", "Required for authenticated SharePoint URL download"])
+            cfg.append(["BCLS_GRAPH_TENANT_ID", "organizations", "Optional; organizations/common or a tenant ID"])
+            changed = True
+        if changed:
+            wb.save(p)
+            return True, "updated"
         return True, "exists"
     p.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
@@ -766,6 +783,8 @@ ok, state = ensure_excel_map_template(EXCEL_MAP_PATH)
 status = validate_excel_map(EXCEL_MAP_PATH)
 if state == "created":
     print(f"[INFO] Created Excel map template: {EXCEL_MAP_PATH}")
+elif state == "updated":
+    print(f"[INFO] Updated Excel map template with missing sheet(s): {EXCEL_MAP_PATH}")
 print(f"[INFO] Excel map path in use: {EXCEL_MAP_PATH}")
 if status.get("missingRequired"):
     print("[WARN] Missing required mapped Excel files:")
