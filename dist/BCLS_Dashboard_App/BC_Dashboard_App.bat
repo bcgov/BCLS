@@ -108,6 +108,13 @@ echo.
 goto :run_server
 
 :run_server
+echo [INFO] Checking port 8080...
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:":8080 .*LISTENING"') do (
+  if not "%%P"=="0" (
+    echo [INFO] Closing existing process on 8080 (PID %%P)...
+    taskkill /PID %%P /F >nul 2>nul
+  )
+)
 echo [INFO] Starting local server...
 call :py_exec "scripts\serve.py"
 set "EXIT_CODE=%errorlevel%"
