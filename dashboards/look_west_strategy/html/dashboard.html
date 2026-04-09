@@ -537,6 +537,7 @@
       let sourceKind = 'unknown';
       if (sourceHeader === 'mapped-path') sourceKind = 'real';
       if (sourceHeader === 'mapped-url') sourceKind = 'real';
+      if (sourceHeader === 'cloud-cache') sourceKind = 'real';
       if (sourceHeader === 'mock-fallback') sourceKind = 'mock';
       return {
         wb: XLSX.read(new Uint8Array(ab), { type: 'array' }),

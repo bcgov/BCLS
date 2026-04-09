@@ -29,19 +29,27 @@ If Python is already installed, skip install and do this:
 3. Keep the black terminal window open while using the dashboards.
 4. If you see an `openpyxl` error, run this once in Command Prompt:
    - `python -m pip install openpyxl`
+5. If you use SharePoint web URLs in the map file, install one more package:
+   - `python -m pip install msal`
 
 ## 4. Connect confidential SharePoint Excel data (required)
 When `scripts/serve.py` runs for the first time, it creates:
 `%USERPROFILE%\BCLS\DATA_FILE_MAP.xlsx`
 
-Open that file and fill these keys with your local synced SharePoint file paths:
+Open that file and fill these keys:
 - `life_sciences_main`
 - `look_west_media`
 - `look_west_funding`
 
-Important:
-- Do not paste a web URL like `https://...sharepoint.com/...`.
-- Use a local synced path (example: `C:\Users\<YourUser>\OneDrive - ...\...\file.xlsx`).
+You can use either:
+- local synced SharePoint paths (example: `C:\Users\<YourUser>\OneDrive - ...\...\file.xlsx`)
+- SharePoint web URLs (`https://...sharepoint.com/...`)
+
+If you use SharePoint web URLs:
+1. In `DATA_FILE_MAP.xlsx`, open sheet `SETTINGS`.
+2. Fill `BCLS_GRAPH_CLIENT_ID` with your Azure app client ID.
+3. Keep `BCLS_GRAPH_TENANT_ID` as `organizations` (or set your tenant ID).
+4. On first update, terminal will show Microsoft device-login steps.
 
 If paths are blank or invalid, those dashboards show **Data not connected**.
 
