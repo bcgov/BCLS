@@ -7,6 +7,7 @@ Run from the BCLS root folder:
 Then open:  http://localhost:8080/dashboards/bc_dashboard_hub/html/dashboard.html
 """
 import http.server
+import io
 import json
 import os
 import socket
@@ -94,14 +95,24 @@ def ensure_excel_map_template(path_str):
         return False, "openpyxl not available"
     p = Path(path_str)
     if p.exists():
+        wb = load_workbook(p)
+        if "FILE_MAP" in wb.sheetnames:
+            ws = wb["FILE_MAP"]
+            changed = False
+            if (ws.cell(row=1, column=6).value or "").strip().lower() != "sheet":
+                ws.cell(row=1, column=6, value="sheet")
+                changed = True
+            if changed:
+                wb.save(p)
+                return True, "updated"
         return True, "exists"
     p.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
     ws = wb.active
     ws.title = "FILE_MAP"
-    ws.append(["key", "path", "required", "description", "notes"])
+    ws.append(["key", "path", "required", "description", "notes", "sheet"])
     for r in EXCEL_MAP_REQUIRED:
-        ws.append([r["key"], "", "TRUE" if r.get("required") else "FALSE", r.get("description", ""), "Enter local file path"])
+        ws.append([r["key"], "", "TRUE" if r.get("required") else "FALSE", r.get("description", ""), "Enter local file path", ""])
     wb.save(p)
     return True, "created"
 
@@ -115,7 +126,7 @@ def load_excel_map(path_str):
     wb = load_workbook(p, data_only=True)
     ws = wb["FILE_MAP"] if "FILE_MAP" in wb.sheetnames else wb[wb.sheetnames[0]]
     mapping = {}
-    # Columns: key, path, required, description, notes
+    # Columns: key, path, required, description, notes, sheet(optional)
     for row in ws.iter_rows(min_row=2, values_only=True):
         key = str(row[0] or "").strip()
         if not key:
@@ -125,7 +136,8 @@ def load_excel_map(path_str):
             raw_path = os.path.expandvars(raw_path)
             raw_path = os.path.expanduser(raw_path)
         required = str(row[2] or "").strip().upper() in ("TRUE", "YES", "1")
-        mapping[key] = {"path": raw_path, "required": required}
+        sheet_spec = str(row[5] or "").strip() if len(row) > 5 else ""
+        mapping[key] = {"path": raw_path, "required": required, "sheet": sheet_spec}
     return mapping
 
 
@@ -136,6 +148,7 @@ def validate_excel_map(path_str):
         key = req["key"]
         row = mapping.get(key, {})
         p = row.get("path", "")
+        sheet_spec = row.get("sheet", "")
         is_url = str(p).lower().startswith(("http://", "https://"))
         fallback_path = next((fp for fp in EXCEL_FILE_FALLBACKS.get(key, []) if os.path.exists(fp)), "")
         exists = bool((p and (not is_url) and os.path.exists(p)) or (not p and fallback_path))
@@ -145,6 +158,7 @@ def validate_excel_map(path_str):
                 "description": req.get("description", ""),
                 "required": bool(req.get("required", True)),
                 "path": p,
+                "sheet": sheet_spec,
                 "exists": exists,
                 "isUrl": is_url,
                 "fallbackPath": fallback_path,
@@ -207,6 +221,7 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
                 self._send_json(404, {"error": f"Map key not found: {key}", "mapPath": EXCEL_MAP_PATH})
                 return
             file_path = row.get("path", "")
+            sheet_spec = str(row.get("sheet", "") or "").strip()
             used_fallback = False
             if not file_path:
                 fallback = next((fp for fp in EXCEL_FILE_FALLBACKS.get(key, []) if os.path.exists(fp)), "")
@@ -234,8 +249,34 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
             if not os.path.exists(file_path):
                 self._send_json(404, {"error": f"Configured path not found for key: {key}", "path": file_path, "mapPath": EXCEL_MAP_PATH})
                 return
-            with open(file_path, "rb") as f:
-                data = f.read()
+            if sheet_spec:
+                if load_workbook is None or Workbook is None:
+                    self._send_json(500, {"error": "openpyxl is required for sheet filtering", "key": key})
+                    return
+                wanted = [s.strip() for s in sheet_spec.split(",") if s and s.strip()]
+                src = load_workbook(file_path, data_only=True)
+                missing = [s for s in wanted if s not in src.sheetnames]
+                if missing:
+                    self._send_json(400, {"error": f"Configured sheet(s) not found for key: {key}", "missingSheets": missing, "availableSheets": src.sheetnames})
+                    return
+                out_wb = Workbook()
+                # remove default empty sheet
+                if out_wb.active and out_wb.active.title == "Sheet":
+                    out_wb.remove(out_wb.active)
+                for sname in wanted:
+                    src_ws = src[sname]
+                    dst_ws = out_wb.create_sheet(title=sname)
+                    for row_cells in src_ws.iter_rows():
+                        for cell in row_cells:
+                            dst_ws[cell.coordinate].value = cell.value
+                            if cell.hyperlink:
+                                dst_ws[cell.coordinate].hyperlink = cell.hyperlink.target
+                bio = io.BytesIO()
+                out_wb.save(bio)
+                data = bio.getvalue()
+            else:
+                with open(file_path, "rb") as f:
+                    data = f.read()
             self.send_response(200)
             self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
             self.send_header("Cache-Control", "no-store")
@@ -566,6 +607,8 @@ ok, state = ensure_excel_map_template(EXCEL_MAP_PATH)
 status = validate_excel_map(EXCEL_MAP_PATH)
 if state == "created":
     print(f"[INFO] Created Excel map template: {EXCEL_MAP_PATH}")
+elif state == "updated":
+    print(f"[INFO] Updated Excel map template columns: {EXCEL_MAP_PATH}")
 print(f"[INFO] Excel map path in use: {EXCEL_MAP_PATH}")
 if status.get("missingRequired"):
     print("[WARN] Missing required mapped Excel files:")

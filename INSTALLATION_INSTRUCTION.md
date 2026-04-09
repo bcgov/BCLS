@@ -43,6 +43,9 @@ Use local file paths only:
 - local synced SharePoint paths (example: `C:\Users\<YourUser>\OneDrive - ...\...\file.xlsx`)
 - or any local folder path on your laptop
 
+Optional:
+- In the `sheet` column, enter one sheet name (or comma-separated sheet names) to load only those sheets.
+
 If paths are blank or invalid, those dashboards show **Data not connected**.
 
 ## 5. Stop the app

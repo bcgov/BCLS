@@ -223,7 +223,10 @@
   </main>
 
   <script>
-    const DATA_URL = '../../../data/bc_trade_analysis/trade_composition_sample.json?v=20260408a';
+    const DATA_URLS = [
+      '/data/bc_trade_analysis/trade_composition_sample.json?v=20260408a',
+      '../../../data/bc_trade_analysis/trade_composition_sample.json?v=20260408a'
+    ];
     const REGION_COLORS = {
       'North America': '#1f77b4',
       'Asia-Pacific': '#2ca02c',
@@ -266,9 +269,18 @@
 
     async function init() {
       try {
-        const res = await fetch(DATA_URL);
-        if (!res.ok) throw new Error(`HTTP ${res.status} for ${DATA_URL}`);
-        APP.data = await res.json();
+        let lastErr = null;
+        for (const url of DATA_URLS) {
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+            APP.data = await res.json();
+            break;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        if (!APP.data) throw lastErr || new Error('No trade composition data source responded.');
         const years = APP.data.years || [];
         const min = Math.min(...years), max = Math.max(...years);
         const slider = document.getElementById('yearSlider');
@@ -279,7 +291,8 @@
         document.getElementById('meta').textContent = `${APP.data.meta.sources.join(' | ')}`;
         renderAll();
       } catch (e) {
-        document.getElementById('err').innerHTML = `<div class="error">Could not load trade composition data: ${e.message || e}</div>`;
+        const hint = location.protocol === 'file:' ? ' Run local server (python scripts/serve.py) and open via http://localhost:8080.' : '';
+        document.getElementById('err').innerHTML = `<div class="error">Could not load trade composition data: ${e.message || e}.${hint}</div>`;
       }
     }
 
