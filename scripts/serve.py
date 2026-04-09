@@ -301,7 +301,8 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
         if not result or "access_token" not in result:
             flow = app.initiate_device_flow(scopes=GRAPH_SCOPES)
             if "user_code" not in flow:
-                raise RuntimeError("Failed to start Microsoft login flow for SharePoint download.")
+                msg = flow.get("error_description") or flow.get("error") or json.dumps(flow, ensure_ascii=False)
+                raise RuntimeError(f"Failed to start Microsoft login flow for SharePoint download. {msg}")
             print("\n[AUTH] SharePoint sign-in required. Follow the device login prompt below:")
             print(flow.get("message", "Open https://microsoft.com/devicelogin and enter the shown code."))
             result = app.acquire_token_by_device_flow(flow)
