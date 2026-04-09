@@ -126,17 +126,23 @@ def load_excel_map(path_str):
     wb = load_workbook(p, data_only=True)
     ws = wb["FILE_MAP"] if "FILE_MAP" in wb.sheetnames else wb[wb.sheetnames[0]]
     mapping = {}
-    # Columns: key, path, required, description, notes, sheet(optional)
+    headers = [str(c.value or "").strip().lower() for c in ws[1]]
+    idx = {h: i for i, h in enumerate(headers) if h}
+    key_i = idx.get("key", 0)
+    path_i = idx.get("path", 1)
+    req_i = idx.get("required", 2)
+    sheet_i = idx.get("sheet", None)
+
     for row in ws.iter_rows(min_row=2, values_only=True):
-        key = str(row[0] or "").strip()
+        key = str((row[key_i] if key_i is not None and key_i < len(row) else "") or "").strip()
         if not key:
             continue
-        raw_path = str(row[1] or "").strip()
+        raw_path = str((row[path_i] if path_i is not None and path_i < len(row) else "") or "").strip()
         if raw_path:
             raw_path = os.path.expandvars(raw_path)
             raw_path = os.path.expanduser(raw_path)
-        required = str(row[2] or "").strip().upper() in ("TRUE", "YES", "1")
-        sheet_spec = str(row[5] or "").strip() if len(row) > 5 else ""
+        required = str((row[req_i] if req_i is not None and req_i < len(row) else "") or "").strip().upper() in ("TRUE", "YES", "1")
+        sheet_spec = str((row[sheet_i] if sheet_i is not None and sheet_i < len(row) else "") or "").strip()
         mapping[key] = {"path": raw_path, "required": required, "sheet": sheet_spec}
     return mapping
 
