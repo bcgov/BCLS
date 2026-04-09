@@ -87,6 +87,8 @@ echo.
 
 call :py_exec -c "import openpyxl" >nul 2>nul
 if %errorlevel% neq 0 goto :install_openpyxl
+call :py_exec -c "import msal" >nul 2>nul
+if %errorlevel% neq 0 goto :install_msal
 goto :run_server
 
 :install_openpyxl
@@ -104,6 +106,26 @@ if %errorlevel% neq 0 (
   exit /b 1
 )
 echo [OK] openpyxl installed.
+echo.
+call :py_exec -c "import msal" >nul 2>nul
+if %errorlevel% neq 0 goto :install_msal
+goto :run_server
+
+:install_msal
+echo [STEP] One required package is missing: msal
+set /p "INS2=Install msal now? (Y/N): "
+if /I not "%INS2%"=="Y" goto :end_fail
+echo [INFO] Installing msal...
+call :py_exec -m pip install --upgrade msal
+if %errorlevel% neq 0 (
+  echo [ERROR] Automatic install did not work.
+  echo Please run this command manually:
+  echo   python -m pip install --upgrade msal
+  echo.
+  pause
+  exit /b 1
+)
+echo [OK] msal installed.
 echo.
 goto :run_server
 

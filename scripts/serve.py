@@ -73,7 +73,7 @@ EXCEL_FILE_FALLBACKS = {
 }
 CLOUD_CACHE_DIR = os.path.join(os.path.expanduser("~"), "BCLS", "cache", "excel")
 CLOUD_TOKEN_CACHE_PATH = os.path.join(os.path.expanduser("~"), "BCLS", "cache", "msal_token_cache.bin")
-GRAPH_SCOPES = ["Files.Read", "Sites.Read.All", "offline_access"]
+GRAPH_SCOPES = ["Files.Read", "Sites.Read.All"]
 
 os.chdir(ROOT)
 
