@@ -472,12 +472,18 @@
       for (let r = headerIndex + 1; r < rows.length; r++) {
         const row = rows[r] || [];
         const obj = {};
+        const links = {};
         let hasData = false;
         for (let c = 0; c < headers.length; c++) {
           if (!headers[c]) continue;
           obj[headers[c]] = row[c];
+          const ref = XLSX.utils.encode_cell({ r, c });
+          const cell = ws[ref];
+          const target = normalizeUrl(cell && cell.l ? (cell.l.Target || cell.l.target || '') : '');
+          if (target) links[headers[c]] = target;
           if (normalizeText(row[c])) hasData = true;
         }
+        if (Object.keys(links).length) obj.__links = links;
         if (hasData) out.push(obj);
       }
       return out;
@@ -527,6 +533,7 @@
       const sector = normalizeText(row['Sector / Stakeholder'] || row['Sector (column to be replaced with Primary Sector/Secondary Theme)'] || row['Primary Sector'] || row['Sector'] || '');
       const headline = normalizeText(row['Headline'] || row['Announcement'] || '');
       const headlineUrl = normalizeUrl(
+        (row.__links && (row.__links['Headline'] || row.__links['Announcement'])) ||
         row['URL'] ||
         row['Url'] ||
         row['Link'] ||
