@@ -133,6 +133,23 @@
     .count { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 600; }
 
     .table-wrap { overflow: auto; }
+    .media-table-wrap {
+      max-height: 520px;
+      overflow: auto;
+    }
+    #media-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+    #media-table th,
+    #media-table td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #media-table td:nth-child(7) {
+      max-width: 520px;
+    }
     .pager {
       display: flex;
       align-items: center;
@@ -279,8 +296,8 @@
         <input id="media-search" type="text" placeholder="Search headline, source, sector..." oninput="renderMediaTable()" />
         <span class="count" id="media-count"></span>
       </div>
-      <div class="table-wrap">
-        <table>
+      <div class="table-wrap media-table-wrap">
+        <table id="media-table">
           <thead>
             <tr>
               <th onclick="setSort('media','date')">Date</th>
