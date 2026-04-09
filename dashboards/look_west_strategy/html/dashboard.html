@@ -147,8 +147,15 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    #media-table td:nth-child(7) {
+    #media-table td:nth-child(6) {
       max-width: 520px;
+    }
+    #media-table td:nth-child(7) {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+      max-width: 360px;
     }
     .pager {
       display: flex;
@@ -305,7 +312,6 @@
               <th onclick="setSort('media','source')">Source</th>
               <th onclick="setSort('media','pillar')">Pillar</th>
               <th onclick="setSort('media','theme')">Theme</th>
-              <th onclick="setSort('media','status')">Status</th>
               <th onclick="setSort('media','headline')">Headline</th>
               <th onclick="setSort('media','sector')">Sector</th>
             </tr>
@@ -411,6 +417,12 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
     }
+    function normalizeUrl(v) {
+      const s = normalizeText(v);
+      if (!s) return '';
+      if (/^https?:\/\//i.test(s)) return s;
+      return '';
+    }
 
     function parseNumber(v) {
       if (v === null || v === undefined) return null;
@@ -514,6 +526,17 @@
       const source = normalizeText(row['Source'] || row['Ministry'] || '');
       const sector = normalizeText(row['Sector / Stakeholder'] || row['Sector (column to be replaced with Primary Sector/Secondary Theme)'] || row['Primary Sector'] || row['Sector'] || '');
       const headline = normalizeText(row['Headline'] || row['Announcement'] || '');
+      const headlineUrl = normalizeUrl(
+        row['URL'] ||
+        row['Url'] ||
+        row['Link'] ||
+        row['Article URL'] ||
+        row['Article Url'] ||
+        row['Source URL'] ||
+        row['Source Url'] ||
+        row['Hyperlink'] ||
+        ''
+      );
       const message = normalizeText(row['Theme / Key message'] || row['Theme / Key  Message'] || '');
       const temp = normalizeText(row['"Temp Check"'] || row['Temp Check'] || row['LW Mention'] || '');
 
@@ -531,6 +554,7 @@
         source,
         sector,
         headline,
+        headlineUrl,
         message,
         tempCheck: temp,
         theme,
@@ -823,7 +847,7 @@
       const startIdx = (STATE.mediaPage - 1) * pageSize;
       const pageRows = rows.slice(startIdx, startIdx + pageSize);
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="small">No media records for current filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="small">No media records for current filters.</td></tr>';
         if (pager) pager.innerHTML = '';
       } else {
         tbody.innerHTML = pageRows.map(r => `
@@ -833,8 +857,11 @@
             <td>${esc(r.source || '-')}</td>
             <td>${esc(r.pillar || '-')}</td>
             <td>${esc(r.theme || '-')}</td>
-            <td>${statusPill(r.status)}</td>
-            <td class="text-limit" title="${esc(r.headline || '')}">${esc(r.headline || '-')}</td>
+            <td class="text-limit" title="${esc(r.headline || '')}">
+              ${r.headlineUrl
+                ? `<a href="${esc(r.headlineUrl)}" target="_blank" rel="noopener noreferrer">${esc(r.headline || '-')}</a>`
+                : esc(r.headline || '-')}
+            </td>
             <td>${esc(r.sector || '-')}</td>
           </tr>
         `).join('');
