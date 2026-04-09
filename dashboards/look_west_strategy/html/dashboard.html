@@ -386,6 +386,14 @@
     function normalizeText(v) {
       return String(v || '').replace(/\s+/g, ' ').trim();
     }
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
     function parseNumber(v) {
       if (v === null || v === undefined) return null;
@@ -801,13 +809,13 @@
         tbody.innerHTML = pageRows.map(r => `
           <tr>
             <td class="nowrap">${formatDate(r.date)}</td>
-            <td>${r.sourceType || '-'}</td>
-            <td>${r.source || '-'}</td>
-            <td>${r.pillar || '-'}</td>
-            <td>${r.theme || '-'}</td>
+            <td>${esc(r.sourceType || '-')}</td>
+            <td>${esc(r.source || '-')}</td>
+            <td>${esc(r.pillar || '-')}</td>
+            <td>${esc(r.theme || '-')}</td>
             <td>${statusPill(r.status)}</td>
-            <td class="text-limit" title="${(r.headline || '').replace(/"/g, '&quot;')}">${r.headline || '-'}</td>
-            <td>${r.sector || '-'}</td>
+            <td class="text-limit" title="${esc(r.headline || '')}">${esc(r.headline || '-')}</td>
+            <td>${esc(r.sector || '-')}</td>
           </tr>
         `).join('');
         if (pager) {
@@ -862,9 +870,9 @@
         tbody.innerHTML = rows.map(r => `
           <tr>
             <td class="nowrap">${formatDate(r.date)}</td>
-            <td title="${(r.details || '').replace(/"/g, '&quot;')}">${r.project || '-'}</td>
-            <td>${r.pillar || '-'}</td>
-            <td>${r.theme || '-'}</td>
+            <td title="${esc(r.details || '')}">${esc(r.project || '-')}</td>
+            <td>${esc(r.pillar || '-')}</td>
+            <td>${esc(r.theme || '-')}</td>
             <td>${statusPill(r.status)}</td>
             <td class="nowrap">${formatNumber(r.provincial)}</td>
             <td class="nowrap">${formatNumber(r.attracted)}</td>
@@ -872,7 +880,7 @@
             <td class="nowrap">${formatNumber(r.other)}</td>
             <td class="nowrap"><strong>${formatNumber(r.total)}</strong></td>
             <td class="nowrap">${formatNumber(r.jobsCreated)}</td>
-            <td>${r.region || '-'}</td>
+            <td>${esc(r.region || '-')}</td>
           </tr>
         `).join('');
       }
