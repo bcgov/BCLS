@@ -396,9 +396,9 @@
       loadedAt: null,
       dataMode: 'unknown',
       mediaPage: 1,
-      mediaPageSize: 20,
+      mediaPageSize: 10,
       fundPage: 1,
-      fundPageSize: 15,
+      fundPageSize: 10,
       sort: {
         media: { key: 'date', dir: 'desc' },
         fund: { key: 'date', dir: 'desc' }
@@ -843,7 +843,7 @@
       const tbody = document.getElementById('media-body');
       const pager = document.getElementById('media-pager');
       const totalRows = rows.length;
-      const pageSize = Math.max(1, Number(STATE.mediaPageSize) || 20);
+      const pageSize = Math.max(1, Number(STATE.mediaPageSize) || 10);
       const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
       if (STATE.mediaPage > totalPages) STATE.mediaPage = totalPages;
       if (STATE.mediaPage < 1) STATE.mediaPage = 1;
@@ -914,7 +914,7 @@
       const tbody = document.getElementById('fund-body');
       const pager = document.getElementById('fund-pager');
       const totalRows = rows.length;
-      const pageSize = Math.max(1, Number(STATE.fundPageSize) || 15);
+      const pageSize = Math.max(1, Number(STATE.fundPageSize) || 10);
       const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
       if (STATE.fundPage > totalPages) STATE.fundPage = totalPages;
       if (STATE.fundPage < 1) STATE.fundPage = 1;
