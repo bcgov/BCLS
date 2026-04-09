@@ -138,7 +138,7 @@ def validate_excel_map(path_str):
         p = row.get("path", "")
         is_url = str(p).lower().startswith(("http://", "https://"))
         fallback_path = next((fp for fp in EXCEL_FILE_FALLBACKS.get(key, []) if os.path.exists(fp)), "")
-        exists = bool((p and not is_url and os.path.exists(p)) or (not p and fallback_path))
+        exists = bool((p and is_url) or (p and (not is_url) and os.path.exists(p)) or (not p and fallback_path))
         checks.append(
             {
                 "key": key,
@@ -171,6 +171,57 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _excel_candidates_from_url(self, url):
+        u = str(url or "").strip()
+        if not u:
+            return []
+        cands = [u]
+        lower = u.lower()
+        if "sharepoint.com" in lower:
+            # SharePoint web links often need explicit download hint.
+            parts = urllib.parse.urlsplit(u)
+            q = urllib.parse.parse_qs(parts.query, keep_blank_values=True)
+            if "download" not in {k.lower() for k in q.keys()}:
+                q["download"] = ["1"]
+            new_q = urllib.parse.urlencode(q, doseq=True)
+            cands.append(urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, new_q, parts.fragment)))
+        # unique preserving order
+        out = []
+        seen = set()
+        for x in cands:
+            if x not in seen:
+                out.append(x)
+                seen.add(x)
+        return out
+
+    def _download_excel_from_url(self, url):
+        last_err = None
+        for cand in self._excel_candidates_from_url(url):
+            req = urllib.request.Request(
+                url=cand,
+                method="GET",
+                headers={
+                    "User-Agent": self._BROWSER_UA,
+                    "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream,*/*",
+                    "Accept-Language": "en-CA,en;q=0.9",
+                },
+            )
+            try:
+                with self._urlopen_with_fallback(req, timeout=60) as resp:
+                    raw = resp.read()
+                    ctype = str(resp.headers.get("Content-Type", "")).lower()
+                # XLSX is a zip archive; first bytes are PK.
+                if raw[:2] != b"PK":
+                    sample = raw[:140].decode("utf-8", errors="ignore")
+                    raise RuntimeError(
+                        f"Response was not an .xlsx file (content-type={ctype or 'unknown'}). "
+                        f"Sample: {sample!r}"
+                    )
+                return raw, cand
+            except Exception as e:
+                last_err = e
+        raise RuntimeError(f"Could not download Excel from URL. Last error: {last_err}")
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -218,18 +269,17 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json(404, {"error": f"No path configured for key: {key}", "mapPath": EXCEL_MAP_PATH})
                     return
             if str(file_path).lower().startswith(("http://", "https://")):
-                self._send_json(
-                    400,
-                    {
-                        "error": (
-                            f"Configured path for key '{key}' is a web URL. "
-                            "Use a local synced SharePoint/OneDrive file path (e.g., C:\\Users\\...\\OneDrive - ...\\file.xlsx)."
-                        ),
-                        "path": file_path,
-                        "mapPath": EXCEL_MAP_PATH,
-                    },
-                )
+                data, used_url = self._download_excel_from_url(file_path)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("X-BCLS-Data-Source", "mapped-url")
+                self.send_header("X-BCLS-Data-URL", used_url)
+                self.end_headers()
+                self.wfile.write(data)
                 return
+
             if not os.path.exists(file_path):
                 self._send_json(404, {"error": f"Configured path not found for key: {key}", "path": file_path, "mapPath": EXCEL_MAP_PATH})
                 return
