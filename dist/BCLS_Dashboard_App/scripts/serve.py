@@ -7,8 +7,6 @@ Run from the BCLS root folder:
 Then open:  http://localhost:8080/dashboards/bc_dashboard_hub/html/dashboard.html
 """
 import http.server
-import base64
-import hashlib
 import json
 import os
 import socket
@@ -27,11 +25,6 @@ try:
 except Exception:
     Workbook = None
     load_workbook = None
-
-try:
-    import msal
-except Exception:
-    msal = None
 
 PORT = 8080
 PREFERRED_PORTS = [8080]
@@ -71,9 +64,6 @@ EXCEL_FILE_FALLBACKS = {
         os.path.join(ROOT, "data", "look_west_strategy", "LW related funding and investments - Mock.xlsx"),
     ],
 }
-CLOUD_CACHE_DIR = os.path.join(os.path.expanduser("~"), "BCLS", "cache", "excel")
-CLOUD_TOKEN_CACHE_PATH = os.path.join(os.path.expanduser("~"), "BCLS", "cache", "msal_token_cache.bin")
-GRAPH_SCOPES = ["Files.Read", "Sites.Read.All"]
 
 os.chdir(ROOT)
 
@@ -104,23 +94,6 @@ def ensure_excel_map_template(path_str):
         return False, "openpyxl not available"
     p = Path(path_str)
     if p.exists():
-        wb = load_workbook(p)
-        changed = False
-        if "FILE_MAP" not in wb.sheetnames:
-            ws = wb.create_sheet("FILE_MAP", 0)
-            ws.append(["key", "path", "required", "description", "notes"])
-            for r in EXCEL_MAP_REQUIRED:
-                ws.append([r["key"], "", "TRUE" if r.get("required") else "FALSE", r.get("description", ""), "Enter local synced SharePoint path OR SharePoint URL"])
-            changed = True
-        if "SETTINGS" not in wb.sheetnames:
-            cfg = wb.create_sheet("SETTINGS")
-            cfg.append(["key", "value", "notes"])
-            cfg.append(["BCLS_GRAPH_CLIENT_ID", "", "Required for authenticated SharePoint URL download"])
-            cfg.append(["BCLS_GRAPH_TENANT_ID", "organizations", "Optional; organizations/common or a tenant ID"])
-            changed = True
-        if changed:
-            wb.save(p)
-            return True, "updated"
         return True, "exists"
     p.parent.mkdir(parents=True, exist_ok=True)
     wb = Workbook()
@@ -128,11 +101,7 @@ def ensure_excel_map_template(path_str):
     ws.title = "FILE_MAP"
     ws.append(["key", "path", "required", "description", "notes"])
     for r in EXCEL_MAP_REQUIRED:
-        ws.append([r["key"], "", "TRUE" if r.get("required") else "FALSE", r.get("description", ""), "Enter local synced SharePoint path OR SharePoint URL"])
-    cfg = wb.create_sheet("SETTINGS")
-    cfg.append(["key", "value", "notes"])
-    cfg.append(["BCLS_GRAPH_CLIENT_ID", "", "Required for authenticated SharePoint URL download"])
-    cfg.append(["BCLS_GRAPH_TENANT_ID", "organizations", "Optional; organizations/common or a tenant ID"])
+        ws.append([r["key"], "", "TRUE" if r.get("required") else "FALSE", r.get("description", ""), "Enter local file path"])
     wb.save(p)
     return True, "created"
 
@@ -160,40 +129,6 @@ def load_excel_map(path_str):
     return mapping
 
 
-def load_excel_settings(path_str):
-    if load_workbook is None:
-        return {}
-    p = Path(path_str)
-    if not p.exists():
-        return {}
-    wb = load_workbook(p, data_only=True)
-    if "SETTINGS" not in wb.sheetnames:
-        return {}
-    ws = wb["SETTINGS"]
-    out = {}
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        k = str(row[0] or "").strip()
-        v = str(row[1] or "").strip()
-        if k:
-            out[k] = v
-    return out
-
-
-def load_graph_config(path_str):
-    cfg_sheet = load_excel_settings(path_str)
-    client_id = (
-        os.environ.get("BCLS_GRAPH_CLIENT_ID")
-        or cfg_sheet.get("BCLS_GRAPH_CLIENT_ID")
-        or ""
-    ).strip()
-    tenant_id = (
-        os.environ.get("BCLS_GRAPH_TENANT_ID")
-        or cfg_sheet.get("BCLS_GRAPH_TENANT_ID")
-        or "organizations"
-    ).strip() or "organizations"
-    return {"client_id": client_id, "tenant_id": tenant_id}
-
-
 def validate_excel_map(path_str):
     mapping = load_excel_map(path_str)
     checks = []
@@ -203,7 +138,7 @@ def validate_excel_map(path_str):
         p = row.get("path", "")
         is_url = str(p).lower().startswith(("http://", "https://"))
         fallback_path = next((fp for fp in EXCEL_FILE_FALLBACKS.get(key, []) if os.path.exists(fp)), "")
-        exists = bool((p and is_url) or (p and (not is_url) and os.path.exists(p)) or (not p and fallback_path))
+        exists = bool((p and (not is_url) and os.path.exists(p)) or (not p and fallback_path))
         checks.append(
             {
                 "key": key,
@@ -236,148 +171,6 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
-
-    def _excel_candidates_from_url(self, url):
-        u = str(url or "").strip()
-        if not u:
-            return []
-        cands = [u]
-        lower = u.lower()
-        if "sharepoint.com" in lower:
-            # SharePoint web links often need explicit download hint.
-            parts = urllib.parse.urlsplit(u)
-            q = urllib.parse.parse_qs(parts.query, keep_blank_values=True)
-            if "download" not in {k.lower() for k in q.keys()}:
-                q["download"] = ["1"]
-            new_q = urllib.parse.urlencode(q, doseq=True)
-            cands.append(urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, new_q, parts.fragment)))
-        # unique preserving order
-        out = []
-        seen = set()
-        for x in cands:
-            if x not in seen:
-                out.append(x)
-                seen.add(x)
-        return out
-
-    def _graph_token_cache(self):
-        if msal is None:
-            raise RuntimeError("Microsoft Graph auth requires 'msal'. Install with: python -m pip install msal")
-        cache = msal.SerializableTokenCache()
-        if os.path.exists(CLOUD_TOKEN_CACHE_PATH):
-            try:
-                with open(CLOUD_TOKEN_CACHE_PATH, "r", encoding="utf-8") as f:
-                    cache.deserialize(f.read())
-            except Exception:
-                pass
-        return cache
-
-    def _save_graph_token_cache(self, cache):
-        try:
-            if cache and cache.has_state_changed:
-                os.makedirs(os.path.dirname(CLOUD_TOKEN_CACHE_PATH), exist_ok=True)
-                with open(CLOUD_TOKEN_CACHE_PATH, "w", encoding="utf-8") as f:
-                    f.write(cache.serialize())
-        except Exception:
-            pass
-
-    def _get_graph_access_token(self):
-        cfg = load_graph_config(EXCEL_MAP_PATH)
-        client_id = cfg.get("client_id", "").strip()
-        tenant_id = cfg.get("tenant_id", "organizations").strip() or "organizations"
-        if not client_id:
-            raise RuntimeError(
-                "SharePoint URL requires Microsoft Graph app registration. "
-                "Set BCLS_GRAPH_CLIENT_ID in DATA_FILE_MAP.xlsx (SETTINGS sheet) or environment."
-            )
-        cache = self._graph_token_cache()
-        app = msal.PublicClientApplication(
-            client_id=client_id,
-            authority=f"https://login.microsoftonline.com/{tenant_id}",
-            token_cache=cache,
-        )
-        accounts = app.get_accounts()
-        result = app.acquire_token_silent(GRAPH_SCOPES, account=accounts[0] if accounts else None)
-        if not result or "access_token" not in result:
-            flow = app.initiate_device_flow(scopes=GRAPH_SCOPES)
-            if "user_code" not in flow:
-                msg = flow.get("error_description") or flow.get("error") or json.dumps(flow, ensure_ascii=False)
-                raise RuntimeError(f"Failed to start Microsoft login flow for SharePoint download. {msg}")
-            print("\n[AUTH] SharePoint sign-in required. Follow the device login prompt below:")
-            print(flow.get("message", "Open https://microsoft.com/devicelogin and enter the shown code."))
-            result = app.acquire_token_by_device_flow(flow)
-        self._save_graph_token_cache(cache)
-        if not result or "access_token" not in result:
-            err = (result or {}).get("error_description") or (result or {}).get("error") or "Unknown auth error"
-            raise RuntimeError(f"Microsoft login failed: {err}")
-        return result["access_token"]
-
-    def _download_excel_via_graph_share(self, share_url):
-        token = self._get_graph_access_token()
-        share_token = "u!" + base64.urlsafe_b64encode(share_url.encode("utf-8")).decode("ascii").rstrip("=")
-        graph_url = f"https://graph.microsoft.com/v1.0/shares/{share_token}/driveItem/content"
-        req = urllib.request.Request(
-            url=graph_url,
-            method="GET",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "User-Agent": self._BROWSER_UA,
-                "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream,*/*",
-            },
-        )
-        with self._urlopen_with_fallback(req, timeout=90) as resp:
-            raw = resp.read()
-            ctype = str(resp.headers.get("Content-Type", "")).lower()
-        if raw[:2] != b"PK":
-            sample = raw[:140].decode("utf-8", errors="ignore")
-            raise RuntimeError(
-                f"Graph response was not an .xlsx file (content-type={ctype or 'unknown'}). Sample: {sample!r}"
-            )
-        return raw, graph_url
-
-    def _cloud_cache_path(self, key, url):
-        digest = hashlib.sha1(str(url).encode("utf-8")).hexdigest()[:12]
-        name = f"{key}_{digest}.xlsx"
-        return os.path.join(CLOUD_CACHE_DIR, name)
-
-    def _write_cloud_cache(self, path, data):
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "wb") as f:
-            f.write(data)
-
-    def _download_excel_from_url(self, url):
-        last_err = None
-        for cand in self._excel_candidates_from_url(url):
-            req = urllib.request.Request(
-                url=cand,
-                method="GET",
-                headers={
-                    "User-Agent": self._BROWSER_UA,
-                    "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream,*/*",
-                    "Accept-Language": "en-CA,en;q=0.9",
-                },
-            )
-            try:
-                with self._urlopen_with_fallback(req, timeout=60) as resp:
-                    raw = resp.read()
-                    ctype = str(resp.headers.get("Content-Type", "")).lower()
-                # XLSX is a zip archive; first bytes are PK.
-                if raw[:2] != b"PK":
-                    sample = raw[:140].decode("utf-8", errors="ignore")
-                    raise RuntimeError(
-                        f"Response was not an .xlsx file (content-type={ctype or 'unknown'}). "
-                        f"Sample: {sample!r}"
-                    )
-                return raw, cand
-            except Exception as e:
-                last_err = e
-        # Fallback: authenticated Microsoft Graph download for SharePoint links.
-        if "sharepoint.com" in str(url).lower():
-            try:
-                return self._download_excel_via_graph_share(url)
-            except Exception as e:
-                last_err = e
-        raise RuntimeError(f"Could not download Excel from URL. Last error: {last_err}")
 
     def end_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -425,28 +218,17 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json(404, {"error": f"No path configured for key: {key}", "mapPath": EXCEL_MAP_PATH})
                     return
             if str(file_path).lower().startswith(("http://", "https://")):
-                cache_path = self._cloud_cache_path(key, file_path)
-                try:
-                    data, used_url = self._download_excel_from_url(file_path)
-                    self._write_cloud_cache(cache_path, data)
-                    src = "mapped-url"
-                except Exception as download_err:
-                    if os.path.exists(cache_path):
-                        with open(cache_path, "rb") as f:
-                            data = f.read()
-                        used_url = file_path
-                        src = "cloud-cache"
-                        print(f"[WARN] Cloud download failed for '{key}', using cached local copy: {download_err}")
-                    else:
-                        raise
-                self.send_response(200)
-                self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-                self.send_header("Cache-Control", "no-store")
-                self.send_header("Content-Length", str(len(data)))
-                self.send_header("X-BCLS-Data-Source", src)
-                self.send_header("X-BCLS-Data-URL", used_url)
-                self.end_headers()
-                self.wfile.write(data)
+                self._send_json(
+                    400,
+                    {
+                        "error": (
+                            f"Configured path for key '{key}' is a web URL. "
+                            "Use a local file path on this computer (e.g., C:\\Users\\...\\OneDrive - ...\\file.xlsx)."
+                        ),
+                        "path": file_path,
+                        "mapPath": EXCEL_MAP_PATH,
+                    },
+                )
                 return
 
             if not os.path.exists(file_path):
@@ -784,8 +566,6 @@ ok, state = ensure_excel_map_template(EXCEL_MAP_PATH)
 status = validate_excel_map(EXCEL_MAP_PATH)
 if state == "created":
     print(f"[INFO] Created Excel map template: {EXCEL_MAP_PATH}")
-elif state == "updated":
-    print(f"[INFO] Updated Excel map template with missing sheet(s): {EXCEL_MAP_PATH}")
 print(f"[INFO] Excel map path in use: {EXCEL_MAP_PATH}")
 if status.get("missingRequired"):
     print("[WARN] Missing required mapped Excel files:")
