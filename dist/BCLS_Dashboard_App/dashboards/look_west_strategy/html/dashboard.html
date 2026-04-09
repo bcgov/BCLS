@@ -768,8 +768,11 @@
     }
 
     function statusPill(status) {
-      const cls = String(status || '').toLowerCase().replace(/\s+/g, '-');
-      return `<span class="pill status-${cls}">${status || '-'}</span>`;
+      const cls = String(status || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      return `<span class="pill status-${cls || 'unknown'}">${esc(status || '-')}</span>`;
     }
 
     function renderMediaTable() {
