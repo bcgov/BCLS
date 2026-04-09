@@ -133,6 +133,41 @@
     .count { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 600; }
 
     .table-wrap { overflow: auto; }
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--border);
+      background: #fbfdff;
+    }
+    .pager-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 30px;
+    }
+    .pager-btn.active {
+      background: #e9f2fb;
+      border-color: #b8d4f1;
+      color: var(--primary);
+    }
+    .pager-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .pager-info {
+      margin-right: auto;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
     table {
       width: 100%;
       border-collapse: separate;
@@ -261,6 +296,7 @@
           <tbody id="media-body"></tbody>
         </table>
       </div>
+      <div class="pager" id="media-pager"></div>
     </section>
 
     <section class="card">
@@ -338,6 +374,8 @@
       funding: [],
       loadedAt: null,
       dataMode: 'unknown',
+      mediaPage: 1,
+      mediaPageSize: 20,
       sort: {
         media: { key: 'date', dir: 'desc' },
         fund: { key: 'date', dir: 'desc' }
@@ -748,10 +786,19 @@
       rows = sortRows(rows, 'media');
 
       const tbody = document.getElementById('media-body');
+      const pager = document.getElementById('media-pager');
+      const totalRows = rows.length;
+      const pageSize = Math.max(1, Number(STATE.mediaPageSize) || 20);
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      if (STATE.mediaPage > totalPages) STATE.mediaPage = totalPages;
+      if (STATE.mediaPage < 1) STATE.mediaPage = 1;
+      const startIdx = (STATE.mediaPage - 1) * pageSize;
+      const pageRows = rows.slice(startIdx, startIdx + pageSize);
       if (!rows.length) {
         tbody.innerHTML = '<tr><td colspan="8" class="small">No media records for current filters.</td></tr>';
+        if (pager) pager.innerHTML = '';
       } else {
-        tbody.innerHTML = rows.map(r => `
+        tbody.innerHTML = pageRows.map(r => `
           <tr>
             <td class="nowrap">${formatDate(r.date)}</td>
             <td>${r.sourceType || '-'}</td>
@@ -763,8 +810,28 @@
             <td>${r.sector || '-'}</td>
           </tr>
         `).join('');
+        if (pager) {
+          const pageNumbers = [];
+          const from = Math.max(1, STATE.mediaPage - 2);
+          const to = Math.min(totalPages, STATE.mediaPage + 2);
+          for (let p = from; p <= to; p++) pageNumbers.push(p);
+          pager.innerHTML = `
+            <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
+            <button class="pager-btn" onclick="setMediaPage(${STATE.mediaPage - 1})" ${STATE.mediaPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setMediaPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.mediaPage ? 'active' : ''}" onclick="setMediaPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setMediaPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setMediaPage(${STATE.mediaPage + 1})" ${STATE.mediaPage >= totalPages ? 'disabled' : ''}>Next</button>
+          `;
+        }
       }
       document.getElementById('media-count').textContent = `${rows.length} of ${STATE.media.length}`;
+    }
+
+    function setMediaPage(page) {
+      const p = Number(page) || 1;
+      STATE.mediaPage = Math.max(1, p);
+      renderMediaTable();
     }
 
     function renderFundingTable() {
