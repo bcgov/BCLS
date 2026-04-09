@@ -299,7 +299,6 @@
         <label>Source</label><select id="media-source" onchange="renderMediaTable()"></select>
         <label>Pillar</label><select id="media-pillar" onchange="renderMediaTable()"></select>
         <label>Theme</label><select id="media-theme" onchange="renderMediaTable()"></select>
-        <label>Status</label><select id="media-status" onchange="renderMediaTable()"></select>
         <input id="media-search" type="text" placeholder="Search headline, source, sector..." oninput="renderMediaTable()" />
         <span class="count" id="media-count"></span>
       </div>
@@ -332,7 +331,6 @@
       <div class="toolbar">
         <label>Pillar</label><select id="fund-pillar" onchange="renderFundingTable()"></select>
         <label>Theme</label><select id="fund-theme" onchange="renderFundingTable()"></select>
-        <label>Status</label><select id="fund-status" onchange="renderFundingTable()"></select>
         <label>Funding Source</label><select id="fund-source" onchange="renderFundingTable()"></select>
         <input id="fund-search" type="text" placeholder="Search project, partner, region..." oninput="renderFundingTable()" />
         <span class="count" id="fund-count"></span>
@@ -345,7 +343,6 @@
               <th onclick="setSort('fund','project')">Project / Program</th>
               <th onclick="setSort('fund','pillar')">Pillar</th>
               <th onclick="setSort('fund','theme')">Theme</th>
-              <th onclick="setSort('fund','status')">Status</th>
               <th onclick="setSort('fund','provincial')">Provincial ($M)</th>
               <th onclick="setSort('fund','attracted')">Attracted ($M)</th>
               <th onclick="setSort('fund','federal')">Federal ($M)</th>
@@ -358,6 +355,7 @@
           <tbody id="fund-body"></tbody>
         </table>
       </div>
+      <div class="pager" id="fund-pager"></div>
     </section>
 
     <div id="error-box"></div>
@@ -399,6 +397,8 @@
       dataMode: 'unknown',
       mediaPage: 1,
       mediaPageSize: 20,
+      fundPage: 1,
+      fundPageSize: 15,
       sort: {
         media: { key: 'date', dir: 'desc' },
         fund: { key: 'date', dir: 'desc' }
@@ -785,11 +785,9 @@
       setOptions('media-source', [...new Set(STATE.media.map(r => r.sourceType))]);
       setOptions('media-pillar', [...new Set(STATE.media.map(r => r.pillar))]);
       setOptions('media-theme', [...new Set(STATE.media.map(r => r.theme))]);
-      setOptions('media-status', [...new Set(STATE.media.map(r => r.status))]);
 
       setOptions('fund-pillar', [...new Set(STATE.funding.map(r => r.pillar))]);
       setOptions('fund-theme', [...new Set(STATE.funding.map(r => r.theme))]);
-      setOptions('fund-status', [...new Set(STATE.funding.map(r => r.status))]);
       setOptions('fund-source', [...new Set(STATE.funding.map(r => r.source))]);
     }
 
@@ -827,14 +825,12 @@
       const source = document.getElementById('media-source').value;
       const pillar = document.getElementById('media-pillar').value;
       const theme = document.getElementById('media-theme').value;
-      const status = document.getElementById('media-status').value;
       const q = normalizeText(document.getElementById('media-search').value).toLowerCase();
 
       let rows = STATE.media.filter(r => {
         if (source !== 'ALL' && r.sourceType !== source) return false;
         if (pillar !== 'ALL' && r.pillar !== pillar) return false;
         if (theme !== 'ALL' && r.theme !== theme) return false;
-        if (status !== 'ALL' && r.status !== status) return false;
         if (q) {
           const blob = [r.sourceType, r.source, r.sector, r.headline, r.message, r.theme, r.status].join(' ').toLowerCase();
           if (!blob.includes(q)) return false;
@@ -899,14 +895,12 @@
     function renderFundingTable() {
       const pillar = document.getElementById('fund-pillar').value;
       const theme = document.getElementById('fund-theme').value;
-      const status = document.getElementById('fund-status').value;
       const source = document.getElementById('fund-source').value;
       const q = normalizeText(document.getElementById('fund-search').value).toLowerCase();
 
       let rows = STATE.funding.filter(r => {
         if (pillar !== 'ALL' && r.pillar !== pillar) return false;
         if (theme !== 'ALL' && r.theme !== theme) return false;
-        if (status !== 'ALL' && r.status !== status) return false;
         if (source !== 'ALL' && r.source !== source) return false;
         if (q) {
           const blob = [r.project, r.partner, r.region, r.details, r.pillar, r.theme, r.status, r.source].join(' ').toLowerCase();
@@ -918,16 +912,24 @@
       rows = sortRows(rows, 'fund');
 
       const tbody = document.getElementById('fund-body');
+      const pager = document.getElementById('fund-pager');
+      const totalRows = rows.length;
+      const pageSize = Math.max(1, Number(STATE.fundPageSize) || 15);
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      if (STATE.fundPage > totalPages) STATE.fundPage = totalPages;
+      if (STATE.fundPage < 1) STATE.fundPage = 1;
+      const startIdx = (STATE.fundPage - 1) * pageSize;
+      const pageRows = rows.slice(startIdx, startIdx + pageSize);
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="12" class="small">No funding records for current filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="small">No funding records for current filters.</td></tr>';
+        if (pager) pager.innerHTML = '';
       } else {
-        tbody.innerHTML = rows.map(r => `
+        tbody.innerHTML = pageRows.map(r => `
           <tr>
             <td class="nowrap">${formatDate(r.date)}</td>
             <td title="${esc(r.details || '')}">${esc(r.project || '-')}</td>
             <td>${esc(r.pillar || '-')}</td>
             <td>${esc(r.theme || '-')}</td>
-            <td>${statusPill(r.status)}</td>
             <td class="nowrap">${formatNumber(r.provincial)}</td>
             <td class="nowrap">${formatNumber(r.attracted)}</td>
             <td class="nowrap">${formatNumber(r.federal)}</td>
@@ -937,8 +939,28 @@
             <td>${esc(r.region || '-')}</td>
           </tr>
         `).join('');
+        if (pager) {
+          const pageNumbers = [];
+          const from = Math.max(1, STATE.fundPage - 2);
+          const to = Math.min(totalPages, STATE.fundPage + 2);
+          for (let p = from; p <= to; p++) pageNumbers.push(p);
+          pager.innerHTML = `
+            <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
+            <button class="pager-btn" onclick="setFundPage(${STATE.fundPage - 1})" ${STATE.fundPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setFundPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.fundPage ? 'active' : ''}" onclick="setFundPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setFundPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setFundPage(${STATE.fundPage + 1})" ${STATE.fundPage >= totalPages ? 'disabled' : ''}>Next</button>
+          `;
+        }
       }
       document.getElementById('fund-count').textContent = `${rows.length} of ${STATE.funding.length}`;
+    }
+
+    function setFundPage(page) {
+      const p = Number(page) || 1;
+      STATE.fundPage = Math.max(1, p);
+      renderFundingTable();
     }
 
     function showError(msg) {
