@@ -377,9 +377,7 @@
               <th onclick="setSort('policy','policyRegulation')">Policy / Regulation</th>
               <th onclick="setSort('policy','jurisdiction')">Jurisdiction</th>
               <th onclick="setSort('policy','lwSector')">LW Sector</th>
-              <th onclick="setSort('policy','secondarySector')">Secondary Sector</th>
               <th onclick="setSort('policy','policyType')">Policy Type</th>
-              <th onclick="setSort('policy','whatChanged')">What Changed</th>
               <th onclick="setSort('policy','outcomeArea')">LW Outcome Area</th>
               <th onclick="setSort('policy','source')">Source</th>
             </tr>
@@ -659,7 +657,16 @@
         policyType: normalizeText(row['Policy Type']),
         whatChanged: normalizeText(row['What Changed']),
         outcomeArea: normalizeText(row['LW Outome Area'] || row['LW Outcome Area']),
-        source: normalizeText(row['Source'])
+        source: normalizeText(row['Source']),
+        sourceUrl: normalizeUrl(
+          (row.__links && row.__links['Source']) ||
+          row['Source URL'] ||
+          row['Source Url'] ||
+          row['URL'] ||
+          row['Url'] ||
+          row['Link'] ||
+          ''
+        )
       };
     }
 
@@ -1063,20 +1070,22 @@
       const pageRows = rows.slice(startIdx, startIdx + pageSize);
 
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="9" class="small">No policy/regulation records for current filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="small">No policy/regulation records for current filters.</td></tr>';
         if (pager) pager.innerHTML = '';
       } else {
         tbody.innerHTML = pageRows.map(r => `
-          <tr>
+          <tr title="${esc(r.whatChanged || '')}">
             <td class="nowrap">${formatDate(r.date)}</td>
             <td>${esc(r.policyRegulation || '-')}</td>
             <td>${esc(r.jurisdiction || '-')}</td>
             <td>${esc(r.lwSector || '-')}</td>
-            <td>${esc(r.secondarySector || '-')}</td>
             <td>${esc(r.policyType || '-')}</td>
-            <td title="${esc(r.whatChanged || '')}" class="text-limit">${esc(r.whatChanged || '-')}</td>
             <td>${esc(r.outcomeArea || '-')}</td>
-            <td>${esc(r.source || '-')}</td>
+            <td>
+              ${r.sourceUrl
+                ? `<a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(r.source || '-')}</a>`
+                : esc(r.source || '-')}
+            </td>
           </tr>
         `).join('');
         if (pager) {
