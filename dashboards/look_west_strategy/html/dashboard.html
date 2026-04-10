@@ -264,40 +264,68 @@
       .count { width: 100%; margin-left: 0; }
     }
 
-    /* ── Funding Charts ────────────────────────────────────── */
-    .charts-grid {
+    /* ── Funding & Investment Charts (Life-Sciences-style) ──── */
+    .lw-section { margin-bottom: 28px; }
+    .lw-section-head {
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 9px; margin-bottom: 16px;
+    }
+    .lw-section-head h2 {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--primary); margin: 0;
+    }
+    .lw-section-head .sh-sub { font-size: 11px; color: var(--muted); }
+    .chart-settings-btn {
+      margin-left: auto; background: none;
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 12px; font-size: 11px; color: var(--muted);
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+    }
+    .chart-settings-btn:hover {
+      background: #eef3fa; border-color: var(--primary); color: var(--primary);
+    }
+    .lw-charts-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      gap: 16px;
     }
-    .chart-card {
-      padding: 18px 20px 20px;
-      border-right: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
+    .lw-chart-card { padding: 18px; }
+    .lw-chart-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--text); }
+    .lw-chart-subtitle { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+    .lw-chart-container { position: relative; height: 230px; }
+    /* Settings panel */
+    .lw-chart-settings-panel {
+      display: none; background: var(--card);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px;
     }
-    .chart-card:nth-child(2n) { border-right: none; }
-    .chart-card:nth-child(3),
-    .chart-card:nth-child(4) { border-bottom: none; }
-    .chart-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--text);
-      margin-bottom: 2px;
+    .lw-chart-settings-panel.open { display: block; }
+    .lw-csp-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--primary); margin-bottom: 12px;
     }
-    .chart-sub {
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 14px;
+    .lw-csp-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px;
     }
-    .chart-wrap {
-      position: relative;
-      height: 230px;
+    .lw-csp-item {
+      display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+      border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+      transition: background .12s;
     }
-    @media (max-width: 900px) {
-      .charts-grid { grid-template-columns: 1fr; }
-      .chart-card { border-right: none !important; }
-      .chart-card:nth-child(3) { border-bottom: 1px solid var(--border) !important; }
-      .chart-card:nth-child(4) { border-bottom: none; }
+    .lw-csp-item:hover { background: #eef3fa; }
+    .lw-csp-item input[type=checkbox] {
+      width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0;
+    }
+    .lw-csp-label { font-size: 12px; color: var(--muted); }
+    .lw-btn-secondary {
+      background: #fff; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 12px; font-size: 11px; cursor: pointer;
+    }
+    .lw-btn-secondary:hover { background: #f7fafc; }
+    @media (max-width: 860px) {
+      .lw-charts-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -325,37 +353,25 @@
       <div id="kpi-grid" class="kpi-grid"></div>
     </section>
 
-
-    <section class="card" id="funding-charts-section" style="display:none">
-      <div class="section-head">
-        <div>
-          <div class="section-title">Funding &amp; Investment Overview</div>
-          <div class="section-sub">Aggregate visual breakdown from the Funding and Investments table</div>
+    <!-- ── Funding & Investment Charts (Life-Sciences-style) ── -->
+    <div class="lw-section" id="lw-funding-charts-section" style="display:none">
+      <div class="lw-section-head">
+        <h2>Funding &amp; Investment Overview</h2>
+        <span class="sh-sub">Aggregate breakdown from Funding and Investments table</span>
+        <button class="chart-settings-btn" onclick="lwToggleChartPanel()">
+          &#9881; Select Charts
+        </button>
+      </div>
+      <div class="lw-chart-settings-panel" id="lw-chart-panel">
+        <div class="lw-csp-title">Show / hide charts</div>
+        <div class="lw-csp-grid" id="lw-csp-grid"></div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <button class="lw-btn-secondary" onclick="lwResetChartPrefs()">Reset</button>
+          <button class="lw-btn-secondary" onclick="lwToggleChartPanel()">Close</button>
         </div>
       </div>
-      <div class="charts-grid">
-        <div class="chart-card">
-          <div class="chart-title">Investment by Pillar ($M)</div>
-          <div class="chart-sub">Stacked by funding type — Provincial, Attracted, Federal, Other</div>
-          <div class="chart-wrap"><canvas id="chart-pillar-invest"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Funding Mix</div>
-          <div class="chart-sub">Total investment share by source type</div>
-          <div class="chart-wrap"><canvas id="chart-funding-mix"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Top Regions by Total Investment ($M)</div>
-          <div class="chart-sub">Economic development regions ranked by total investment value</div>
-          <div class="chart-wrap"><canvas id="chart-regions"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Employment Impact by Pillar</div>
-          <div class="chart-sub">Jobs created and protected per Look West pillar</div>
-          <div class="chart-wrap"><canvas id="chart-jobs"></canvas></div>
-        </div>
-      </div>
-    </section>
+      <div class="lw-charts-grid" id="lw-charts-grid"></div>
+    </div>
 
     <section class="card">
       <div class="section-head">
@@ -897,35 +913,90 @@
     }
 
 
-    /* ── Chart helpers ──────────────────────────────────────── */
-    const _CHART_REG = {};
-    function destroyChart(id) {
-      const el = document.getElementById(id);
+    /* ── LW Funding Charts — display prefs (localStorage) ─── */
+    const LW_CHART_PREFS_KEY = 'lw_chart_prefs_v1';
+
+    const LW_CHART_DEFS = [
+      { id: 'pillar-invest',  title: 'Investment by Pillar ($M)' },
+      { id: 'funding-mix',   title: 'Funding Mix' },
+      { id: 'top-regions',   title: 'Top Regions by Investment ($M)' },
+      { id: 'employment',    title: 'Employment Impact by Pillar' }
+    ];
+
+    function lwGetChartPrefs() {
+      try { return JSON.parse(localStorage.getItem(LW_CHART_PREFS_KEY) || '{}') || {}; }
+      catch(e) { return {}; }
+    }
+    function lwSaveChartPrefs(p) {
+      try { localStorage.setItem(LW_CHART_PREFS_KEY, JSON.stringify(p || {})); } catch(e) {}
+    }
+    function lwIsChartShown(id) {
+      const p = lwGetChartPrefs();
+      const hidden = Array.isArray(p.hidden) ? p.hidden : [];
+      return !hidden.includes(id);
+    }
+    function lwSetChartShown(id, checked) {
+      const p = lwGetChartPrefs();
+      const set = new Set(Array.isArray(p.hidden) ? p.hidden : []);
+      if (checked) set.delete(id); else set.add(id);
+      p.hidden = Array.from(set);
+      lwSaveChartPrefs(p);
+    }
+    function lwResetChartPrefs() {
+      lwSaveChartPrefs({});
+      lwBuildChartPanel();
+      renderCharts();
+    }
+    function lwToggleChartPanel() {
+      const panel = document.getElementById('lw-chart-panel');
+      if (!panel) return;
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) lwBuildChartPanel();
+    }
+    function lwBuildChartPanel() {
+      const grid = document.getElementById('lw-csp-grid');
+      if (!grid) return;
+      grid.innerHTML = LW_CHART_DEFS.map(c => `
+        <label class="lw-csp-item">
+          <input type="checkbox" ${lwIsChartShown(c.id) ? 'checked' : ''}
+                 onchange="lwSetChartShown('${c.id}',this.checked);renderCharts()">
+          <span class="lw-csp-label">${c.title}</span>
+        </label>
+      `).join('');
+    }
+
+    /* ── LW Chart rendering ─────────────────────────────────── */
+    function lwDestroyChart(id) {
+      const el = document.getElementById('lw-chart-' + id);
       if (!el) return;
       const inst = Chart.getChart(el);
       if (inst) inst.destroy();
     }
 
-    const C_PROVINCIAL = '#0b4f8a';
-    const C_ATTRACTED  = '#1f7a4d';
-    const C_FEDERAL    = '#5b8ec9';
-    const C_OTHER      = '#b26d00';
-
-    const PILLAR_SHORT = {
-      'Strengthening Our Workforce':   'Workforce',
+    const LW_C = {
+      provincial: '#0b4f8a',
+      attracted:  '#1f7a4d',
+      federal:    '#5b8ec9',
+      other:      '#b26d00'
+    };
+    const LW_PILLAR_SHORT = {
+      'Strengthening Our Workforce':      'Workforce',
       'Delivering Major Projects Faster': 'Major Projects',
-      'Diversifying Markets':          'Diversifying',
-      'Growing Targeted Sectors':      'Targeted Sectors'
+      'Diversifying Markets':             'Diversifying',
+      'Growing Targeted Sectors':         'Targeted Sectors'
     };
-
-    const CHART_DEFAULTS = {
-      font: { family: '"Segoe UI", Arial, sans-serif', size: 11 }
-    };
+    const LW_PILLARS_ORDER = [
+      'Strengthening Our Workforce',
+      'Delivering Major Projects Faster',
+      'Diversifying Markets',
+      'Growing Targeted Sectors'
+    ];
 
     function renderCharts() {
       if (typeof Chart === 'undefined') return;
       const funding = STATE.funding;
-      const section = document.getElementById('funding-charts-section');
+      const section = document.getElementById('lw-funding-charts-section');
+      const grid    = document.getElementById('lw-charts-grid');
       if (!funding.length) {
         if (section) section.style.display = 'none';
         return;
@@ -935,152 +1006,149 @@
       Chart.defaults.font.family = '"Segoe UI", Arial, sans-serif';
       Chart.defaults.color = '#5f7388';
 
-      const pillars = [
-        'Strengthening Our Workforce',
-        'Delivering Major Projects Faster',
-        'Diversifying Markets',
-        'Growing Targeted Sectors'
-      ].filter(p => funding.some(r => r.pillar === p));
+      /* Build visible chart cards */
+      grid.innerHTML = LW_CHART_DEFS.filter(c => lwIsChartShown(c.id)).map(c => `
+        <div class="card lw-chart-card">
+          <div class="lw-chart-title">${c.title}</div>
+          <div class="lw-chart-subtitle">${lwChartSubtitle(c.id)}</div>
+          <div class="lw-chart-container"><canvas id="lw-chart-${c.id}"></canvas></div>
+        </div>
+      `).join('');
 
-      // ── Chart 1: Stacked bar — Investment by Pillar ────────
-      const byPillar = k => pillars.map(p =>
-        Math.round(funding.filter(r => r.pillar === p).reduce((s, r) => s + (r[k] || 0), 0))
+      const pillars = LW_PILLARS_ORDER.filter(p => funding.some(r => r.pillar === p));
+
+      LW_CHART_DEFS.forEach(c => {
+        if (!lwIsChartShown(c.id)) return;
+        const el = document.getElementById('lw-chart-' + c.id);
+        if (!el) return;
+        lwDestroyChart(c.id);
+        const inst = Chart.getChart(el);
+        if (inst) inst.destroy();
+        lwBuildChart(c.id, el, funding, pillars);
+      });
+    }
+
+    function lwChartSubtitle(id) {
+      if (id === 'pillar-invest')  return 'Stacked by funding type — Provincial, Attracted, Federal, Other';
+      if (id === 'funding-mix')    return 'Total investment share by source type';
+      if (id === 'top-regions')    return 'Economic development regions ranked by total investment value';
+      if (id === 'employment')     return 'Jobs created and protected per Look West pillar';
+      return '';
+    }
+
+    function lwBuildChart(id, el, funding, pillars) {
+      const byPillar = key => pillars.map(p =>
+        Math.round(funding.filter(r => r.pillar === p).reduce((s, r) => s + (r[key] || 0), 0))
       );
-      destroyChart('chart-pillar-invest');
-      new Chart(document.getElementById('chart-pillar-invest'), {
-        type: 'bar',
-        data: {
-          labels: pillars.map(p => PILLAR_SHORT[p] || p),
-          datasets: [
-            { label: 'Provincial',  data: byPillar('provincial'), backgroundColor: C_PROVINCIAL, borderRadius: 3, stack: 's' },
-            { label: 'Attracted',   data: byPillar('attracted'),  backgroundColor: C_ATTRACTED,  borderRadius: 3, stack: 's' },
-            { label: 'Federal',     data: byPillar('federal'),    backgroundColor: C_FEDERAL,    borderRadius: 3, stack: 's' },
-            { label: 'Other',       data: byPillar('other'),      backgroundColor: C_OTHER,      borderRadius: 3, stack: 's' }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
-            tooltip: {
-              callbacks: {
-                label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-CA')}M`
-              }
-            }
-          },
-          scales: {
-            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { stacked: true, grid: { color: '#edf1f5' }, ticks: { font: { size: 11 }, callback: v => '$' + v + 'M' } }
-          }
-        }
-      });
 
-      // ── Chart 2: Doughnut — Funding Mix ───────────────────
-      const totProvincial = Math.round(funding.reduce((s, r) => s + (r.provincial || 0), 0));
-      const totAttracted  = Math.round(funding.reduce((s, r) => s + (r.attracted  || 0), 0));
-      const totFederal    = Math.round(funding.reduce((s, r) => s + (r.federal    || 0), 0));
-      const totOther      = Math.round(funding.reduce((s, r) => s + (r.other      || 0), 0));
-      destroyChart('chart-funding-mix');
-      new Chart(document.getElementById('chart-funding-mix'), {
-        type: 'doughnut',
-        data: {
-          labels: ['Provincial', 'Attracted to BC', 'Federal', 'Other'],
-          datasets: [{
-            data: [totProvincial, totAttracted, totFederal, totOther],
-            backgroundColor: [C_PROVINCIAL, C_ATTRACTED, C_FEDERAL, C_OTHER],
-            borderWidth: 2,
-            borderColor: '#ffffff',
-            hoverOffset: 6
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          cutout: '60%',
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
-            tooltip: {
-              callbacks: {
-                label: ctx => ` ${ctx.label}: $${ctx.parsed.toLocaleString('en-CA')}M`
-              }
-            }
-          }
-        }
-      });
-
-      // ── Chart 3: Horizontal bar — Top Regions ─────────────
-      const regionMap = {};
-      funding.forEach(r => {
-        const reg = (r.region || '').trim();
-        if (reg) regionMap[reg] = (regionMap[reg] || 0) + (r.total || 0);
-      });
-      const topRegions = Object.entries(regionMap)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8);
-      const regionBg = topRegions.map((_, i) => {
-        const alpha = Math.max(0.25, 1 - i * 0.1);
-        return `rgba(11, 79, 138, ${alpha.toFixed(2)})`;
-      });
-      destroyChart('chart-regions');
-      new Chart(document.getElementById('chart-regions'), {
-        type: 'bar',
-        data: {
-          labels: topRegions.map(([k]) => k),
-          datasets: [{
-            label: 'Total Investment ($M)',
-            data: topRegions.map(([, v]) => Math.round(v)),
-            backgroundColor: regionBg,
-            borderRadius: 4
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          indexAxis: 'y',
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: { label: ctx => ` $${ctx.parsed.x.toLocaleString('en-CA')}M` }
-            }
+      if (id === 'pillar-invest') {
+        new Chart(el, {
+          type: 'bar',
+          data: {
+            labels: pillars.map(p => LW_PILLAR_SHORT[p] || p),
+            datasets: [
+              { label: 'Provincial', data: byPillar('provincial'), backgroundColor: LW_C.provincial, borderRadius: 3, stack: 's' },
+              { label: 'Attracted',  data: byPillar('attracted'),  backgroundColor: LW_C.attracted,  borderRadius: 3, stack: 's' },
+              { label: 'Federal',    data: byPillar('federal'),    backgroundColor: LW_C.federal,    borderRadius: 3, stack: 's' },
+              { label: 'Other',      data: byPillar('other'),      backgroundColor: LW_C.other,      borderRadius: 3, stack: 's' }
+            ]
           },
-          scales: {
-            x: { grid: { color: '#edf1f5' }, ticks: { font: { size: 11 }, callback: v => '$' + v + 'M' } },
-            y: { grid: { display: false }, ticks: { font: { size: 11 } } }
-          }
-        }
-      });
-
-      // ── Chart 4: Grouped bar — Employment Impact by Pillar ─
-      const jobsCreated   = pillars.map(p =>
-        Math.round(funding.filter(r => r.pillar === p).reduce((s, r) => s + (r.jobsCreated   || 0), 0))
-      );
-      const jobsProtected = pillars.map(p =>
-        Math.round(funding.filter(r => r.pillar === p).reduce((s, r) => s + (r.jobsProtected || 0), 0))
-      );
-      destroyChart('chart-jobs');
-      new Chart(document.getElementById('chart-jobs'), {
-        type: 'bar',
-        data: {
-          labels: pillars.map(p => PILLAR_SHORT[p] || p),
-          datasets: [
-            { label: 'Jobs Created',   data: jobsCreated,   backgroundColor: C_ATTRACTED, borderRadius: 3 },
-            { label: 'Jobs Protected', data: jobsProtected, backgroundColor: C_FEDERAL,   borderRadius: 3 }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
-            tooltip: {
-              callbacks: {
-                label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('en-CA')}`
-              }
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+              tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-CA')}M` } }
+            },
+            scales: {
+              x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+              y: { stacked: true, grid: { color: '#edf1f5' }, ticks: { font: { size: 11 }, callback: v => '$' + v + 'M' } }
             }
-          },
-          scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { grid: { color: '#edf1f5' }, ticks: { font: { size: 11 } } }
           }
-        }
-      });
+        });
+      }
+
+      if (id === 'funding-mix') {
+        const totP = Math.round(funding.reduce((s,r) => s+(r.provincial||0), 0));
+        const totA = Math.round(funding.reduce((s,r) => s+(r.attracted||0), 0));
+        const totF = Math.round(funding.reduce((s,r) => s+(r.federal||0), 0));
+        const totO = Math.round(funding.reduce((s,r) => s+(r.other||0), 0));
+        new Chart(el, {
+          type: 'doughnut',
+          data: {
+            labels: ['Provincial', 'Attracted to BC', 'Federal', 'Other'],
+            datasets: [{
+              data: [totP, totA, totF, totO],
+              backgroundColor: [LW_C.provincial, LW_C.attracted, LW_C.federal, LW_C.other],
+              borderWidth: 2, borderColor: '#fff', hoverOffset: 6
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, cutout: '60%',
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+              tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${ctx.parsed.toLocaleString('en-CA')}M` } }
+            }
+          }
+        });
+      }
+
+      if (id === 'top-regions') {
+        const regionMap = {};
+        funding.forEach(r => {
+          const reg = (r.region || '').trim();
+          if (reg) regionMap[reg] = (regionMap[reg] || 0) + (r.total || 0);
+        });
+        const top = Object.entries(regionMap).sort((a,b) => b[1]-a[1]).slice(0, 8);
+        new Chart(el, {
+          type: 'bar',
+          data: {
+            labels: top.map(([k]) => k),
+            datasets: [{
+              label: 'Total Investment ($M)',
+              data: top.map(([,v]) => Math.round(v)),
+              backgroundColor: top.map((_,i) => `rgba(11,79,138,${Math.max(0.25, 1-i*0.1).toFixed(2)})`),
+              borderRadius: 4
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: { label: ctx => ` $${ctx.parsed.x.toLocaleString('en-CA')}M` } }
+            },
+            scales: {
+              x: { grid: { color: '#edf1f5' }, ticks: { font: { size: 11 }, callback: v => '$' + v + 'M' } },
+              y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+            }
+          }
+        });
+      }
+
+      if (id === 'employment') {
+        const created   = pillars.map(p => Math.round(funding.filter(r=>r.pillar===p).reduce((s,r)=>s+(r.jobsCreated||0),0)));
+        const protected_ = pillars.map(p => Math.round(funding.filter(r=>r.pillar===p).reduce((s,r)=>s+(r.jobsProtected||0),0)));
+        new Chart(el, {
+          type: 'bar',
+          data: {
+            labels: pillars.map(p => LW_PILLAR_SHORT[p] || p),
+            datasets: [
+              { label: 'Jobs Created',   data: created,    backgroundColor: LW_C.attracted, borderRadius: 3 },
+              { label: 'Jobs Protected', data: protected_, backgroundColor: LW_C.federal,   borderRadius: 3 }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+              tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('en-CA')}` } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+              y: { grid: { color: '#edf1f5' }, ticks: { font: { size: 11 } } }
+            }
+          }
+        });
+      }
     }
 
     function renderKPIs() {
