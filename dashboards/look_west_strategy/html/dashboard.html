@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Look West Strategy Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
     :root {
       --bg: #f3f6fa;
@@ -100,6 +101,27 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 12px;
+    }
+    .chart-grid {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 12px;
+    }
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      padding: 8px;
+      min-height: 290px;
+    }
+    .chart-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 700;
+      margin: 4px 4px 8px;
     }
     .kpi {
       border: 1px solid var(--border);
@@ -286,6 +308,28 @@
         </div>
       </div>
       <div id="kpi-grid" class="kpi-grid"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Funding and Investment Overview</div>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title">Investment Trend ($M)</div>
+          <div id="fund-chart-trend"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Investment by Pillar ($M)</div>
+          <div id="fund-chart-pillar"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Funding Source Mix ($M)</div>
+          <div id="fund-chart-mix"></div>
+        </div>
+      </div>
     </section>
 
     <section class="card">
@@ -864,6 +908,78 @@
       `).join('');
     }
 
+    function renderFundingOverviewCharts() {
+      if (typeof Plotly === 'undefined') return;
+      const rows = STATE.funding || [];
+      const commonLayout = {
+        margin: { t: 10, r: 10, b: 40, l: 50 },
+        paper_bgcolor: '#ffffff',
+        plot_bgcolor: '#ffffff',
+        font: { family: '"Segoe UI", Arial, sans-serif', size: 11, color: '#1c2a39' }
+      };
+
+      if (!rows.length) {
+        ['fund-chart-trend', 'fund-chart-pillar', 'fund-chart-mix'].forEach(id => {
+          Plotly.newPlot(id, [], { ...commonLayout, annotations: [{ text: 'No funding data', x: 0.5, y: 0.5, xref: 'paper', yref: 'paper', showarrow: false }] }, { displayModeBar: false, responsive: true });
+        });
+        return;
+      }
+
+      const byMonth = {};
+      rows.forEach(r => {
+        if (!(r.date instanceof Date) || isNaN(r.date)) return;
+        const k = `${r.date.getFullYear()}-${String(r.date.getMonth() + 1).padStart(2, '0')}`;
+        byMonth[k] = (byMonth[k] || 0) + (Number(r.total) || 0);
+      });
+      const months = Object.keys(byMonth).sort();
+      const monthVals = months.map(k => byMonth[k]);
+      Plotly.newPlot('fund-chart-trend', [{
+        x: months, y: monthVals, type: 'scatter', mode: 'lines+markers',
+        line: { color: '#0b4f8a', width: 2 }, marker: { size: 5 }
+      }], {
+        ...commonLayout,
+        yaxis: { title: '$M' },
+        xaxis: { title: 'Month' }
+      }, { displayModeBar: false, responsive: true });
+
+      const byPillar = {};
+      rows.forEach(r => { const k = r.pillar || 'Unspecified'; byPillar[k] = (byPillar[k] || 0) + (Number(r.total) || 0); });
+      const pillars = Object.keys(byPillar).sort((a, b) => byPillar[b] - byPillar[a]);
+      Plotly.newPlot('fund-chart-pillar', [{
+        x: pillars, y: pillars.map(k => byPillar[k]), type: 'bar',
+        marker: { color: '#1565a8' }
+      }], {
+        ...commonLayout,
+        yaxis: { title: '$M' },
+        xaxis: { title: '', tickangle: -20 }
+      }, { displayModeBar: false, responsive: true });
+
+      const mix = {
+        Provincial: 0,
+        Attracted: 0,
+        Federal: 0,
+        Other: 0
+      };
+      rows.forEach(r => {
+        mix.Provincial += Number(r.provincial) || 0;
+        mix.Attracted += Number(r.attracted) || 0;
+        mix.Federal += Number(r.federal) || 0;
+        mix.Other += Number(r.other) || 0;
+      });
+      const mixLabels = Object.keys(mix);
+      Plotly.newPlot('fund-chart-mix', [{
+        labels: mixLabels,
+        values: mixLabels.map(k => mix[k]),
+        type: 'pie',
+        hole: 0.45,
+        marker: { colors: ['#0b4f8a', '#2ca02c', '#ff7f0e', '#9467bd'] },
+        textinfo: 'label+percent'
+      }], {
+        ...commonLayout,
+        margin: { t: 10, r: 10, b: 10, l: 10 }
+      }, { displayModeBar: false, responsive: true });
+    }
+
     function setOptions(selectId, values) {
       const el = document.getElementById(selectId);
       if (!el) return;
@@ -1169,6 +1285,7 @@
       try {
         await loadData();
         renderKPIs();
+        renderFundingOverviewCharts();
         buildFilters();
         renderMediaTable();
         renderFundingTable();
@@ -1198,6 +1315,7 @@
       const hasCache = storageLoad();
       if (hasCache) {
         renderKPIs();
+        renderFundingOverviewCharts();
         buildFilters();
         renderMediaTable();
         renderFundingTable();
