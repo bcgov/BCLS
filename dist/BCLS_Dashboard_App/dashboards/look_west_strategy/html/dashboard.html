@@ -931,21 +931,23 @@
         tbody.innerHTML = '<tr><td colspan="7" class="small">No media records for current filters.</td></tr>';
         if (pager) pager.innerHTML = '';
       } else {
-        tbody.innerHTML = pageRows.map(r => `
-          <tr title="${esc(r.message || '')}">
-            <td class="nowrap">${formatDate(r.date)}</td>
-            <td>${esc(r.sourceType || '-')}</td>
-            <td>${esc(r.source || '-')}</td>
-            <td>${esc(r.pillar || '-')}</td>
-            <td>${esc(r.theme || '-')}</td>
-            <td class="text-limit" title="${esc(r.headline || '')}">
+        tbody.innerHTML = pageRows.map(r => {
+          const hoverMsg = esc(r.message || '');
+          return `
+          <tr>
+            <td class="nowrap" title="${hoverMsg}">${formatDate(r.date)}</td>
+            <td title="${hoverMsg}">${esc(r.sourceType || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.source || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.pillar || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.theme || '-')}</td>
+            <td class="text-limit" title="${hoverMsg}">
               ${r.headlineUrl
                 ? `<a href="${esc(r.headlineUrl)}" target="_blank" rel="noopener noreferrer">${esc(r.headline || '-')}</a>`
                 : esc(r.headline || '-')}
             </td>
-            <td>${esc(r.sector || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.sector || '-')}</td>
           </tr>
-        `).join('');
+        `}).join('');
         if (pager) {
           const pageNumbers = [];
           const from = Math.max(1, STATE.mediaPage - 2);
