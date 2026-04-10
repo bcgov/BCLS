@@ -1003,9 +1003,9 @@
         if (pager) pager.innerHTML = '';
       } else {
         tbody.innerHTML = pageRows.map(r => `
-          <tr>
+          <tr title="${esc(r.details || '')}">
             <td class="nowrap">${formatDate(r.date)}</td>
-            <td title="${esc(r.details || '')}">${esc(r.project || '-')}</td>
+            <td>${esc(r.project || '-')}</td>
             <td>${esc(r.pillar || '-')}</td>
             <td>${esc(r.theme || '-')}</td>
             <td class="nowrap">${formatNumber(r.provincial)}</td>
