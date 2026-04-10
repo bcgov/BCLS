@@ -932,7 +932,7 @@
         if (pager) pager.innerHTML = '';
       } else {
         tbody.innerHTML = pageRows.map(r => `
-          <tr>
+          <tr title="${esc(r.message || '')}">
             <td class="nowrap">${formatDate(r.date)}</td>
             <td>${esc(r.sourceType || '-')}</td>
             <td>${esc(r.source || '-')}</td>
