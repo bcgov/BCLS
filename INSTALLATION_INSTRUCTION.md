@@ -38,6 +38,7 @@ Open that file and fill these keys:
 - `life_sciences_main`
 - `look_west_media`
 - `look_west_funding`
+- `look_west_policy`
 
 Use local file paths only:
 - local synced SharePoint paths (example: `C:\Users\<YourUser>\OneDrive - ...\...\file.xlsx`)

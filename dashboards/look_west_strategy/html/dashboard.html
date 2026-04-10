@@ -400,6 +400,9 @@
     const FUNDING_FILE_CANDIDATES = [
       '/api/excel-file?key=look_west_funding'
     ];
+    const POLICY_FILE_CANDIDATES = [
+      '/api/excel-file?key=look_west_policy'
+    ];
 
     const MEDIA_SHEETS = ['"Look West" news', 'BC Gov News', 'Federal Announcements', 'Other related news'];
 
@@ -706,15 +709,16 @@
 
       const mediaSrc = await loadWorkbookFromCandidates(MEDIA_FILE_CANDIDATES, 'Media');
       const fundSrc = await loadWorkbookFromCandidates(FUNDING_FILE_CANDIDATES, 'Funding');
-      parseWorkbooks(mediaSrc.wb, fundSrc.wb);
-      const kinds = [mediaSrc.sourceKind, fundSrc.sourceKind];
+      const policySrc = await loadWorkbookFromCandidates(POLICY_FILE_CANDIDATES, 'Policy');
+      parseWorkbooks(mediaSrc.wb, fundSrc.wb, policySrc.wb);
+      const kinds = [mediaSrc.sourceKind, fundSrc.sourceKind, policySrc.sourceKind];
       if (kinds.every(k => k === 'real')) STATE.dataMode = 'real';
       else if (kinds.every(k => k === 'mock')) STATE.dataMode = 'mock';
       else if (kinds.includes('real') && kinds.includes('mock')) STATE.dataMode = 'mixed';
       else STATE.dataMode = 'unknown';
     }
 
-    function parseWorkbooks(mediaWb, fundWb) {
+    function parseWorkbooks(mediaWb, fundWb, policyWb) {
 
       const mediaRows = [];
       for (const sheetName of MEDIA_SHEETS) {
@@ -732,11 +736,11 @@
       const fundingRows = fundWs
         ? sheetToObjects(fundWs, 'Date Announced').map(normalizeFundingRow).filter(r => normalizeText(r.project))
         : [];
-      const policySheetName = (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'policy & regulations')
-        || (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'policy and regulations')
-        || (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase().includes('policy') && normalizeText(n).toLowerCase().includes('regulation'))
+      const policySheetName = (policyWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'policy & regulations')
+        || (policyWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'policy and regulations')
+        || (policyWb.SheetNames || []).find(n => normalizeText(n).toLowerCase().includes('policy') && normalizeText(n).toLowerCase().includes('regulation'))
         || 'Policy & Regulations';
-      const policyWs = fundWb.Sheets[policySheetName];
+      const policyWs = policyWb.Sheets[policySheetName];
       const policyRows = policyWs
         ? sheetToObjects(policyWs, 'Date Announced').map(normalizePolicyRow).filter(r => normalizeText(r.policyRegulation))
         : [];

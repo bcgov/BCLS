@@ -51,6 +51,11 @@ EXCEL_MAP_REQUIRED = [
         "description": "Look West funding/investments workbook",
         "required": True,
     },
+    {
+        "key": "look_west_policy",
+        "description": "Look West policy/regulations workbook",
+        "required": True,
+    },
 ]
 EXCEL_FILE_FALLBACKS = {
     "life_sciences_main": [
@@ -61,6 +66,10 @@ EXCEL_FILE_FALLBACKS = {
         os.path.join(ROOT, "data", "look_west_strategy", "Look West media coverage - mock.xlsx"),
     ],
     "look_west_funding": [
+        os.path.join(ROOT, "data", "look_west_strategy", "lw_related_funding_investments_mock.xlsx"),
+        os.path.join(ROOT, "data", "look_west_strategy", "LW related funding and investments - Mock.xlsx"),
+    ],
+    "look_west_policy": [
         os.path.join(ROOT, "data", "look_west_strategy", "lw_related_funding_investments_mock.xlsx"),
         os.path.join(ROOT, "data", "look_west_strategy", "LW related funding and investments - Mock.xlsx"),
     ],
@@ -102,6 +111,15 @@ def ensure_excel_map_template(path_str):
             if (ws.cell(row=1, column=6).value or "").strip().lower() != "sheet":
                 ws.cell(row=1, column=6, value="sheet")
                 changed = True
+            existing_keys = set()
+            for r in range(2, ws.max_row + 1):
+                k = str(ws.cell(row=r, column=1).value or "").strip()
+                if k:
+                    existing_keys.add(k)
+            for req in EXCEL_MAP_REQUIRED:
+                if req["key"] not in existing_keys:
+                    ws.append([req["key"], "", "TRUE" if req.get("required") else "FALSE", req.get("description", ""), "Enter local file path", ""])
+                    changed = True
             if changed:
                 wb.save(p)
                 return True, "updated"
