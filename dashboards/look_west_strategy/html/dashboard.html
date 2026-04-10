@@ -356,6 +356,40 @@
       <div class="pager" id="fund-pager"></div>
     </section>
 
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Policy and Regulations</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label>Jurisdiction</label><select id="pol-jurisdiction" onchange="renderPolicyTable()"></select>
+        <label>LW Sector</label><select id="pol-sector" onchange="renderPolicyTable()"></select>
+        <label>Policy Type</label><select id="pol-type" onchange="renderPolicyTable()"></select>
+        <input id="pol-search" type="text" placeholder="Search policy, change, source..." oninput="renderPolicyTable()" />
+        <span class="count" id="pol-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="setSort('policy','date')">Date Announced</th>
+              <th onclick="setSort('policy','policyRegulation')">Policy / Regulation</th>
+              <th onclick="setSort('policy','jurisdiction')">Jurisdiction</th>
+              <th onclick="setSort('policy','lwSector')">LW Sector</th>
+              <th onclick="setSort('policy','secondarySector')">Secondary Sector</th>
+              <th onclick="setSort('policy','policyType')">Policy Type</th>
+              <th onclick="setSort('policy','whatChanged')">What Changed</th>
+              <th onclick="setSort('policy','outcomeArea')">LW Outcome Area</th>
+              <th onclick="setSort('policy','source')">Source</th>
+            </tr>
+          </thead>
+          <tbody id="pol-body"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pol-pager"></div>
+    </section>
+
     <div id="error-box"></div>
   </main>
 
@@ -391,15 +425,19 @@
     const STATE = {
       media: [],
       funding: [],
+      policy: [],
       loadedAt: null,
       dataMode: 'unknown',
       mediaPage: 1,
       mediaPageSize: 10,
       fundPage: 1,
       fundPageSize: 10,
+      polPage: 1,
+      polPageSize: 10,
       sort: {
         media: { key: 'date', dir: 'desc' },
-        fund: { key: 'date', dir: 'desc' }
+        fund: { key: 'date', dir: 'desc' },
+        policy: { key: 'date', dir: 'desc' }
       }
     };
     const CACHE_KEY = 'LW_DASHBOARD_CACHE_V1';
@@ -608,6 +646,20 @@
       };
     }
 
+    function normalizePolicyRow(row) {
+      return {
+        date: toDateValue(row['Date Announced'] || row['Date']),
+        policyRegulation: normalizeText(row['Policy/Regulation'] || row['Policy / Regulation']),
+        jurisdiction: normalizeText(row['Jurisdiction']),
+        lwSector: normalizeText(row['LW Sector']),
+        secondarySector: normalizeText(row['Secondary Sector']),
+        policyType: normalizeText(row['Policy Type']),
+        whatChanged: normalizeText(row['What Changed']),
+        outcomeArea: normalizeText(row['LW Outome Area'] || row['LW Outcome Area']),
+        source: normalizeText(row['Source'])
+      };
+    }
+
     async function loadWorkbook(url) {
       const res = await fetch(url);
       if (!res.ok) {
@@ -680,9 +732,18 @@
       const fundingRows = fundWs
         ? sheetToObjects(fundWs, 'Date Announced').map(normalizeFundingRow).filter(r => normalizeText(r.project))
         : [];
+      const policySheetName = (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'policy & regulations')
+        || (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'policy and regulations')
+        || (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase().includes('policy') && normalizeText(n).toLowerCase().includes('regulation'))
+        || 'Policy & Regulations';
+      const policyWs = fundWb.Sheets[policySheetName];
+      const policyRows = policyWs
+        ? sheetToObjects(policyWs, 'Date Announced').map(normalizePolicyRow).filter(r => normalizeText(r.policyRegulation))
+        : [];
 
       STATE.media = mediaRows.filter(r => r.date || r.headline);
       STATE.funding = fundingRows;
+      STATE.policy = policyRows;
       STATE.loadedAt = new Date();
     }
 
@@ -692,6 +753,7 @@
           loadedAt: STATE.loadedAt ? STATE.loadedAt.toISOString() : null,
           media: STATE.media,
           funding: STATE.funding,
+          policy: STATE.policy,
           dataMode: STATE.dataMode || 'unknown'
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
@@ -706,6 +768,7 @@
         if (!payload || !Array.isArray(payload.media) || !Array.isArray(payload.funding)) return false;
         STATE.media = payload.media;
         STATE.funding = payload.funding;
+        STATE.policy = Array.isArray(payload.policy) ? payload.policy : [];
         STATE.loadedAt = payload.loadedAt ? new Date(payload.loadedAt) : null;
         STATE.dataMode = payload.dataMode || 'unknown';
         return true;
@@ -736,6 +799,7 @@
     function renderKPIs() {
       const media = STATE.media;
       const funding = STATE.funding;
+      const policy = STATE.policy;
 
       const totalMedia = media.length;
       const govtMentions = media.filter(r => r.sourceType === 'BC Gov News' || String(r.tempCheck).toUpperCase() === 'Y').length;
@@ -753,6 +817,7 @@
         { label: 'Media Coverage Items', value: formatNumber(totalMedia), note: 'Across first four media sheets' },
         { label: 'BC Gov Mentions', value: formatNumber(govtMentions), note: 'Rows marked Y or BC Gov sheet' },
         { label: 'Funding Announcements', value: formatNumber(fundingCount), note: 'Funding and Investments sheet' },
+        { label: 'Policy / Regulation Items', value: formatNumber(policy.length), note: 'Policy & Regulations sheet' },
         { label: 'Total Investment Value', value: formatMillions(totalInvestment), note: 'Sum of total investment value' },
         { label: 'Jobs Created', value: formatNumber(jobsCreated), note: 'From funding announcements' },
         { label: 'Jobs Protected', value: formatNumber(jobsProtected), note: 'From funding announcements' },
@@ -787,6 +852,9 @@
       setOptions('fund-pillar', [...new Set(STATE.funding.map(r => r.pillar))]);
       setOptions('fund-theme', [...new Set(STATE.funding.map(r => r.theme))]);
       setOptions('fund-source', [...new Set(STATE.funding.map(r => r.source))]);
+      setOptions('pol-jurisdiction', [...new Set(STATE.policy.map(r => r.jurisdiction))]);
+      setOptions('pol-sector', [...new Set(STATE.policy.map(r => r.lwSector))]);
+      setOptions('pol-type', [...new Set(STATE.policy.map(r => r.policyType))]);
     }
 
     function setSort(section, key) {
@@ -796,6 +864,7 @@
       else { s.key = key; s.dir = 'asc'; }
       if (section === 'media') renderMediaTable();
       if (section === 'fund') renderFundingTable();
+      if (section === 'policy') renderPolicyTable();
     }
 
     function sortRows(rows, section) {
@@ -961,6 +1030,75 @@
       renderFundingTable();
     }
 
+    function renderPolicyTable() {
+      const jurisdiction = document.getElementById('pol-jurisdiction').value;
+      const sector = document.getElementById('pol-sector').value;
+      const ptype = document.getElementById('pol-type').value;
+      const q = normalizeText(document.getElementById('pol-search').value).toLowerCase();
+
+      let rows = STATE.policy.filter(r => {
+        if (jurisdiction !== 'ALL' && r.jurisdiction !== jurisdiction) return false;
+        if (sector !== 'ALL' && r.lwSector !== sector) return false;
+        if (ptype !== 'ALL' && r.policyType !== ptype) return false;
+        if (q) {
+          const blob = [r.policyRegulation, r.jurisdiction, r.lwSector, r.secondarySector, r.policyType, r.whatChanged, r.outcomeArea, r.source].join(' ').toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      });
+
+      rows = sortRows(rows, 'policy');
+      const tbody = document.getElementById('pol-body');
+      const pager = document.getElementById('pol-pager');
+      const totalRows = rows.length;
+      const pageSize = Math.max(1, Number(STATE.polPageSize) || 10);
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      if (STATE.polPage > totalPages) STATE.polPage = totalPages;
+      if (STATE.polPage < 1) STATE.polPage = 1;
+      const startIdx = (STATE.polPage - 1) * pageSize;
+      const pageRows = rows.slice(startIdx, startIdx + pageSize);
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="9" class="small">No policy/regulation records for current filters.</td></tr>';
+        if (pager) pager.innerHTML = '';
+      } else {
+        tbody.innerHTML = pageRows.map(r => `
+          <tr>
+            <td class="nowrap">${formatDate(r.date)}</td>
+            <td>${esc(r.policyRegulation || '-')}</td>
+            <td>${esc(r.jurisdiction || '-')}</td>
+            <td>${esc(r.lwSector || '-')}</td>
+            <td>${esc(r.secondarySector || '-')}</td>
+            <td>${esc(r.policyType || '-')}</td>
+            <td title="${esc(r.whatChanged || '')}" class="text-limit">${esc(r.whatChanged || '-')}</td>
+            <td>${esc(r.outcomeArea || '-')}</td>
+            <td>${esc(r.source || '-')}</td>
+          </tr>
+        `).join('');
+        if (pager) {
+          const pageNumbers = [];
+          const from = Math.max(1, STATE.polPage - 2);
+          const to = Math.min(totalPages, STATE.polPage + 2);
+          for (let p = from; p <= to; p++) pageNumbers.push(p);
+          pager.innerHTML = `
+            <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
+            <button class="pager-btn" onclick="setPolicyPage(${STATE.polPage - 1})" ${STATE.polPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setPolicyPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.polPage ? 'active' : ''}" onclick="setPolicyPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setPolicyPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setPolicyPage(${STATE.polPage + 1})" ${STATE.polPage >= totalPages ? 'disabled' : ''}>Next</button>
+          `;
+        }
+      }
+      document.getElementById('pol-count').textContent = `${rows.length} of ${STATE.policy.length}`;
+    }
+
+    function setPolicyPage(page) {
+      const p = Number(page) || 1;
+      STATE.polPage = Math.max(1, p);
+      renderPolicyTable();
+    }
+
     function showError(msg) {
       document.getElementById('error-box').innerHTML = `<div class="error">${msg}</div>`;
     }
@@ -999,6 +1137,7 @@
         buildFilters();
         renderMediaTable();
         renderFundingTable();
+        renderPolicyTable();
         updateMeta('Live data');
         storageSave();
         btn.textContent = 'Updated';
@@ -1027,6 +1166,7 @@
         buildFilters();
         renderMediaTable();
         renderFundingTable();
+        renderPolicyTable();
         updateMeta('Cached data');
         refreshData();
       } else {
