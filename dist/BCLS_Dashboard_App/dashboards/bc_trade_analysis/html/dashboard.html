@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>B.C. Trade Composition</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-treemap@2.3.0/dist/chartjs-chart-treemap.min.js"></script>
+  <script src="../../../shared/vendor/chart.umd.min.js"></script>
+  <script src="../../../shared/vendor/chartjs-chart-treemap.min.js"></script>
   <style>
     :root {
       --bg: #f3f7fc;
@@ -224,6 +224,7 @@
 
   <script>
     const DATA_URLS = [
+      'http://localhost:8080/data/bc_trade_analysis/trade_composition_sample.json?v=20260408a',
       '/data/bc_trade_analysis/trade_composition_sample.json?v=20260408a',
       '../../../data/bc_trade_analysis/trade_composition_sample.json?v=20260408a'
     ];
@@ -268,6 +269,10 @@
     function pct(v) { return (v || 0).toFixed(1) + '%'; }
 
     async function init() {
+      if (location.protocol === 'file:') {
+        document.getElementById('err').innerHTML = '<div class="error">Opened as a local file. Please run <strong>python scripts/serve.py</strong> and open <strong>http://localhost:8080/dashboards/bc_trade_analysis/html/dashboard.html</strong>.</div>';
+        return;
+      }
       try {
         let lastErr = null;
         for (const url of DATA_URLS) {
