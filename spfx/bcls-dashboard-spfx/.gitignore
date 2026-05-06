@@ -1,0 +1,8 @@
+﻿node_modules/
+lib/
+temp/
+dist/
+release/
+*.log
+*.sppkg
+.vscode/

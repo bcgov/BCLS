@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>B.C. Trade Composition</title>
+  <script src="../../../shared/vendor/chart.umd.min.js"></script>
+  <script src="../../../shared/vendor/chartjs-chart-treemap.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f7fc;
+      --card: #ffffff;
+      --ink: #1b2d42;
+      --muted: #5d738c;
+      --line: #d7e1ec;
+      --primary: #0f4f8a;
+      --primary2: #1a6cb0;
+      --good: #1f7a4d;
+      --bad: #aa2a2a;
+      --radius: 12px;
+      --shadow: 0 10px 25px rgba(15, 32, 56, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #edf4fb 0%, var(--bg) 100%);
+    }
+    .header {
+      background: linear-gradient(120deg, var(--primary) 0%, var(--primary2) 100%);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .title { font-size: 24px; font-weight: 700; letter-spacing: -.2px; }
+    .subtitle { font-size: 12px; opacity: .9; margin-top: 4px; }
+    .meta { font-size: 11px; opacity: .92; text-align: right; }
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .toolbar {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+    .toolbar label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .toolbar select, .toolbar input {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: var(--ink);
+    }
+    .toolbar .spacer { margin-left: auto; font-size: 11px; color: var(--muted); }
+    .kpis {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .kpi {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+    }
+    .kpi .l { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .kpi .v { margin-top: 6px; font-size: 27px; font-weight: 700; color: var(--primary); }
+    .kpi .n { margin-top: 4px; font-size: 11px; color: var(--muted); }
+    .grid2 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 14px;
+    }
+    .grid2 .card { min-height: 360px; }
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    .head .h { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--primary); }
+    .head .s { font-size: 11px; color: var(--muted); }
+    .body { padding: 10px 12px; }
+    .chart-box { height: 330px; }
+    .mini-list { max-height: 330px; overflow: auto; }
+    .list-row { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 8px 0; border-bottom: 1px solid #edf2f7; font-size: 12px; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .tpos { color: var(--good); }
+    .tneg { color: var(--bad); }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { text-align: left; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--line); padding: 8px; }
+    tbody td { border-bottom: 1px solid #edf2f7; padding: 8px; }
+    .pill { border: 1px solid var(--line); border-radius: 999px; font-size: 10px; padding: 2px 7px; color: var(--muted); }
+    .error { padding: 10px 12px; border-radius: 10px; border: 1px solid #f2c5c5; background: #fff2f2; color: #8b1a1a; font-size: 12px; }
+    .interprov-grid { display:grid; grid-template-columns:2fr 1fr; gap:14px; }
+    @media (max-width: 980px) {
+      .grid2 { grid-template-columns: 1fr; }
+      .interprov-grid { grid-template-columns: 1fr; }
+      .header { flex-direction: column; align-items: flex-start; }
+      .meta { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div>
+      <div class="title">B.C. Trade Composition</div>
+    </div>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <main class="main">
+    <section class="card">
+      <div class="toolbar">
+        <label>Flow</label>
+        <select id="flowSel" onchange="renderAll()">
+          <option value="exports">Exports</option>
+          <option value="imports">Imports</option>
+        </select>
+
+        <label>Partners</label>
+        <select id="partnerSel" onchange="renderAll()">
+          <option value="regions">Regions</option>
+          <option value="countries">Countries</option>
+        </select>
+
+        <label>Year</label>
+        <input id="yearSlider" type="range" min="2020" max="2025" value="2025" step="1" oninput="onYearSlide(this.value)" />
+        <span class="pill" id="yearLbl">2025</span>
+
+        <span class="spacer">Measures: value + share + YoY</span>
+      </div>
+      <div class="kpis" id="kpiWrap"></div>
+    </section>
+
+    <section class="grid2">
+      <div class="card">
+        <div class="head">
+          <div class="h">Trade Composition Treemap</div>
+          <div class="s" id="treeSub"></div>
+        </div>
+        <div class="body">
+          <div class="chart-box"><canvas id="treemap"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="head">
+          <div class="h">Partner Ranking</div>
+          <div class="s" id="partnerSub"></div>
+        </div>
+        <div class="body">
+          <div class="chart-box"><canvas id="partnerBar"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="head">
+        <div class="h">Trade Trend and Balance</div>
+        <div class="s">Exports, imports, and net balance over time</div>
+      </div>
+      <div class="body">
+        <div class="chart-box" style="height:300px;"><canvas id="trend"></canvas></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="head">
+        <div class="h">Composition Table</div>
+        <div class="s">Broad category mix</div>
+      </div>
+      <div class="body">
+        <table>
+          <thead>
+            <tr><th>Category</th><th>Value ($M)</th><th>Share</th><th>YoY</th></tr>
+          </thead>
+          <tbody id="compTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="head">
+        <div class="h">Interprovincial Trade</div>
+        <div class="s" id="interprovSub">BC exports/imports with other provinces</div>
+      </div>
+      <div class="body interprov-grid">
+        <div class="chart-box" style="height:300px;"><canvas id="interprovTrend"></canvas></div>
+        <div style="max-height:300px;overflow:auto;">
+          <table>
+            <thead>
+              <tr><th>Province/Region</th><th>Exports</th><th>Imports</th><th>Net</th></tr>
+            </thead>
+            <tbody id="interprovTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div id="err"></div>
+  </main>
+
+  <script>
+    const DATA_URLS = [
+      'http://localhost:8080/data/bc_trade_analysis/trade_composition_sample.json?v=20260408a',
+      '/data/bc_trade_analysis/trade_composition_sample.json?v=20260408a',
+      '../../../data/bc_trade_analysis/trade_composition_sample.json?v=20260408a'
+    ];
+    const REGION_COLORS = {
+      'North America': '#1f77b4',
+      'Asia-Pacific': '#2ca02c',
+      'Europe': '#9467bd',
+      'Americas': '#ff7f0e',
+      'Middle East and Africa': '#8c564b'
+    };
+    const CATEGORY_COLORS = {
+      'Energy Products': '#e15759',
+      'Forest Products': '#59a14f',
+      'Metal Ores and Minerals': '#4e79a7',
+      'Agri-food and Seafood': '#f28e2b',
+      'Chemicals and Plastics': '#b07aa1',
+      'Chemicals and Pharmaceuticals': '#b07aa1',
+      'Machinery and Equipment': '#76b7b2',
+      'Transport Equipment': '#edc949',
+      'Consumer Goods': '#af7aa1',
+      'Industrial Inputs': '#9c755f',
+      'Food Products': '#ff9da7'
+    };
+    const SUBCATEGORY_SPLITS = {
+      'Energy Products': [['Natural Gas', 0.42], ['Refined Petroleum', 0.33], ['Electricity', 0.25]],
+      'Forest Products': [['Lumber', 0.45], ['Pulp and Paper', 0.3], ['Wood Panels', 0.25]],
+      'Metal Ores and Minerals': [['Copper and Concentrates', 0.43], ['Coal and Coke', 0.34], ['Other Minerals', 0.23]],
+      'Agri-food and Seafood': [['Seafood', 0.4], ['Grains and Oilseeds', 0.33], ['Processed Foods', 0.27]],
+      'Chemicals and Plastics': [['Basic Chemicals', 0.38], ['Plastics', 0.34], ['Specialty Chemicals', 0.28]],
+      'Chemicals and Pharmaceuticals': [['Pharmaceuticals', 0.37], ['Industrial Chemicals', 0.35], ['Plastic Resins', 0.28]],
+      'Machinery and Equipment': [['Industrial Machinery', 0.41], ['Electrical Equipment', 0.34], ['ICT Equipment', 0.25]],
+      'Transport Equipment': [['Aerospace Parts', 0.36], ['Vehicle Parts', 0.34], ['Marine Equipment', 0.3]],
+      'Consumer Goods': [['Household Goods', 0.38], ['Apparel and Footwear', 0.33], ['Electronics', 0.29]],
+      'Industrial Inputs': [['Metals', 0.4], ['Construction Inputs', 0.35], ['Other Inputs', 0.25]],
+      'Food Products': [['Fresh Food', 0.35], ['Beverages', 0.33], ['Packaged Food', 0.32]]
+    };
+
+    const APP = { data: null, charts: {} };
+
+    function fmt(n) { return Number(n || 0).toLocaleString('en-CA'); }
+    function money(n) { return '$' + fmt(Math.round(n)); }
+    function pct(v) { return (v || 0).toFixed(1) + '%'; }
+
+    async function init() {
+      if (location.protocol === 'file:') {
+        document.getElementById('err').innerHTML = '<div class="error">Opened as a local file. Please run <strong>python scripts/serve.py</strong> and open <strong>http://localhost:8080/dashboards/bc_trade_analysis/html/dashboard.html</strong>.</div>';
+        return;
+      }
+      try {
+        let lastErr = null;
+        for (const url of DATA_URLS) {
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+            APP.data = await res.json();
+            break;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        if (!APP.data) throw lastErr || new Error('No trade composition data source responded.');
+        const years = APP.data.years || [];
+        const min = Math.min(...years), max = Math.max(...years);
+        const slider = document.getElementById('yearSlider');
+        slider.min = String(min);
+        slider.max = String(max);
+        slider.value = String(max);
+        document.getElementById('yearLbl').textContent = String(max);
+        document.getElementById('meta').textContent = `${APP.data.meta.sources.join(' | ')}`;
+        renderAll();
+      } catch (e) {
+        const hint = location.protocol === 'file:' ? ' Run local server (python scripts/serve.py) and open via http://localhost:8080.' : '';
+        document.getElementById('err').innerHTML = `<div class="error">Could not load trade composition data: ${e.message || e}.${hint}</div>`;
+      }
+    }
+
+    function onYearSlide(v) {
+      document.getElementById('yearLbl').textContent = String(v);
+      renderAll();
+    }
+
+    function getState() {
+      const flow = document.getElementById('flowSel').value;
+      const partnerMode = document.getElementById('partnerSel').value;
+      const year = String(document.getElementById('yearSlider').value);
+      return { flow, partnerMode, year };
+    }
+
+    function yoy(now, prev) {
+      if (!prev || prev === 0) return null;
+      return ((now - prev) / prev) * 100;
+    }
+
+    function computeKpis(flow, year) {
+      const totals = APP.data.flows[flow].totals;
+      const now = totals[year] || 0;
+      const prevYear = String(Number(year) - 1);
+      const prev = totals[prevYear] || 0;
+
+      const categories = APP.data.flows[flow].categories[year] || [];
+      const sorted = [...categories].sort((a, b) => b.value - a.value);
+      const top = sorted[0] || { name: '-', value: 0 };
+      const topShare = now ? (top.value / now) * 100 : 0;
+
+      const ex = APP.data.flows.exports.totals[year] || 0;
+      const im = APP.data.flows.imports.totals[year] || 0;
+      const bal = ex - im;
+      const balClass = bal >= 0 ? 'tpos' : 'tneg';
+
+      return [
+        { l: `${flow.toUpperCase()} Total (${year})`, v: money(now), n: `${yoy(now, prev) === null ? '-' : pct(yoy(now, prev))} YoY` },
+        { l: `Top Category`, v: top.name, n: `${money(top.value)} (${pct(topShare)})` },
+        { l: `Category Count`, v: String(categories.length), n: 'Broad categories' },
+        { l: `Trade Balance (${year})`, v: `<span class="${balClass}">${money(bal)}</span>`, n: `${money(ex)} exports vs ${money(im)} imports` }
+      ];
+    }
+
+    function renderKpis(flow, year) {
+      const kpis = computeKpis(flow, year);
+      document.getElementById('kpiWrap').innerHTML = kpis.map(k => `
+        <div class="kpi">
+          <div class="l">${k.l}</div>
+          <div class="v">${k.v}</div>
+          <div class="n">${k.n}</div>
+        </div>
+      `).join('');
+    }
+
+    function ensureDestroy(id) {
+      if (APP.charts[id]) { APP.charts[id].destroy(); delete APP.charts[id]; }
+    }
+
+    function renderTreemap(flow, year) {
+      const rows = APP.data.flows[flow].categories[year] || [];
+      const total = rows.reduce((s, r) => s + (r.value || 0), 0);
+      document.getElementById('treeSub').textContent = `${flow.toUpperCase()} · ${year}`;
+      const drillRows = [];
+      rows.forEach(r => {
+        const splits = SUBCATEGORY_SPLITS[r.name] || [[r.name, 1]];
+        let carry = r.value || 0;
+        splits.forEach((s, idx) => {
+          const v = idx === splits.length - 1 ? carry : Math.round((r.value || 0) * s[1]);
+          carry -= v;
+          drillRows.push({ category: r.name, subcat: s[0], value: v });
+        });
+      });
+
+      ensureDestroy('treemap');
+      const ctx = document.getElementById('treemap');
+      APP.charts.treemap = new Chart(ctx, {
+        type: 'treemap',
+        data: {
+          datasets: [{
+            tree: drillRows,
+            key: 'value',
+            groups: ['category', 'subcat'],
+            spacing: 1,
+            borderColor: '#ffffff',
+            borderWidth: 1,
+            backgroundColor(ctx) {
+              const value = ctx.raw && ctx.raw.v || 0;
+              const d = ctx.raw && ctx.raw._data ? ctx.raw._data : {};
+              const sector = d.category || d.name || '';
+              const hex = CATEGORY_COLORS[sector] || '#1a6cb0';
+              const alpha = Math.max(0.45, Math.min(0.95, total ? value / total : 0.55));
+              const rgb = hex.replace('#', '');
+              const r = parseInt(rgb.substring(0, 2), 16);
+              const g = parseInt(rgb.substring(2, 4), 16);
+              const b = parseInt(rgb.substring(4, 6), 16);
+              return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            },
+            labels: {
+              display: true,
+              formatter(ctx) {
+                const d = ctx.raw && ctx.raw._data ? ctx.raw._data : {};
+                const n = d.subcat || d.name || '';
+                const v = ctx.raw && ctx.raw.v ? ctx.raw.v : 0;
+                return [n, '$' + fmt(v) + 'M'];
+              },
+              color: '#fff',
+              font: { size: 11, weight: '600' }
+            }
+          }]
+        },
+        options: { plugins: { legend: { display: false } }, maintainAspectRatio: false }
+      });
+    }
+
+    function partnerRows(flow, year, mode) {
+      const p = APP.data.flows[flow].partners;
+      const byMode = p[mode] || {};
+      const rows = byMode[year] || byMode[String(Math.max(...Object.keys(byMode).map(Number)))] || [];
+      return [...rows].sort((a, b) => b.value - a.value);
+    }
+
+    function renderPartners(flow, year, mode) {
+      const rows = partnerRows(flow, year, mode);
+      const total = rows.reduce((s, r) => s + (r.value || 0), 0);
+      document.getElementById('partnerSub').textContent = `${mode === 'regions' ? 'Regions' : 'Countries'} · ${year}`;
+      ensureDestroy('partnerBar');
+      const top = rows.slice(0, 12);
+      APP.charts.partnerBar = new Chart(document.getElementById('partnerBar'), {
+        type: 'bar',
+        data: {
+          labels: top.map(r => r.name),
+          datasets: [{
+            label: '$M',
+            data: top.map(r => r.value || 0),
+            backgroundColor: top.map(r => REGION_COLORS[r.region] || '#7f8c8d'),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const r = top[ctx.dataIndex];
+                  const share = total ? (r.value / total) * 100 : 0;
+                  return `${money(r.value)}M (${pct(share)}) · ${r.region}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { ticks: { callback: v => money(v) } },
+            y: { ticks: { autoSkip: false } }
+          }
+        }
+      });
+    }
+
+    function renderTrend() {
+      const years = APP.data.years.map(String);
+      const ex = years.map(y => APP.data.flows.exports.totals[y] || 0);
+      const im = years.map(y => APP.data.flows.imports.totals[y] || 0);
+      const bal = years.map((y, i) => ex[i] - im[i]);
+
+      ensureDestroy('trend');
+      APP.charts.trend = new Chart(document.getElementById('trend'), {
+        data: {
+          labels: years,
+          datasets: [
+            { type: 'line', label: 'Exports', data: ex, borderColor: '#1f77b4', backgroundColor: 'rgba(31,119,180,0.12)', fill: false, tension: .3, pointRadius: 3 },
+            { type: 'line', label: 'Imports', data: im, borderColor: '#d62728', backgroundColor: 'rgba(214,39,40,0.12)', fill: false, tension: .3, pointRadius: 3 },
+            { type: 'bar', label: 'Balance', data: bal, backgroundColor: bal.map(v => v >= 0 ? 'rgba(31,122,77,0.35)' : 'rgba(170,42,42,0.35)'), yAxisID: 'y1' }
+          ]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            y: { title: { display: true, text: '$M' }, ticks: { callback: v => fmt(v) } },
+            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => fmt(v) } }
+          }
+        }
+      });
+    }
+
+    function renderCompositionTable(flow, year) {
+      const rows = APP.data.flows[flow].categories[year] || [];
+      const prev = APP.data.flows[flow].categories[String(Number(year) - 1)] || [];
+      const prevMap = Object.fromEntries(prev.map(r => [r.name, r.value]));
+      const total = rows.reduce((s, r) => s + (r.value || 0), 0);
+      const sorted = [...rows].sort((a, b) => b.value - a.value);
+
+      document.getElementById('compTable').innerHTML = sorted.map(r => {
+        const share = total ? (r.value / total) * 100 : 0;
+        const y = yoy(r.value, prevMap[r.name]);
+        const yc = y === null ? '-' : (y >= 0 ? `<span class="tpos">${pct(y)}</span>` : `<span class="tneg">${pct(y)}</span>`);
+        return `<tr><td>${r.name}</td><td>${money(r.value)}</td><td>${pct(share)}</td><td>${yc}</td></tr>`;
+      }).join('');
+    }
+
+    function renderInterprovincial(year) {
+      const d = APP.data.interprovincial;
+      if (!d || !d.totals) {
+        ensureDestroy('interprovTrend');
+        document.getElementById('interprovSub').textContent = 'No interprovincial data available';
+        document.getElementById('interprovTable').innerHTML = '<tr><td colspan="4">No interprovincial rows found in dataset.</td></tr>';
+        return;
+      }
+
+      const years = APP.data.years.map(String);
+      const ex = years.map(y => d.totals.exports[y] || 0);
+      const im = years.map(y => d.totals.imports[y] || 0);
+      const bal = years.map((_, i) => ex[i] - im[i]);
+
+      ensureDestroy('interprovTrend');
+      APP.charts.interprovTrend = new Chart(document.getElementById('interprovTrend'), {
+        data: {
+          labels: years,
+          datasets: [
+            { type: 'line', label: 'Exports', data: ex, borderColor: '#2e7d32', backgroundColor: 'rgba(46,125,50,0.15)', tension: .3, pointRadius: 3 },
+            { type: 'line', label: 'Imports', data: im, borderColor: '#1565c0', backgroundColor: 'rgba(21,101,192,0.15)', tension: .3, pointRadius: 3 },
+            { type: 'bar', label: 'Net', data: bal, yAxisID: 'y1', backgroundColor: bal.map(v => v >= 0 ? 'rgba(31,122,77,0.35)' : 'rgba(170,42,42,0.35)') }
+          ]
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            y: { title: { display: true, text: '$M' }, ticks: { callback: v => fmt(v) } },
+            y1: { position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => fmt(v) } }
+          }
+        }
+      });
+
+      const partners = d.partners[year] || d.partners[String(Math.max(...Object.keys(d.partners).map(Number)))] || [];
+      document.getElementById('interprovSub').textContent = `BC exports/imports with other provinces · ${year}`;
+      document.getElementById('interprovTable').innerHTML = partners.length ? partners
+        .slice()
+        .sort((a, b) => (b.exports + b.imports) - (a.exports + a.imports))
+        .map(r => {
+          const net = (r.exports || 0) - (r.imports || 0);
+          const cls = net >= 0 ? 'tpos' : 'tneg';
+          return `<tr>
+            <td>${r.province}</td>
+            <td>${money(r.exports)}</td>
+            <td>${money(r.imports)}</td>
+            <td><span class="${cls}">${money(net)}</span></td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="4">No partner rows for selected year.</td></tr>';
+    }
+
+    function renderAll() {
+      if (!APP.data) return;
+      const { flow, partnerMode, year } = getState();
+      const safe = fn => { try { fn(); } catch (e) { console.error(e); } };
+      safe(() => renderKpis(flow, year));
+      safe(() => renderTreemap(flow, year));
+      safe(() => renderPartners(flow, year, partnerMode));
+      safe(() => renderTrend());
+      safe(() => renderCompositionTable(flow, year));
+      safe(() => renderInterprovincial(year));
+    }
+
+    window.onYearSlide = onYearSlide;
+    window.renderAll = renderAll;
+    init();
+  </script>
+</body>
+</html>
