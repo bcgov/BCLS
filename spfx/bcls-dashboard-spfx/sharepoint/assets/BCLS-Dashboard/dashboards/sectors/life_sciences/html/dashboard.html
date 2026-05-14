@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>[Standalone · 2026-04-01] B.C. Life Sciences — Look West Strategy Dashboard</title>
+  <title>[Standalone Â· 2026-04-01] B.C. Life Sciences â€” Look West Strategy Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -32,7 +32,7 @@
     -webkit-font-smoothing: antialiased; }
   a { color: var(--color-primary); } a:hover { text-decoration: underline; }
 
-  /* ── HEADER ── */
+  /* â”€â”€ HEADER â”€â”€ */
   .site-header { background: var(--color-primary); color:#fff; height:62px; padding:0 28px;
     display:flex; align-items:center; gap:18px; position:sticky; top:0; z-index:200;
     border-bottom:3px solid var(--color-accent); box-shadow:0 2px 10px rgba(0,0,0,.3); }
@@ -54,7 +54,7 @@
   .btn-refresh:hover { background:rgba(255,255,255,.22); }
   .btn-refresh:disabled { opacity:.5; cursor:default; }
 
-  /* ── MOCK BANNER ── */
+  /* â”€â”€ MOCK BANNER â”€â”€ */
   .mock-banner { background:var(--rag-amber-bg); border-bottom:2px solid var(--color-accent);
     padding:9px 28px; display:flex; align-items:center; gap:10px;
     font-size:12px; color:#92400E; }
@@ -65,10 +65,10 @@
   .site-header,
   .mock-banner { display:none !important; }
 
-  /* ── MAIN ── */
+  /* â”€â”€ MAIN â”€â”€ */
   .main { max-width:1340px; margin:0 auto; padding:22px 28px 56px; }
 
-  /* ── SECTION ── */
+  /* â”€â”€ SECTION â”€â”€ */
   .section { margin-bottom:28px; }
   .section-head { display:flex; align-items:center; gap:10px;
     border-bottom:2px solid var(--color-border); padding-bottom:9px; margin-bottom:16px; }
@@ -86,16 +86,16 @@
   .collapsible-body { overflow:hidden; transition:max-height .3s ease; }
   .collapsible-body.collapsed { max-height:0 !important; }
 
-  /* ── CARD ── */
+  /* â”€â”€ CARD â”€â”€ */
   .card { background:var(--color-card); border:1px solid var(--color-border);
     border-radius:var(--radius); box-shadow:var(--shadow); }
 
-  /* ── SECTOR DEF ── */
+  /* â”€â”€ SECTOR DEF â”€â”€ */
   .sector-def { border-left:4px solid var(--color-primary); padding:14px 18px; margin-bottom:20px; }
   .sector-def-title { font-size:13px; font-weight:700; color:var(--color-primary); margin-bottom:5px; }
   .sector-def-body  { font-size:12px; color:var(--color-text-muted); line-height:1.7; }
 
-  /* ── WHAT'S NEW ── */
+  /* â”€â”€ WHAT'S NEW â”€â”€ */
   .wn-toggle { width:100%; background:var(--color-primary-xlt); border:none; padding:11px 16px;
     display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:600;
     color:var(--color-primary); border-radius:var(--radius) var(--radius) 0 0; }
@@ -118,7 +118,7 @@
   .wn-headline { font-size:12px; font-weight:500; }
   .wn-blurb    { font-size:11px; color:var(--color-text-muted); margin-top:2px; line-height:1.45; }
 
-  /* ── SUBSECTOR TABS ── */
+  /* â”€â”€ SUBSECTOR TABS â”€â”€ */
   .subsector-tab-bar { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
     border-bottom:3px solid var(--color-border); margin-bottom:24px; gap:2px; }
   .sub-tab-btn { display:flex; flex-direction:column; align-items:flex-start;
@@ -140,11 +140,11 @@
   .sub-tab-badge.partial { background:var(--rag-amber-bg); color:var(--rag-amber); border:1px solid var(--rag-amber-br); }
   .sub-tab-badge.none    { background:#F7FAFC; color:var(--color-text-subtle); border:1px solid var(--color-border); }
 
-  /* ── SUBSECTOR PANELS ── */
+  /* â”€â”€ SUBSECTOR PANELS â”€â”€ */
   .subsector-panel { display:none; }
   .subsector-panel.active { display:block; }
 
-  /* ── SUBSECTOR HEADER CARD ── */
+  /* â”€â”€ SUBSECTOR HEADER CARD â”€â”€ */
   .sub-panel-header { padding:16px 20px; margin-bottom:22px;
     border-left-width:4px; border-left-style:solid; }
   .sub-panel-hdr-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
@@ -158,7 +158,7 @@
   .dq-pill.partial { background:var(--rag-amber-bg); color:var(--rag-amber); border:1px solid var(--rag-amber-br); }
   .dq-pill.none    { background:#F7FAFC; color:var(--color-text-subtle); border:1px solid var(--color-border); }
 
-  /* ── KPI GRID ── */
+  /* â”€â”€ KPI GRID â”€â”€ */
   .kpi-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:14px; }
   .kpi-card { padding:18px 18px 14px; position:relative; overflow:hidden; }
   .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0;
@@ -191,7 +191,7 @@
   .no-kpi-notice { padding:20px; text-align:center; color:var(--color-text-subtle);
     font-size:12px; font-style:italic; }
 
-  /* ── LOOK WEST ── */
+  /* â”€â”€ LOOK WEST â”€â”€ */
   .lw-goals-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:14px; }
   .lw-goal { padding:16px; position:relative; }
   .lw-goal-top { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; }
@@ -222,7 +222,7 @@
   .lw-sum-lbl  { font-size:10px; color:var(--color-text-subtle); margin-top:4px;
     text-transform:uppercase; letter-spacing:.5px; }
 
-  /* ── CHARTS ── */
+  /* â”€â”€ CHARTS â”€â”€ */
   .charts-section-head { display:flex; align-items:center; gap:10px;
     border-bottom:2px solid var(--color-border); padding-bottom:9px; margin-bottom:16px; }
   .charts-section-head h2 { font-size:11px; font-weight:700; text-transform:uppercase;
@@ -261,7 +261,7 @@
   .csp-close { margin-left:auto; font-size:11px; color:var(--color-text-subtle);
     background:none; border:none; cursor:pointer; text-decoration:underline; }
 
-  /* ── INITIATIVES ── */
+  /* â”€â”€ INITIATIVES â”€â”€ */
   .init-toolbar { display:flex; gap:8px; align-items:center;
     padding:10px 14px; background:var(--color-primary-xlt);
     border-bottom:1px solid var(--color-border);
@@ -302,7 +302,7 @@
   .ev-badge { display:inline-block; background:var(--color-primary); color:#fff;
     font-size:10px; font-weight:700; padding:1px 6px; border-radius:10px; }
 
-  /* ── INNER TABS (Evidence/Risks) ── */
+  /* â”€â”€ INNER TABS (Evidence/Risks) â”€â”€ */
   .tab-bar { display:flex; gap:2px; border-bottom:2px solid var(--color-border); margin-bottom:16px; }
   .tab-btn { padding:7px 16px; border:none; background:none; cursor:pointer;
     font-size:12px; font-weight:500; color:var(--color-text-muted);
@@ -312,7 +312,7 @@
   .tab-pane { display:none; }
   .tab-pane.active { display:block; }
 
-  /* ── EVIDENCE & RISKS ── */
+  /* â”€â”€ EVIDENCE & RISKS â”€â”€ */
   .ev-toolbar { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
   .ev-toolbar input, .ev-toolbar select { font-size:12px; padding:5px 9px;
     border:1px solid var(--color-border); border-radius:4px; background:#fff; }
@@ -336,7 +336,7 @@
   .sev-badge.MEDIUM   { background:var(--color-primary-xlt); color:var(--color-primary); border:1px solid var(--color-border); }
   .sev-badge.LOW      { background:#F7FAFC; color:var(--color-text-subtle); border:1px solid var(--color-border); }
 
-  /* ── MODAL ── */
+  /* â”€â”€ MODAL â”€â”€ */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45);
     z-index:500; align-items:center; justify-content:center; }
   .modal-overlay.open { display:flex; }
@@ -366,7 +366,7 @@
   .btn-secondary:hover { background:#F7FAFC; }
   .modal-note { font-size:10px; color:var(--color-text-subtle); margin-right:auto; }
 
-  /* ── LOADING / ERROR ── */
+  /* â”€â”€ LOADING / ERROR â”€â”€ */
   .screen-center { min-height:60vh; display:flex; flex-direction:column;
     align-items:center; justify-content:center; text-align:center; padding:40px; }
   .screen-center h2 { font-size:18px; font-weight:600; margin-bottom:10px; }
@@ -377,7 +377,7 @@
   @keyframes spin { to { transform:rotate(360deg); } }
   .err-icon { font-size:36px; margin-bottom:12px; }
 
-  /* ── SERVER OVERLAY ── */
+  /* â”€â”€ SERVER OVERLAY â”€â”€ */
   .server-overlay { display:none; background:rgba(0,0,0,.6); position:fixed; inset:0;
     z-index:400; align-items:center; justify-content:center; }
   .server-overlay.show { display:flex; }
@@ -389,7 +389,7 @@
     font-family:'Courier New',monospace; font-size:13px;
     padding:10px 14px; border-radius:4px; margin:8px 0; user-select:all; }
 
-  /* ── FOOTER ── */
+  /* â”€â”€ FOOTER â”€â”€ */
   .site-footer { background:var(--color-primary); color:rgba(255,255,255,.5);
     padding:12px 28px; font-size:11px; display:flex; gap:14px; align-items:center; }
   .site-footer strong { color:#fff; }
@@ -406,37 +406,37 @@
   <div class="hdr-divider"></div>
   <div class="hdr-text">
     <h1 id="hdr-title">B.C. Life Sciences Sector Dashboard</h1>
-    <p id="hdr-subtitle">Look West Strategy · 2030 Target Monitoring</p>
+    <p id="hdr-subtitle">Look West Strategy Â· 2030 Target Monitoring</p>
   </div>
   <div class="hdr-right">
     <div class="hdr-meta">
-      <strong>Updated <span id="hdr-updated">—</span></strong>
+      <strong>Updated <span id="hdr-updated">â€”</span></strong>
       <div class="badge-internal" id="badge-internal">Internal Working Document</div>
     </div>
     <button class="btn-refresh" id="btn-refresh" onclick="document.getElementById('xl-file-input').click()" title="Optional: load an Excel workbook from your computer">
-      ↺ Refresh Data
+      â†º Refresh Data
     </button>
     <input type="file" id="xl-file-input" accept=".xlsx" style="display:none" onchange="loadExcelFile(this)">
   </div>
 </header>
 
 <div class="mock-banner" id="mock-banner">
-  <span>⚠</span>
-  <span><strong>Mock / Sample Data</strong> — All figures are illustrative. Dashboard defaults to the workbook in <em>../data</em>. Upload is optional for ad-hoc previews.</span>
+  <span>âš </span>
+  <span><strong>Mock / Sample Data</strong> â€” All figures are illustrative. Dashboard defaults to the workbook in <em>../data</em>. Upload is optional for ad-hoc previews.</span>
   <button onclick="this.parentElement.style.display='none'">Dismiss</button>
 </div>
 
 <div id="screen-loading">
   <div class="screen-center">
     <div class="spinner"></div>
-    <h2>Loading dashboard…</h2>
+    <h2>Loading dashboardâ€¦</h2>
     <p>Fetching data files.</p>
   </div>
 </div>
 
 <div id="screen-error" style="display:none;">
   <div class="screen-center">
-    <div class="err-icon">⚠️</div>
+    <div class="err-icon">âš ï¸</div>
     <h2>Could not load dashboard data</h2>
     <p id="error-message">Check the browser console for details.</p>
   </div>
@@ -444,7 +444,7 @@
 
 <div class="server-overlay" id="server-overlay">
   <div class="server-box">
-    <h2>📡 Server not detected</h2>
+    <h2>ðŸ“¡ Server not detected</h2>
     <p>This dashboard uses Excel-only mode and must be opened over local HTTP.</p>
     <p><strong>Start the server:</strong></p>
     <code>cd /path/to/BCLS/scripts &amp;&amp; python serve.py</code>
@@ -462,7 +462,7 @@
 
   <div class="section" id="section-sector-trends-global">
     <div class="section-head">
-      <h2>Sector Trends</h2>
+      <h2>Sector Snapshot</h2>
       <div class="selector-group">
         <button class="chart-settings-btn" onclick="toggleDisplayPanel('kpi')">Select KPIs</button>
         <button class="chart-settings-btn" onclick="toggleDisplayPanel('charts')">Select Charts</button>
@@ -509,7 +509,7 @@
     <div class="section-head">
       <h2>Initiative Tracker</h2>
       <span class="sh-sub">Whole-sector initiative tracker</span>
-      <button class="sh-action" onclick="exportInitiativesCSV()">↓ Export</button>
+      <button class="sh-action" onclick="exportInitiativesCSV()">â†“ Export</button>
     </div>
     <div class="init-toolbar">
       <span class="tb-lbl">RAG</span>
@@ -521,19 +521,19 @@
       <select id="init-subsector-GLOBAL" onchange="renderInitiativeTable('GLOBAL')">
         <option value="ALL">All Subsectors</option>
       </select>
-      <input type="text" id="init-search-GLOBAL" placeholder="Search initiatives…"
+      <input type="text" id="init-search-GLOBAL" placeholder="Search initiativesâ€¦"
              oninput="renderInitiativeTable('GLOBAL')">
       <span class="init-count" id="init-count-GLOBAL"></span>
     </div>
     <div class="table-scroll">
       <table class="init-table">
         <thead><tr>
-          <th onclick="sortInit('initiative_name','GLOBAL')">Initiative ↕</th>
-          <th onclick="sortInit('pillar','GLOBAL')">Pillar ↕</th>
+          <th onclick="sortInit('initiative_name','GLOBAL')">Initiative â†•</th>
+          <th onclick="sortInit('pillar','GLOBAL')">Pillar â†•</th>
           <th>Subsector(s)</th>
           <th>Owner</th>
-          <th onclick="sortInit('status','GLOBAL')">Status ↕</th>
-          <th onclick="sortInit('rag_status','GLOBAL')">RAG ↕</th>
+          <th onclick="sortInit('status','GLOBAL')">Status â†•</th>
+          <th onclick="sortInit('rag_status','GLOBAL')">RAG â†•</th>
           <th>Progress</th>
           <th>Next Milestone</th>
           <th>Last Review</th>
@@ -547,20 +547,20 @@
   <div class="section" id="section-global">
     <div class="section-head">
       <h2>Evidence &amp; Risks</h2>
-      <span class="sh-sub">Evidence library and risk register · all subsectors</span>
+      <span class="sh-sub">Evidence library and risk register Â· all subsectors</span>
       <button class="sh-collapse" id="ev-collapse-btn" onclick="toggleEvidenceSection()">
-        <span class="arrow">▼</span> <span id="ev-collapse-label">Collapse</span>
+        <span class="arrow">â–¼</span> <span id="ev-collapse-label">Collapse</span>
       </button>
     </div>
     <div class="collapsible-body" id="ev-collapsible-body">
       <div class="card" style="padding:18px;">
         <div class="tab-bar">
-          <button class="tab-btn active" onclick="switchInnerTab('tab-evidence')">📄 Evidence Library (<span id="ev-count">—</span>)</button>
-          <button class="tab-btn" onclick="switchInnerTab('tab-risks')">⚠ Risks &amp; Gaps (<span id="risk-count">—</span>)</button>
+          <button class="tab-btn active" onclick="switchInnerTab('tab-evidence')">ðŸ“„ Evidence Library (<span id="ev-count">â€”</span>)</button>
+          <button class="tab-btn" onclick="switchInnerTab('tab-risks')">âš  Risks &amp; Gaps (<span id="risk-count">â€”</span>)</button>
         </div>
         <div class="tab-pane active" id="tab-evidence">
           <div class="ev-toolbar">
-            <input type="text" id="ev-search" placeholder="Search evidence…" oninput="renderEvidence()">
+            <input type="text" id="ev-search" placeholder="Search evidenceâ€¦" oninput="renderEvidence()">
             <select id="ev-type-filter" onchange="renderEvidence()">
               <option value="ALL">All Types</option>
               <option>Policy Document</option><option>Research Report</option>
@@ -569,7 +569,7 @@
             <select id="ev-subsector-filter" onchange="renderEvidence()">
               <option value="ALL">All Subsectors</option>
             </select>
-            <button class="btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="exportEvidence()">↓ Export</button>
+            <button class="btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="exportEvidence()">â†“ Export</button>
           </div>
           <div class="table-scroll" style="border-radius:var(--radius);border:1px solid var(--color-border);">
             <table class="ev-table">
@@ -580,7 +580,7 @@
         </div>
         <div class="tab-pane" id="tab-risks">
           <div class="ev-toolbar">
-            <input type="text" id="risk-search" placeholder="Search risks…" oninput="renderRisks()">
+            <input type="text" id="risk-search" placeholder="Search risksâ€¦" oninput="renderRisks()">
             <select id="risk-cat-filter" onchange="renderRisks()">
               <option value="ALL">All Categories</option>
               <option>Data &amp; Measurement</option><option>Policy</option>
@@ -604,20 +604,20 @@
 </main>
 
 <script>
-/* ── CONFIG (overridden by dashboardConfig from Excel) ─────────────────── */
+/* â”€â”€ CONFIG (overridden by dashboardConfig from Excel) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 let CONFIG = {
   strategy_name:    'Look West Strategy',
   strategy_year:    2030,
   province:         'British Columbia',
   province_abbr:    'BC',
   dashboard_title:  'B.C. Life Sciences Sector Dashboard',
-  dashboard_subtitle:'Look West Strategy · 2030 Target Monitoring',
+  dashboard_subtitle:'Look West Strategy Â· 2030 Target Monitoring',
   last_updated:     '2024-11-01',
   internal_only:    true,
   data_root:        '../data',
 };
 
-/* ── THEME (overridden by dashboardConfig) ──────────────────────────────── */
+/* â”€â”€ THEME (overridden by dashboardConfig) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 let THEME = {
   subsectors: {
     PHARMA:  { color:'#1B4F8A', label:'Pharma & Biopharma' },
@@ -632,12 +632,82 @@ let THEME = {
     gridColor:'rgba(0,0,0,.05)', tickColor:'#718096', legendColor:'#4A5568' },
 };
 
-/* ── STATE ──────────────────────────────────────────────────────────────── */
+/* â”€â”€ STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const STATE = {
   data: {},
   charts: {},
   hasMockData: false,
 };
+
+const LS_TREND_FILES = {
+  gdp: 'LS GDP.csv',
+  business: 'LS Business Count.csv',
+};
+
+const LS_SUBSECTOR_IMAGE_GROUPS = [
+  {
+    subsector_id: 'CRO',
+    subsector_name: 'Research, Testing and Medical Laboratories',
+    naics_4digit: '541380 / 541710 / 6215',
+    naics_5digit: '',
+    naics_description: 'Testing laboratories; Research and development in the physical, engineering and life sciences*; Medical and diagnostic laboratories',
+    tab_order: 1,
+    show_as_tab: 'TRUE',
+    dashboard_color: '#2E86AB',
+    has_reliable_data: 'PARTIAL',
+    data_availability_note: '*Only a portion of the industry is included',
+  },
+  {
+    subsector_id: 'MEDDEV',
+    subsector_name: 'Medical Devices and Equipment',
+    naics_4digit: '3391 / 417930',
+    naics_5digit: '',
+    naics_description: 'Medical equipment and supplies manufacturing; Professional machinery, equipment and supplies merchant wholesalers*',
+    tab_order: 2,
+    show_as_tab: 'TRUE',
+    dashboard_color: '#1B4F8A',
+    has_reliable_data: 'TRUE',
+    data_availability_note: '*Only a portion of the industry is included',
+  },
+  {
+    subsector_id: 'PHARMA',
+    subsector_name: 'Drugs and Pharmaceuticals',
+    naics_4digit: '3254 / 414510',
+    naics_5digit: '',
+    naics_description: 'Pharmaceutical and medicine manufacturing; Pharmaceuticals and pharmacy supplies merchant wholesalers',
+    tab_order: 3,
+    show_as_tab: 'TRUE',
+    dashboard_color: '#8E44AD',
+    has_reliable_data: 'TRUE',
+    data_availability_note: '',
+  },
+];
+
+const LS_TREND_CHART_ITEMS = [
+  { id:'ls_nominal_gdp_by_industry', label:'Nominal GDP Trend by Industry' },
+  { id:'ls_real_gdp_by_industry', label:'Real GDP Trend by Industry' },
+  { id:'ls_business_by_industry', label:'Business Count by Industry (2025)' },
+  { id:'ls_business_size_mix', label:'Business Size Mix by Industry (2025)' },
+];
+
+function lsTrendKpiItems(model) {
+  const items = [];
+  const nominal = (((model||{}).gdp||{}).nominal||{}).industries || [];
+  const biz = (((model||{}).business||{}).industries || []);
+  nominal.forEach(ind => {
+    items.push({
+      id: `ls_nominal_gdp_${ind.code}`,
+      label: `Nominal GDP · ${ind.name} (NAICS ${ind.code})`,
+    });
+  });
+  biz.forEach(ind => {
+    items.push({
+      id: `ls_business_${ind.code}`,
+      label: `Business Count · ${ind.name} (NAICS ${ind.code})`,
+    });
+  });
+  return items;
+}
 
 /* Chart catalog and per-subsector chart visibility are controlled from Excel (CHART_CATALOG). */
 const CHART_REGISTRY = {
@@ -837,25 +907,8 @@ function rerenderDisplaySection(section) {
 function buildDisplayPanels() {
   const kpiGrid = document.getElementById('display-grid-kpi');
   if (kpiGrid) {
-    const defs = [
-      { id:'EMP-TOTAL-BC', label:'Employment' },
-      { id:'GDP-TOTAL-BC', label:'GDP Contribution' },
-      { id:'REV-TOTAL-BC', label:'Sector Revenue' },
-      { id:'BIZ-TOTAL-BC', label:'Business Count' },
-      { id:'EXP-GOODS-BC', label:'Goods Exports' },
-      { id:'FUND-PUBLIC-BC', label:'Public Funding' },
-    ];
-    const subs = (STATE.data.subsectors||[])
-      .filter(s => String(s.subsector_id||'').trim())
-      .sort((a,b)=>(+a.tab_order||999)-(+b.tab_order||999));
-    const all = subs.find(s=>String(s.subsector_id||'').trim()==='ALL');
-    const rest = subs.filter(s=>String(s.subsector_id||'').trim()!=='ALL');
-    const ordered = (all?[all]:[]).concat(rest);
-    const items = [];
-    ordered.forEach(s => defs.forEach(d => {
-      items.push({ id:`${d.id}__${s.subsector_id}`, label:`${d.label} · ${s.subsector_name||s.subsector_id}` });
-    }));
-    kpiGrid.innerHTML = items.map(it => `
+    const kpiItems = lsTrendKpiItems(STATE.data.lsSectorTrends);
+    kpiGrid.innerHTML = kpiItems.map(it => `
       <label class="csp-item">
         <input type="checkbox" ${isDisplayItemShown('kpi',it.id)?'checked':''}
                onchange="onDisplayItemToggle('kpi','${it.id}',this.checked)">
@@ -866,8 +919,7 @@ function buildDisplayPanels() {
 
   const chartGrid = document.getElementById('display-grid-charts');
   if (chartGrid) {
-    const items = getChartConfigForSubsector('ALL').map(c => ({ id:c.chart_id, label:c.title||c.chart_id }));
-    chartGrid.innerHTML = items.map(it => `
+    chartGrid.innerHTML = LS_TREND_CHART_ITEMS.map(it => `
       <label class="csp-item">
         <input type="checkbox" ${isDisplayItemShown('charts',it.id)?'checked':''}
                onchange="onDisplayItemToggle('charts','${it.id}',this.checked)">
@@ -889,10 +941,8 @@ function buildDisplayPanels() {
   }
 }
 
-/* ── DATA LOADING ───────────────────────────────────────────────────────── */
 const DEFAULT_EXCEL_URLS = [
   '/api/excel-file?key=life_sciences_main',
-  '../../../../data/sectors/life_sciences/Life_Sciences_light.xlsx',
 ];
 const EXCEL_MAP_STATUS_URL = '/api/excel-map-status';
 
@@ -902,6 +952,202 @@ async function loadCSV(relPath) {
   if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
   const result = Papa.parse(await resp.text(), { header:true, skipEmptyLines:true, dynamicTyping:false });
   return result.data;
+}
+
+function lsToNumber(v) {
+  if (v===null || v===undefined) return null;
+  const n = parseFloat(String(v).replace(/,/g,'').trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function lsToYear(v) {
+  const s = String(v||'').trim();
+  if (!s) return null;
+  const m = s.match(/^(\d{4})/);
+  if (m) return +m[1];
+  const d = new Date(s);
+  return Number.isFinite(d.getTime()) ? d.getFullYear() : null;
+}
+
+function lsCleanIndustry(name) {
+  return String(name||'').replace(/\s*\[[^\]]+\]\s*$/,'').trim();
+}
+
+function lsExtractNaicsCode(name) {
+  const m = String(name||'').match(/\[([0-9]+)\]/);
+  return m ? m[1] : '';
+}
+
+function lsPct(cur, base) {
+  if (!Number.isFinite(cur) || !Number.isFinite(base) || base===0) return null;
+  return ((cur-base)/base)*100;
+}
+
+function lsBuildSeriesByYear(rows, keyField='year', valueField='value') {
+  const byYear = new Map();
+  rows.forEach(r => {
+    const y = +r[keyField];
+    const v = +r[valueField];
+    if (!Number.isFinite(y) || !Number.isFinite(v)) return;
+    byYear.set(y, (byYear.get(y)||0) + v);
+  });
+  return [...byYear.entries()]
+    .map(([year, value]) => ({ year, value }))
+    .sort((a,b)=>a.year-b.year);
+}
+
+function lsSizeBucket(sizeLabel) {
+  const s = String(sizeLabel||'').toLowerCase();
+  if (s.includes('1 to 4') || s.includes('5 to 9')) return 'small';
+  if (s.includes('10 to 19') || s.includes('20 to 49')) return 'mid';
+  if (s.includes('50 to 99') || s.includes('100 to 199') || s.includes('200 to 499') || s.includes('500 plus')) return 'large';
+  return 'other';
+}
+
+function lsBuildSectorTrendModel(gdpRowsRaw, bizRowsRaw) {
+  const gdpRows = (gdpRowsRaw||[])
+    .map(r => ({
+      geo: String(r.GEO||'').trim(),
+      price: String(r.Prices||'').trim(),
+      industryRaw: String(r['North American Industry Classification System (NAICS)']||'').trim(),
+      industry: lsCleanIndustry(r['North American Industry Classification System (NAICS)']),
+      code: lsExtractNaicsCode(r['North American Industry Classification System (NAICS)']),
+      year: lsToYear(r.REF_DATE),
+      value: lsToNumber(r.VALUE),
+    }))
+    .filter(r => r.geo==='British Columbia' && r.price && r.industry && Number.isFinite(r.year) && Number.isFinite(r.value));
+
+  const gdpIndustryMeta = {};
+  gdpRows.forEach(r => {
+    const k = r.industry;
+    if (!gdpIndustryMeta[k]) gdpIndustryMeta[k] = { code: r.code || '', name: r.industry };
+  });
+
+  const gdpByPrice = {};
+  ['Current dollars', 'Chained (2017) dollars'].forEach(price => {
+    const rows = gdpRows.filter(r => r.price===price);
+    const industries = [...new Set(rows.map(r=>r.industry))].sort((a,b) => {
+      const ac = +(gdpIndustryMeta[a] && gdpIndustryMeta[a].code ? gdpIndustryMeta[a].code : 0);
+      const bc = +(gdpIndustryMeta[b] && gdpIndustryMeta[b].code ? gdpIndustryMeta[b].code : 0);
+      return ac-bc;
+    });
+    const byIndustry = {};
+    const industrySeries = [];
+    industries.forEach(industry => {
+      const series = rows
+        .filter(r => r.industry===industry)
+        .sort((a,b)=>a.year-b.year)
+        .map(r => ({ year:r.year, value:r.value }));
+      byIndustry[industry] = series;
+      industrySeries.push({
+        name: industry,
+        code: (gdpIndustryMeta[industry]||{}).code || '',
+        series,
+      });
+    });
+    const totalSeries = lsBuildSeriesByYear(rows);
+    const latest = totalSeries.length ? totalSeries[totalSeries.length-1] : null;
+    const prev = totalSeries.length>1 ? totalSeries[totalSeries.length-2] : null;
+    gdpByPrice[price] = {
+      byIndustry,
+      industries: industrySeries,
+      totalSeries,
+      latestYear: latest ? latest.year : null,
+      latestValue: latest ? latest.value : null,
+      prevYear: prev ? prev.year : null,
+      prevValue: prev ? prev.value : null,
+      yoyPct: (latest && prev) ? lsPct(latest.value, prev.value) : null,
+    };
+  });
+
+  const bizRows = (bizRowsRaw||[])
+    .map(r => ({
+      geo: String(r.GEO||'').trim(),
+      industryRaw: String(r['North American Industry Classification System (NAICS)']||'').trim(),
+      industry: lsCleanIndustry(r['North American Industry Classification System (NAICS)']),
+      code: lsExtractNaicsCode(r['North American Industry Classification System (NAICS)']),
+      size: String(r['Employment size']||'').trim(),
+      year: lsToYear(r.REF_DATE),
+      value: lsToNumber(r.VALUE),
+    }))
+    .filter(r => r.geo==='British Columbia' && r.industry && r.size && Number.isFinite(r.year) && Number.isFinite(r.value));
+
+  const bizIndustryMeta = {};
+  bizRows.forEach(r => {
+    const k = r.industry;
+    if (!bizIndustryMeta[k]) bizIndustryMeta[k] = { code: r.code || '', name: r.industry };
+  });
+
+  const snapshotYear = bizRows.length ? Math.max(...bizRows.map(r=>r.year)) : null;
+  const snapRows = bizRows.filter(r => r.year===snapshotYear);
+  const industries = [...new Set(snapRows.map(r=>r.industry))].sort((a,b) => {
+    const ac = +(bizIndustryMeta[a] && bizIndustryMeta[a].code ? bizIndustryMeta[a].code : 0);
+    const bc = +(bizIndustryMeta[b] && bizIndustryMeta[b].code ? bizIndustryMeta[b].code : 0);
+    return ac-bc;
+  });
+  const industryStats = industries.map(industry => {
+    const rows = snapRows.filter(r=>r.industry===industry);
+    const total = rows
+      .filter(r => r.size==='Total, with employees')
+      .reduce((s,r)=>s+r.value,0);
+    const small = rows.filter(r=>lsSizeBucket(r.size)==='small').reduce((s,r)=>s+r.value,0);
+    const mid = rows.filter(r=>lsSizeBucket(r.size)==='mid').reduce((s,r)=>s+r.value,0);
+    const large = rows.filter(r=>lsSizeBucket(r.size)==='large').reduce((s,r)=>s+r.value,0);
+    return {
+      industry,
+      code: (bizIndustryMeta[industry]||{}).code || '',
+      name: (bizIndustryMeta[industry]||{}).name || industry,
+      total, small, mid, large,
+    };
+  }).sort((a,b)=>b.total-a.total);
+
+  const totalBusinesses = industryStats.reduce((s,r)=>s+r.total,0);
+  const smallBusinesses = industryStats.reduce((s,r)=>s+r.small,0);
+  const midBusinesses = industryStats.reduce((s,r)=>s+r.mid,0);
+  const largeBusinesses = industryStats.reduce((s,r)=>s+r.large,0);
+  const topIndustry = industryStats[0] || null;
+
+  return {
+    gdp: {
+      nominal: gdpByPrice['Current dollars'] || {},
+      real: gdpByPrice['Chained (2017) dollars'] || {},
+    },
+    business: {
+      snapshotYear,
+      industries: industryStats.map(r => ({
+        industry: r.industry,
+        code: r.code,
+        name: r.name,
+        total: r.total,
+        sharePct: totalBusinesses ? (r.total/totalBusinesses)*100 : null,
+        small: r.small,
+        mid: r.mid,
+        large: r.large,
+      })),
+      totalBusinesses,
+      smallBusinesses,
+      midBusinesses,
+      largeBusinesses,
+      smallSharePct: totalBusinesses ? (smallBusinesses/totalBusinesses)*100 : null,
+      midSharePct: totalBusinesses ? (midBusinesses/totalBusinesses)*100 : null,
+      largeSharePct: totalBusinesses ? (largeBusinesses/totalBusinesses)*100 : null,
+      topIndustry: topIndustry ? {
+        industry: topIndustry.industry,
+        code: topIndustry.code,
+        name: topIndustry.name,
+        total: topIndustry.total,
+        sharePct: totalBusinesses ? (topIndustry.total/totalBusinesses)*100 : null,
+      } : null,
+    },
+  };
+}
+
+async function loadSectorTrendCsvData() {
+  const [gdpRows, bizRows] = await Promise.all([
+    loadCSV(LS_TREND_FILES.gdp),
+    loadCSV(LS_TREND_FILES.business),
+  ]);
+  STATE.data.lsSectorTrends = lsBuildSectorTrendModel(gdpRows, bizRows);
 }
 
 async function loadWorkbookFromUrl(url) {
@@ -932,7 +1178,14 @@ async function loadAllData() {
       if (Object.keys(data).length) {
         Object.assign(STATE.data, data);
         STATE.hasMockData = (STATE.data.officialMetrics||[]).some(r=>String(r.source_tier||'').toLowerCase().includes('mock'));
+        applyLifeSciencesSubsectorImageMap();
         applyDashboardConfig();
+        try {
+          await loadSectorTrendCsvData();
+        } catch (e) {
+          console.warn('Sector trends CSV load failed:', e);
+          STATE.data.lsSectorTrends = null;
+        }
         return;
       }
       attempts.push(`${url}: empty workbook`);
@@ -971,7 +1224,41 @@ function applyDashboardConfig() {
   }
 }
 
-/* ── DATA HELPERS ───────────────────────────────────────────────────────── */
+function applyLifeSciencesSubsectorImageMap() {
+  const rows = Array.isArray(STATE.data.subsectors) ? STATE.data.subsectors : [];
+  if (!rows.length) return;
+
+  const byId = {};
+  rows.forEach(r => { byId[String(r.subsector_id||'').trim().toUpperCase()] = r; });
+  const sectorId = rows.find(r => String(r.sector_id||'').trim())?.sector_id || 'life_sciences';
+
+  const allRow = byId.ALL
+    ? Object.assign({}, byId.ALL)
+    : {
+        record_type: 'sector',
+        sector_id: sectorId,
+        subsector_id: 'ALL',
+        subsector_name: 'BC Life Sciences',
+        show_as_tab: 'TRUE',
+        tab_order: 0,
+        dashboard_color: '#003366',
+        has_reliable_data: 'TRUE',
+        data_availability_note: '',
+      };
+
+  const mapped = LS_SUBSECTOR_IMAGE_GROUPS.map(g => {
+    const old = byId[g.subsector_id] || {};
+    return Object.assign({}, old, g, {
+      record_type: 'subsector',
+      sector_id: old.sector_id || sectorId,
+      subsector_id: g.subsector_id,
+    });
+  });
+
+  STATE.data.subsectors = [allRow, ...mapped];
+}
+
+/* â”€â”€ DATA HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function getMetrics(metricId, province, subsectorId) {
   province    = province    || CONFIG.province_abbr;
   subsectorId = subsectorId || 'ALL';
@@ -1021,7 +1308,7 @@ function appliesToSubsector(related, sid) {
   return related.split('|').map(s=>s.trim()).some(s=>s===sid||s==='ALL');
 }
 
-/* ── RENDER: HEADER ─────────────────────────────────────────────────────── */
+/* â”€â”€ RENDER: HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function renderHeader() {
   document.getElementById('hdr-title').textContent     = CONFIG.dashboard_title;
   document.getElementById('hdr-subtitle').textContent  = CONFIG.dashboard_subtitle;
@@ -1037,7 +1324,7 @@ function renderHeader() {
   }
 }
 
-/* ── RENDER: SECTOR DEF ─────────────────────────────────────────────────── */
+/* â”€â”€ RENDER: SECTOR DEF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function renderSectorDef() {
   const def = (STATE.data.sectorDef||[]).find(r=>r.id==='DEF-001') || (STATE.data.sectorDef||[])[0];
   if (!def) return;
@@ -1076,9 +1363,9 @@ function renderWhatsNew() {
   document.getElementById('whats-new-section').style.display='';
   document.getElementById('whats-new-panel').innerHTML = `
     <button class="wn-toggle" id="wn-btn" onclick="toggleWhatsNew()">
-      <span>📋 What's New</span>
-      <span style="font-size:11px;font-weight:400;color:var(--color-text-muted);">${rows.length} item${rows.length!==1?'s':''} · last ${rows[0].date}</span>
-      <span class="arrow">▼</span>
+      <span>ðŸ“‹ What's New</span>
+      <span style="font-size:11px;font-weight:400;color:var(--color-text-muted);">${rows.length} item${rows.length!==1?'s':''} Â· last ${rows[0].date}</span>
+      <span class="arrow">â–¼</span>
     </button>
     <div class="wn-body" id="wn-body">
       ${rows.map(r=>`<div class="wn-row">
@@ -1093,7 +1380,7 @@ function toggleWhatsNew() {
   btn.classList.toggle('open',open);
 }
 
-/* ── RENDER: SUBSECTOR TABS ─────────────────────────────────────────────── */
+/* â”€â”€ RENDER: SUBSECTOR TABS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function getTabSubsectors() {
   const allRows = (STATE.data.subsectors||[]);
   const all = allRows.find(r=>String(r.subsector_id||'').trim()==='ALL');
@@ -1119,9 +1406,9 @@ function getTabSubsectors() {
   return [overview, ...subs];
 }
 function dataBadge(rel) {
-  if (rel==='TRUE')    return '<span class="sub-tab-badge good">✓ Good data</span>';
-  if (rel==='PARTIAL') return '<span class="sub-tab-badge partial">⚠ Partial</span>';
-  return '<span class="sub-tab-badge none">✗ Data gap</span>';
+  if (rel==='TRUE')    return '<span class="sub-tab-badge good">âœ“ Good data</span>';
+  if (rel==='PARTIAL') return '<span class="sub-tab-badge partial">âš  Partial</span>';
+  return '<span class="sub-tab-badge none">âœ— Data gap</span>';
 }
 
 function renderSubsectorTabs() {
@@ -1163,7 +1450,7 @@ function switchSubsectorTab(sid) {
   else Object.values(STATE.charts).forEach(c=>{ try{c.resize();}catch(e){} });
 }
 
-/* ── BUILD PANEL CONTENT ────────────────────────────────────────────────── */
+/* â”€â”€ BUILD PANEL CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function buildPanelContent(s) {
   const panel = document.getElementById('panel-'+s.subsector_id);
   if (!panel||panel.dataset.built) return;
@@ -1172,7 +1459,7 @@ function buildPanelContent(s) {
   const color    = (THEME.subsectors[s.subsector_id]||{}).color || s.dashboard_color || '#718096';
   const rel      = s.has_reliable_data;
   const dqClass  = rel==='TRUE'?'good': rel==='PARTIAL'?'partial':'none';
-  const dqLabel  = rel==='TRUE'?'✓ Reliable data': rel==='PARTIAL'?'⚠ Partial data':'✗ Data gap';
+  const dqLabel  = rel==='TRUE'?'âœ“ Reliable data': rel==='PARTIAL'?'âš  Partial data':'âœ— Data gap';
   const naicsTxt = [s.naics_4digit&&'NAICS '+s.naics_4digit, s.naics_5digit&&'('+s.naics_5digit+')'].filter(Boolean).join(' ');
 
   panel.innerHTML = `
@@ -1183,7 +1470,7 @@ function buildPanelContent(s) {
           <div class="sub-panel-title" style="color:${color};">${s.subsector_name}</div>
           ${naicsTxt?`<div class="sub-panel-naics">${naicsTxt}</div>`:''}
           <div class="sub-panel-desc">${s.naics_description||''}</div>
-          ${s.data_availability_note?`<div class="sub-panel-avail">ⓘ ${s.data_availability_note}</div>`:''}
+          ${s.data_availability_note?`<div class="sub-panel-avail">â“˜ ${s.data_availability_note}</div>`:''}
         </div>
         <div class="data-quality-badge"><span class="dq-pill ${dqClass}">${dqLabel}</span></div>
       </div>
@@ -1193,7 +1480,7 @@ function buildPanelContent(s) {
     <div class="section">
       <div class="section-head">
         <h2>Key Indicators</h2>
-        <span class="sh-sub">${s.subsector_name} · Latest available</span>
+        <span class="sh-sub">${s.subsector_name} Â· Latest available</span>
       </div>
       <div id="kpi-${s.subsector_id}" class="kpi-grid"></div>
       <div class="conf-legend">
@@ -1208,18 +1495,18 @@ function buildPanelContent(s) {
   renderKPIs(s.subsector_id, color);
 }
 
-/* ── KPI CARDS ──────────────────────────────────────────────────────────── */
+/* â”€â”€ KPI CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function renderKPIs(sid, color) {
   const overrides = {};
   (STATE.data.manualOverrides||[]).forEach(r=>{ overrides[r.metric_id+'_'+r.subsector_id]=r; });
 
   const defs = [
-    { id:'EMP-TOTAL-BC',   label:'Employment',       unit:'FTE',          icon:'👥' },
-    { id:'GDP-TOTAL-BC',   label:'GDP Contribution', unit:'millions CAD', icon:'📈' },
-    { id:'REV-TOTAL-BC',   label:'Sector Revenue',   unit:'millions CAD', icon:'💰' },
-    { id:'BIZ-TOTAL-BC',   label:'Business Count',   unit:'businesses',   icon:'🏢' },
-    { id:'EXP-GOODS-BC',   label:'Goods Exports',    unit:'millions CAD', icon:'🌏' },
-    { id:'FUND-PUBLIC-BC', label:'Public Funding',   unit:'millions CAD', icon:'🏛' },
+    { id:'EMP-TOTAL-BC',   label:'Employment',       unit:'FTE',          icon:'ðŸ‘¥' },
+    { id:'GDP-TOTAL-BC',   label:'GDP Contribution', unit:'millions CAD', icon:'ðŸ“ˆ' },
+    { id:'REV-TOTAL-BC',   label:'Sector Revenue',   unit:'millions CAD', icon:'ðŸ’°' },
+    { id:'BIZ-TOTAL-BC',   label:'Business Count',   unit:'businesses',   icon:'ðŸ¢' },
+    { id:'EXP-GOODS-BC',   label:'Goods Exports',    unit:'millions CAD', icon:'ðŸŒ' },
+    { id:'FUND-PUBLIC-BC', label:'Public Funding',   unit:'millions CAD', icon:'ðŸ›' },
   ];
 
   const grid = document.getElementById('kpi-'+sid);
@@ -1248,18 +1535,18 @@ function renderKPIs(sid, color) {
       const pct = pctChange(value, baseline.value);
       if (pct!==null) {
         const dir   = pct>0?'up':pct<0?'down':'flat';
-        const arrow = dir==='up'?'↑':dir==='down'?'↓':'→';
+        const arrow = dir==='up'?'â†‘':dir==='down'?'â†“':'â†’';
         trendHtml = `<div class="kpi-trend ${dir}">${arrow} ${Math.abs(pct)}% since ${baseline.year}</div>`;
       }
     }
 
     cards += `<div class="card kpi-card" style="--color-primary:${color};">
       <div class="kpi-label">${kpi.icon} ${kpi.label}</div>
-      <div class="kpi-value">${fmtNum(value,kpi.unit)||'—'}</div>
+      <div class="kpi-value">${fmtNum(value,kpi.unit)||'â€”'}</div>
       <div class="kpi-unit">${kpi.unit}</div>
       ${trendHtml}
       ${baseline?`<div class="kpi-base">Baseline: ${fmtNum(baseline.value,kpi.unit)} (${baseline.year})</div>`:''}
-      <div class="kpi-tags"><span class="${tierTag(tier)}">${tier||'—'}</span></div>
+      <div class="kpi-tags"><span class="${tierTag(tier)}">${tier||'â€”'}</span></div>
     </div>`;
     shown++;
   });
@@ -1269,71 +1556,77 @@ function renderKPIs(sid, color) {
     : `<div class="no-kpi-notice">No quantitative data available for ${sid}. Update Sector_Metrics in the Excel file.</div>`;
 }
 
-/* ── LOOK WEST GOALS ────────────────────────────────────────────────────── */
+/* â”€â”€ LOOK WEST GOALS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 function renderSectorKPIs() {
   const grid = document.getElementById('kpi-sector-trends');
   if (!grid) return;
 
-  const defs = [
-    { id:'EMP-TOTAL-BC',   label:'Employment',       unit:'FTE',          icon:'People' },
-    { id:'GDP-TOTAL-BC',   label:'GDP Contribution', unit:'millions CAD', icon:'GDP' },
-    { id:'REV-TOTAL-BC',   label:'Sector Revenue',   unit:'millions CAD', icon:'Rev' },
-    { id:'BIZ-TOTAL-BC',   label:'Business Count',   unit:'businesses',   icon:'Biz' },
-    { id:'EXP-GOODS-BC',   label:'Goods Exports',    unit:'millions CAD', icon:'Exp' },
-    { id:'FUND-PUBLIC-BC', label:'Public Funding',   unit:'millions CAD', icon:'Fund' },
-  ];
+  const model = STATE.data.lsSectorTrends;
+  if (!model || !model.gdp || !model.business) {
+    grid.innerHTML = `<div class="no-kpi-notice">Sector Snapshot data unavailable. Confirm LS CSV files exist in the data folder.</div>`;
+    return;
+  }
 
-  const subsRaw = (STATE.data.subsectors||[])
-    .filter(s => String(s.subsector_id||'').trim())
-    .sort((a,b)=>(+a.tab_order||999)-(+b.tab_order||999));
-  const all = subsRaw.find(s => String(s.subsector_id||'').trim()==='ALL');
-  const rest = subsRaw.filter(s => String(s.subsector_id||'').trim()!=='ALL');
-  const subsectors = (all ? [all] : []).concat(rest);
+  const nominalIndustries = ((model.gdp.nominal||{}).industries||[]).slice().sort((a,b)=>String(a.code||'').localeCompare(String(b.code||'')));
+  const bizIndustries = (model.business.industries||[]).slice().sort((a,b)=>String(a.code||'').localeCompare(String(b.code||'')));
 
-  let cards = '';
-  let shown = 0;
-
-  subsectors.forEach(s => {
-    const sid = String(s.subsector_id||'').trim();
-    if (!sid) return;
-    const color = (THEME.subsectors[sid]||{}).color || s.dashboard_color || '#718096';
-    const label = s.subsector_name || sid;
-
-    defs.forEach(kpi => {
-      const itemId = `${kpi.id}__${sid}`;
-      if (!isDisplayItemShown('kpi', itemId)) return;
-      const latest = getLatest(kpi.id, CONFIG.province_abbr, sid);
-      const baseline = getBaseline(kpi.id, CONFIG.province_abbr, sid);
-      const value = latest ? +latest.value : null;
-      const tier = latest ? latest.tier : null;
-      if (value===null || isNaN(value)) return;
-
-      let trendHtml = '';
-      if (baseline && baseline.value) {
-        const pct = pctChange(value, baseline.value);
-        if (pct!==null) {
-          const dir = pct>0 ? 'up' : pct<0 ? 'down' : 'flat';
-          const arrow = dir==='up' ? 'UP' : dir==='down' ? 'DOWN' : 'FLAT';
-          trendHtml = `<div class="kpi-trend ${dir}">${arrow} ${Math.abs(pct)}% since ${baseline.year}</div>`;
-        }
-      }
-
-      cards += `<div class="card kpi-card" style="--color-primary:${color};">
-        <div class="kpi-label">${kpi.icon} ${kpi.label}<span class="kpi-subsector-tag">${label}</span></div>
-        <div class="kpi-value">${fmtNum(value,kpi.unit)||'--'}</div>
-        <div class="kpi-unit">${kpi.unit}</div>
-        ${trendHtml}
-        ${baseline?`<div class="kpi-base">Baseline: ${fmtNum(baseline.value,kpi.unit)} (${baseline.year})</div>`:''}
-        <div class="kpi-tags"><span class="${tierTag(tier)}">${tier||'--'}</span></div>
-      </div>`;
-      shown++;
+  const cards = [];
+  nominalIndustries.forEach(ind => {
+    const series = (ind.series||[]).slice().sort((a,b)=>a.year-b.year);
+    const latest = series.length ? series[series.length-1] : null;
+    const prev = series.length>1 ? series[series.length-2] : null;
+    const yoy = (latest && prev) ? lsPct(latest.value, prev.value) : null;
+    cards.push({
+      id: `ls_nominal_gdp_${ind.code}`,
+      icon: '💵',
+      label: `${ind.name} (NAICS ${ind.code})`,
+      value: latest ? `$${latest.value.toLocaleString('en-CA', { maximumFractionDigits: 1 })}M` : '--',
+      unit: `Nominal GDP · ${latest ? latest.year : '--'}`,
+      trend: Number.isFinite(yoy) ? `${yoy >= 0 ? '↑' : '↓'} ${Math.abs(yoy).toFixed(1)}% vs ${prev.year}` : '',
+      trendDir: Number.isFinite(yoy) ? (yoy >= 0 ? 'up' : 'down') : '',
+      note: latest && prev ? `${prev.value.toLocaleString('en-CA', { maximumFractionDigits: 1 })}M → ${latest.value.toLocaleString('en-CA', { maximumFractionDigits: 1 })}M` : '',
+      source: 'StatCan-3610071101',
     });
   });
 
-  grid.innerHTML = shown
-    ? cards
-    : `<div class="no-kpi-notice">No KPI values found. Update KEY_KPIS in the Excel file.</div>`;
+  bizIndustries.forEach(ind => {
+    cards.push({
+      id: `ls_business_${ind.code}`,
+      icon: '🏢',
+      label: `${ind.name} (NAICS ${ind.code})`,
+      value: Number.isFinite(ind.total) ? ind.total.toLocaleString('en-CA') : '--',
+      unit: `Businesses · ${model.business.snapshotYear || '--'}`,
+      trend: '',
+      note: '',
+      source: 'StatCan-3310109501',
+    });
+  });
+
+  const selected = cards.filter(c => isDisplayItemShown('kpi', c.id));
+  if (!selected.length) {
+    grid.innerHTML = `<div class="no-kpi-notice">No KPI cards selected for display.</div>`;
+    return;
+  }
+
+  const gdpCards = selected.filter(c => c.id.startsWith('ls_nominal_gdp_'));
+  const bizCards = selected.filter(c => c.id.startsWith('ls_business_'));
+  const renderCard = c => `
+    <div class="card kpi-card" style="--color-primary:#003366;">
+      <div class="kpi-label">${c.icon} ${c.label}</div>
+      <div class="kpi-value">${c.value}</div>
+      <div class="kpi-unit">${c.unit || ''}</div>
+      ${c.trend ? `<div class="kpi-trend ${c.trendDir || 'flat'}">${c.trend}</div>` : ''}
+      ${c.note ? `<div class="kpi-base">${c.note}</div>` : ''}
+      <div class="kpi-tags"><span class="tag official">${c.source}</span></div>
+    </div>
+  `;
+
+  let html = '';
+  if (gdpCards.length) html += gdpCards.map(renderCard).join('');
+  if (gdpCards.length && bizCards.length) html += '<div style="grid-column:1/-1;height:0;"></div>';
+  if (bizCards.length) html += bizCards.map(renderCard).join('');
+  grid.innerHTML = html;
 }
 
 function renderLookWest(sid) {
@@ -1376,7 +1669,7 @@ function renderLookWest(sid) {
   }).join('');
 }
 
-/* ── CHART HELPERS ──────────────────────────────────────────────────────── */
+/* â”€â”€ CHART HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const COPTS = {
   responsive:true, maintainAspectRatio:false,
   plugins:{
@@ -1457,11 +1750,224 @@ function buildCharts(sid, color) {
   });
 }
 
-function renderSectorCharts() {
-  buildCharts('ALL', (THEME.subsectors.ALL||{}).color || '#003366');
+function lsTrendChartsConfig() {
+  return [
+    {
+      id: 'ls_nominal_gdp_by_industry',
+      title: 'Nominal GDP Trend by NAICS',
+      subtitle: 'BC, Current dollars, annual',
+      caveat: 'Source: StatCan-3610071101',
+    },
+    {
+      id: 'ls_real_gdp_by_industry',
+      title: 'Real GDP Trend by NAICS',
+      subtitle: 'BC, Chained (2017) dollars, annual',
+      caveat: 'Source: StatCan-3610071101',
+    },
+    {
+      id: 'ls_business_by_industry',
+      title: 'Business Count by Industry',
+      subtitle: 'Total, with employees',
+      caveat: 'Source: StatCan-3310109501',
+    },
+    {
+      id: 'ls_business_size_mix',
+      title: 'Business Size Mix by Industry',
+      subtitle: 'Grouped as 1-9, 10-49, 50+ employees',
+      caveat: 'Source: StatCan-3310109501',
+    },
+  ];
 }
 
-/* ── INDIVIDUAL CHART FUNCTIONS ─────────────────────────────────────────── */
+function lsIndustryColorMap(model) {
+  const palette = ['#003366', '#1D4ED8', '#2E86AB', '#8E44AD', '#E67E22', '#16A085', '#B9770E'];
+  const map = {};
+  const inds = ((model.business||{}).industries||[]).slice().sort((a,b)=>String(a.code||'').localeCompare(String(b.code||'')));
+  inds.forEach((ind, idx) => { map[ind.code] = palette[idx % palette.length]; });
+  return map;
+}
+
+function lsIndustryCodeLegend(model) {
+  const inds = ((model.business||{}).industries||[]).slice().sort((a,b)=>String(a.code||'').localeCompare(String(b.code||'')));
+  return inds.map(ind => `${ind.code}: ${ind.name}`).join(' | ');
+}
+
+function lsGdpCodeLegend(model) {
+  const inds = ((model.gdp.nominal||{}).industries||[]).slice().sort((a,b)=>String(a.code||'').localeCompare(String(b.code||'')));
+  return inds.map(ind => `${ind.code}: ${ind.name}`).join(' | ');
+}
+
+function renderLsGdpByIndustryChart(canvasId, model, mode) {
+  const bucket = mode === 'real' ? (model.gdp.real || {}) : (model.gdp.nominal || {});
+  const industries = (bucket.industries||[]).slice().sort((a,b)=>String(a.code||'').localeCompare(String(b.code||'')));
+  if (!industries.length) return;
+  const codeNameMap = {};
+  industries.forEach(ind => { codeNameMap[ind.code] = ind.name; });
+  const yearSet = new Set();
+  industries.forEach(ind => (ind.series||[]).forEach(p => yearSet.add(p.year)));
+  const years = [...yearSet].sort((a,b)=>a-b);
+  const palette = ['#003366', '#2E86AB', '#8E44AD', '#E67E22', '#16A085', '#B9770E'];
+  const datasets = industries.map((ind, idx) => ({
+    label: `NAICS ${ind.code}`,
+    data: years.map(y => {
+      const pt = (ind.series||[]).find(p => p.year===y);
+      return pt ? pt.value : null;
+    }),
+    borderColor: palette[idx % palette.length],
+    backgroundColor: palette[idx % palette.length] + '22',
+    borderWidth: 2,
+    tension: 0.25,
+    pointRadius: 3,
+    spanGaps: true,
+    fill: false,
+  }));
+  mkChart(canvasId, {
+    type: 'line',
+    data: { labels: years, datasets },
+    options: merge(COPTS, {
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const label = String(ctx.dataset && ctx.dataset.label ? ctx.dataset.label : '');
+              const m = label.match(/NAICS\s+([0-9]+)/i);
+              const code = m ? m[1] : '';
+              const full = codeNameMap[code] || '';
+              const raw = Number(ctx.raw || 0);
+              return `${label}${full ? ' - ' + full : ''}: $${raw.toLocaleString('en-CA', { maximumFractionDigits: 1 })}M`;
+            }
+          }
+        }
+      },
+      scales: { y: { ticks: { callback: v => '$' + Number(v).toLocaleString('en-CA') + 'M' } } },
+    }),
+  });
+}
+
+function renderLsNominalGdpByIndustryChart(canvasId, model) {
+  renderLsGdpByIndustryChart(canvasId, model, 'nominal');
+}
+
+function renderLsRealGdpByIndustryChart(canvasId, model) {
+  renderLsGdpByIndustryChart(canvasId, model, 'real');
+}
+
+function renderLsBusinessByIndustryChart(canvasId, model) {
+  const rows = (model.business.industries||[]).slice().sort((a,b)=>String(a.code||'').localeCompare(String(b.code||'')));
+  if (!rows.length) return;
+  const colorMap = lsIndustryColorMap(model);
+  const codeNameMap = {};
+  rows.forEach(r => { codeNameMap[r.code] = r.name; });
+  mkChart(canvasId, {
+    type: 'bar',
+    data: {
+      labels: rows.map(r => r.code),
+      datasets: [{
+        label: 'Businesses',
+        data: rows.map(r => r.total),
+        backgroundColor: rows.map(r => colorMap[r.code] || '#003366'),
+        borderRadius: 4,
+      }],
+    },
+    options: merge(COPTS, {
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const code = items && items.length ? String(items[0].label || '') : '';
+              return `NAICS ${code}${codeNameMap[code] ? ' - ' + codeNameMap[code] : ''}`;
+            },
+            label: (ctx) => `Businesses: ${Number(ctx.raw || 0).toLocaleString('en-CA')}`,
+          }
+        }
+      },
+      scales: { x: { ticks: { callback: v => Number(v).toLocaleString('en-CA') } } },
+    }),
+  });
+}
+
+function renderLsBusinessSizeMixChart(canvasId, model) {
+  const rows = (model.business.industries||[]).slice().sort((a,b)=>String(a.code||'').localeCompare(String(b.code||'')));
+  if (!rows.length) return;
+  const colorMap = lsIndustryColorMap(model);
+  const codeNameMap = {};
+  rows.forEach(r => { codeNameMap[r.code] = r.name; });
+  mkChart(canvasId, {
+    type: 'bar',
+    data: {
+      labels: ['1-9', '10-49', '50+'],
+      datasets: rows.map(r => ({
+        label: r.code,
+        data: [r.small, r.mid, r.large],
+        backgroundColor: colorMap[r.code] || '#003366',
+      })),
+    },
+    options: merge(COPTS, {
+      indexAxis: 'y',
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const code = String(ctx.dataset && ctx.dataset.label ? ctx.dataset.label : '');
+              const full = codeNameMap[code] || '';
+              const sizeBand = String(ctx.label || '');
+              const raw = Number(ctx.raw || 0);
+              return `NAICS ${code}${full ? ' - ' + full : ''} | ${sizeBand}: ${raw.toLocaleString('en-CA')}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { callback: v => Number(v).toLocaleString('en-CA') } },
+      },
+    }),
+  });
+}
+
+function renderSectorCharts() {
+  const container = document.getElementById('charts-ALL');
+  if (!container) return;
+  const model = STATE.data.lsSectorTrends;
+  if (!model || !model.gdp || !model.business) {
+    container.innerHTML = '<div style="padding:20px;color:var(--color-text-subtle);font-size:12px;font-style:italic;">Sector Snapshot chart data unavailable.</div>';
+    return;
+  }
+
+  const configs = lsTrendChartsConfig().filter(c => isDisplayItemShown('charts', c.id));
+  if (!configs.length) {
+    container.innerHTML = '<div style="padding:20px;color:var(--color-text-subtle);font-size:12px;font-style:italic;">No charts selected for display.</div>';
+    return;
+  }
+
+  const bizLegend = lsIndustryCodeLegend(model);
+  const gdpLegend = lsGdpCodeLegend(model);
+
+  container.innerHTML = configs.map(c => `
+    <div class="card chart-card">
+      <div class="chart-title">${c.title}</div>
+      <div class="chart-subtitle">${c.subtitle}</div>
+      <div class="chart-container"><canvas id="chart-${c.id}-ALL"></canvas></div>
+      <div class="chart-caveat">${c.caveat}${c.id.startsWith('ls_business') ? ` · NAICS mapping: ${bizLegend}` : ''}${c.id.includes('gdp') ? ` · NAICS mapping: ${gdpLegend}` : ''}</div>
+    </div>
+  `).join('');
+
+  const map = {
+    ls_nominal_gdp_by_industry: renderLsNominalGdpByIndustryChart,
+    ls_real_gdp_by_industry: renderLsRealGdpByIndustryChart,
+    ls_business_by_industry: renderLsBusinessByIndustryChart,
+    ls_business_size_mix: renderLsBusinessSizeMixChart,
+  };
+  configs.forEach(c => {
+    const fn = map[c.id];
+    if (typeof fn === 'function') fn(`chart-${c.id}-ALL`, model);
+  });
+}
+
+/* â”€â”€ INDIVIDUAL CHART FUNCTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function chartEmp(sid, color) {
   const series = getMetrics('EMP-TOTAL-BC', CONFIG.province_abbr, sid);
   if (!series.length) return;
@@ -1668,7 +2174,7 @@ function chartTalent(sid, color) {
     options:merge(COPTS,{plugins:{legend:{position:'bottom'}}}) });
 }
 
-/* ── INITIATIVE TRACKER ─────────────────────────────────────────────────── */
+/* â”€â”€ INITIATIVE TRACKER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 let initSort = { col:null, dir:1, sid:null };
 
 function sortInit(col, sid) {
@@ -1731,8 +2237,8 @@ function renderInitiativeTable(sid) {
         <td><span class="status-badge ${r.status}">${r.status}</span></td>
         <td><span class="rag-pill ${r.rag_status}">${r.rag_status}</span></td>
         <td><div style="font-size:11px;font-weight:600;">${pct}%</div><div class="prog-track"><div class="prog-fill ${r.rag_status}" style="width:${pct}%"></div></div></td>
-        <td style="font-size:11px;max-width:160px;line-height:1.4;">${r.next_milestone||'—'}${r.next_milestone_date?`<br><span style="color:var(--color-text-subtle);">${r.next_milestone_date}</span>`:''}</td>
-        <td style="font-size:11px;color:var(--color-text-subtle);">${r.last_review_date||'—'}</td>
+        <td style="font-size:11px;max-width:160px;line-height:1.4;">${r.next_milestone||'â€”'}${r.next_milestone_date?`<br><span style="color:var(--color-text-subtle);">${r.next_milestone_date}</span>`:''}</td>
+        <td style="font-size:11px;color:var(--color-text-subtle);">${r.last_review_date||'â€”'}</td>
         
       </tr>`;
     }).join('');
@@ -1741,12 +2247,12 @@ function renderInitiativeTable(sid) {
   if (cEl) cEl.textContent = `${rows.length} of ${total}`;
 }
 
-/* ── EDIT MODAL ─────────────────────────────────────────────────────────── */
+/* â”€â”€ EDIT MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function exportInitiativesCSV() {
   downloadCSV((STATE.data.lwInitiatives||[]), 'lookwest_initiatives_export.csv');
 }
 
-/* ── COLLAPSIBLE EVIDENCE & RISKS ───────────────────────────────────────── */
+/* â”€â”€ COLLAPSIBLE EVIDENCE & RISKS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 let evExpanded = true;
 function toggleEvidenceSection() {
   evExpanded = !evExpanded;
@@ -1769,7 +2275,7 @@ function initEvidenceCollapse() {
   body.style.maxHeight = '9999px'; // open by default
 }
 
-/* ── EVIDENCE LIBRARY ───────────────────────────────────────────────────── */
+/* â”€â”€ EVIDENCE LIBRARY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function getSubsectorLabelMap() {
   const map = { ALL: 'All subsectors' };
   (STATE.data.subsectors||[]).forEach(s => {
@@ -1862,7 +2368,7 @@ function renderEvidence() {
 }
 function exportEvidence(){ downloadCSV(STATE.data.evidenceLib||[],'evidence_export.csv'); }
 
-/* ── RISKS ──────────────────────────────────────────────────────────────── */
+/* â”€â”€ RISKS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function renderRisks() {
   ensureSubsectorFilterOptions();
   const srch = (document.getElementById('risk-search').value||'').toLowerCase();
@@ -1890,7 +2396,7 @@ function renderRisks() {
   const c=document.getElementById('risk-count'); if(c)c.textContent=rows.length;
 }
 
-/* ── INNER TAB SWITCH ───────────────────────────────────────────────────── */
+/* â”€â”€ INNER TAB SWITCH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function switchInnerTab(activeId) {
   document.querySelectorAll('#section-global .tab-btn').forEach(b=>{
     b.classList.toggle('active', b.getAttribute('onclick')&&b.getAttribute('onclick').includes(activeId));
@@ -1899,7 +2405,7 @@ function switchInnerTab(activeId) {
   const t=document.getElementById(activeId); if(t) t.classList.add('active');
 }
 
-/* ── CSV EXPORT ─────────────────────────────────────────────────────────── */
+/* â”€â”€ CSV EXPORT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function downloadCSV(rows, filename) {
   if (!rows||!rows.length){ alert('No data.'); return; }
   const hdrs=Object.keys(rows[0]);
@@ -1913,7 +2419,7 @@ function downloadCSV(rows, filename) {
   a.download=filename; a.click();
 }
 
-/* ── EXCEL REFRESH (SheetJS) ─────────────────────────────────────────────── */
+/* â”€â”€ EXCEL REFRESH (SheetJS) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const XL_SHEET_MAP = {
   // Canonical lightweight schema
   'SECTOR_STRUCTURE':    'sectorStructure',
@@ -2143,7 +2649,7 @@ async function loadExcelFile(input) {
   if (!file) return;
   input.value = '';
   const btn = document.getElementById('btn-refresh');
-  if (btn) { btn.textContent='⟳ Loading…'; btn.disabled=true; }
+  if (btn) { btn.textContent='âŸ³ Loadingâ€¦'; btn.disabled=true; }
   try {
     const ab   = await file.arrayBuffer();
     const wb   = XLSX.read(new Uint8Array(ab), { type:'array' });
@@ -2151,7 +2657,14 @@ async function loadExcelFile(input) {
     // Merge into STATE
     Object.assign(STATE.data, data);
     STATE.hasMockData = (STATE.data.officialMetrics||[]).some(r=>String(r.source_tier||'').toLowerCase().includes('mock'));
+    applyLifeSciencesSubsectorImageMap();
     applyDashboardConfig();
+    try {
+      await loadSectorTrendCsvData();
+    } catch (csvErr) {
+      console.warn('Sector trends CSV refresh failed:', csvErr);
+      STATE.data.lsSectorTrends = null;
+    }
     // Destroy cached charts so panels rebuild cleanly
     Object.values(STATE.charts).forEach(c=>{ try{c.destroy();}catch(e){} });
     STATE.charts = {};
@@ -2171,17 +2684,17 @@ async function loadExcelFile(input) {
     if (mb) mb.style.display = STATE.hasMockData ? '' : 'none';
     // Flash button
     if (btn) {
-      btn.textContent='✓ Refreshed';
-      setTimeout(()=>{ btn.textContent='↺ Refresh Data'; btn.disabled=false; }, 2000);
+      btn.textContent='âœ“ Refreshed';
+      setTimeout(()=>{ btn.textContent='â†º Refresh Data'; btn.disabled=false; }, 2000);
     }
   } catch(e) {
     console.error('Excel refresh error:', e);
     alert('Could not load Excel file: ' + e.message);
-    if (btn) { btn.textContent='↺ Refresh Data'; btn.disabled=false; }
+    if (btn) { btn.textContent='â†º Refresh Data'; btn.disabled=false; }
   }
 }
 
-/* ── INIT ────────────────────────────────────────────────────────────────── */
+/* â”€â”€ INIT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 async function init() {
   try {
     await loadAllData();
@@ -2218,3 +2731,4 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
+
