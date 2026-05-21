@@ -3,6 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+  /* BCLS_EMBED_ONLY_REDIRECT */
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../../bc_dashboard_hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'sector-detail');
+      target.searchParams.set('sector', 'life-sciences');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
   <title>[Standalone Â· 2026-04-01] B.C. Life Sciences â€” Look West Strategy Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -505,99 +519,42 @@
     <div class="lw-goals-grid" id="lw-goals-GLOBAL"></div>
   </div>
 
-  <div class="section" id="section-initiatives-global">
+  <div class="section" id="section-commitments-global">
     <div class="section-head">
-      <h2>Initiative Tracker</h2>
-      <span class="sh-sub">Whole-sector initiative tracker</span>
-      <button class="sh-action" onclick="exportInitiativesCSV()">â†“ Export</button>
-    </div>
-    <div class="init-toolbar">
-      <span class="tb-lbl">RAG</span>
-      <select id="init-rag-GLOBAL" onchange="renderInitiativeTable('GLOBAL')">
-        <option value="ALL">All</option><option value="RED">Red</option>
-        <option value="AMBER">Amber</option><option value="GREEN">Green</option>
-      </select>
-      <span class="tb-lbl">Subsector</span>
-      <select id="init-subsector-GLOBAL" onchange="renderInitiativeTable('GLOBAL')">
-        <option value="ALL">All Subsectors</option>
-      </select>
-      <input type="text" id="init-search-GLOBAL" placeholder="Search initiativesâ€¦"
-             oninput="renderInitiativeTable('GLOBAL')">
-      <span class="init-count" id="init-count-GLOBAL"></span>
+      <h2>COMMITMENTS</h2>
     </div>
     <div class="table-scroll">
       <table class="init-table">
         <thead><tr>
-          <th onclick="sortInit('initiative_name','GLOBAL')">Initiative â†•</th>
-          <th onclick="sortInit('pillar','GLOBAL')">Pillar â†•</th>
-          <th>Subsector(s)</th>
-          <th>Owner</th>
-          <th onclick="sortInit('status','GLOBAL')">Status â†•</th>
-          <th onclick="sortInit('rag_status','GLOBAL')">RAG â†•</th>
-          <th>Progress</th>
-          <th>Next Milestone</th>
-          <th>Last Review</th>
+          <th>Goal</th>
+          <th>Stream</th>
+          <th>Pillar</th>
+          <th>Theme</th>
+          <th>Timeframe</th>
         </tr></thead>
-        <tbody id="init-tbody-GLOBAL"></tbody>
+        <tbody id="commitments-tbody-GLOBAL"></tbody>
       </table>
     </div>
   </div>
 
-  <!-- GLOBAL: Evidence & Risks (collapsible) -->
-  <div class="section" id="section-global">
+  <div class="section" id="section-announcements-global">
     <div class="section-head">
-      <h2>Evidence &amp; Risks</h2>
-      <span class="sh-sub">Evidence library and risk register Â· all subsectors</span>
-      <button class="sh-collapse" id="ev-collapse-btn" onclick="toggleEvidenceSection()">
-        <span class="arrow">â–¼</span> <span id="ev-collapse-label">Collapse</span>
-      </button>
+      <h2>Relevant Announcements</h2>
     </div>
-    <div class="collapsible-body" id="ev-collapsible-body">
-      <div class="card" style="padding:18px;">
-        <div class="tab-bar">
-          <button class="tab-btn active" onclick="switchInnerTab('tab-evidence')">ðŸ“„ Evidence Library (<span id="ev-count">â€”</span>)</button>
-          <button class="tab-btn" onclick="switchInnerTab('tab-risks')">âš  Risks &amp; Gaps (<span id="risk-count">â€”</span>)</button>
-        </div>
-        <div class="tab-pane active" id="tab-evidence">
-          <div class="ev-toolbar">
-            <input type="text" id="ev-search" placeholder="Search evidenceâ€¦" oninput="renderEvidence()">
-            <select id="ev-type-filter" onchange="renderEvidence()">
-              <option value="ALL">All Types</option>
-              <option>Policy Document</option><option>Research Report</option>
-              <option>Data Release</option><option>News Article</option>
-            </select>
-            <select id="ev-subsector-filter" onchange="renderEvidence()">
-              <option value="ALL">All Subsectors</option>
-            </select>
-            <button class="btn-secondary" style="font-size:11px;padding:5px 12px;" onclick="exportEvidence()">â†“ Export</button>
-          </div>
-          <div class="table-scroll" style="border-radius:var(--radius);border:1px solid var(--color-border);">
-            <table class="ev-table">
-              <thead><tr><th>Type</th><th>Subsector(s)</th><th>Title</th><th>Summary</th><th>Author</th><th>Date</th><th>Confidence</th><th>Related</th><th>Link</th></tr></thead>
-              <tbody id="ev-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="tab-pane" id="tab-risks">
-          <div class="ev-toolbar">
-            <input type="text" id="risk-search" placeholder="Search risksâ€¦" oninput="renderRisks()">
-            <select id="risk-cat-filter" onchange="renderRisks()">
-              <option value="ALL">All Categories</option>
-              <option>Data &amp; Measurement</option><option>Policy</option>
-              <option>Workforce</option><option>Market Access</option><option>Funding</option>
-            </select>
-            <select id="risk-subsector-filter" onchange="renderRisks()">
-              <option value="ALL">All Subsectors</option>
-            </select>
-          </div>
-          <div class="table-scroll" style="border-radius:var(--radius);border:1px solid var(--color-border);">
-            <table class="risk-table">
-              <thead><tr><th>Category</th><th>Subsector(s)</th><th>Risk</th><th>Description</th><th>Severity</th><th>Likelihood</th><th>RAG</th><th>Owner</th><th>Mitigation</th><th>Reviewed</th></tr></thead>
-              <tbody id="risk-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
+    <div class="table-scroll">
+      <table class="init-table">
+        <thead><tr>
+          <th>Date</th>
+          <th>Headline; subtitle</th>
+          <th>Source</th>
+          <th>Region</th>
+          <th>Funding</th>
+          <th>Policy/regulation</th>
+          <th>Investment Promotion</th>
+          <th>Infrastructure</th>
+        </tr></thead>
+        <tbody id="announcements-tbody-GLOBAL"></tbody>
+      </table>
     </div>
   </div>
 
@@ -642,6 +599,11 @@ const STATE = {
 const LS_TREND_FILES = {
   gdp: 'LS GDP.csv',
   business: 'LS Business Count.csv',
+};
+
+const LS_SUPPLEMENTAL_FILES = {
+  commitments: '../../../../data/sectors/life_sciences/life_sciences_commitments_mock.csv',
+  announcements: '../../../../data/sectors/shared/sector_announcements_master_mock.csv',
 };
 
 const LS_SUBSECTOR_IMAGE_GROUPS = [
@@ -954,6 +916,13 @@ async function loadCSV(relPath) {
   return result.data;
 }
 
+async function loadCsvFromPath(path) {
+  const resp = await fetch(path);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${path}`);
+  const result = Papa.parse(await resp.text(), { header:true, skipEmptyLines:true, dynamicTyping:false });
+  return result.data;
+}
+
 function lsToNumber(v) {
   if (v===null || v===undefined) return null;
   const n = parseFloat(String(v).replace(/,/g,'').trim());
@@ -1150,6 +1119,27 @@ async function loadSectorTrendCsvData() {
   STATE.data.lsSectorTrends = lsBuildSectorTrendModel(gdpRows, bizRows);
 }
 
+async function loadLifeSciencesSupplementalData() {
+  const [commitmentsRes, announcementsRes] = await Promise.allSettled([
+    loadCsvFromPath(LS_SUPPLEMENTAL_FILES.commitments),
+    loadCsvFromPath(LS_SUPPLEMENTAL_FILES.announcements),
+  ]);
+
+  if (commitmentsRes.status === 'fulfilled') {
+    STATE.data.lsCommitments = commitmentsRes.value;
+  } else {
+    console.warn('Life sciences commitments file load failed:', commitmentsRes.reason);
+    STATE.data.lsCommitments = [];
+  }
+
+  if (announcementsRes.status === 'fulfilled') {
+    STATE.data.sharedAnnouncements = announcementsRes.value;
+  } else {
+    console.warn('Shared announcements file load failed:', announcementsRes.reason);
+    STATE.data.sharedAnnouncements = [];
+  }
+}
+
 async function loadWorkbookFromUrl(url) {
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
@@ -1186,6 +1176,7 @@ async function loadAllData() {
           console.warn('Sector trends CSV load failed:', e);
           STATE.data.lsSectorTrends = null;
         }
+        await loadLifeSciencesSupplementalData();
         return;
       }
       attempts.push(`${url}: empty workbook`);
@@ -2174,82 +2165,111 @@ function chartTalent(sid, color) {
     options:merge(COPTS,{plugins:{legend:{position:'bottom'}}}) });
 }
 
-/* â”€â”€ INITIATIVE TRACKER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-let initSort = { col:null, dir:1, sid:null };
-
-function sortInit(col, sid) {
-  if (initSort.col===col && initSort.sid===sid) initSort.dir*=-1;
-  else { initSort.col=col; initSort.dir=1; initSort.sid=sid; }
-  renderInitiativeTable(sid);
+/* COMMITMENTS + RELEVANT ANNOUNCEMENTS */
+function pickField(row, keys) {
+  if (!row) return '';
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(row, key)) return String(row[key] || '').trim();
+  }
+  return '';
 }
 
-function ensureInitiativeSubsectorOptions(sid) {
-  const el = document.getElementById('init-subsector-'+sid);
-  if (!el || el.dataset.ready) return;
-  const labels = getSubsectorLabelMap();
-  const ordered = (STATE.data.subsectors||[])
-    .slice()
-    .sort((a,b)=>(+a.tab_order||999)-(+b.tab_order||999))
-    .map(s => String(s.subsector_id||'').trim())
-    .filter(id => id && id !== 'ALL');
-  const options = ['<option value="ALL">All Subsectors</option>']
-    .concat(ordered.map(id => `<option value="${id}">${labels[id]||id}</option>`))
-    .join('');
-  el.innerHTML = options;
-  el.dataset.ready = '1';
+function toTick(value) {
+  const v = String(value || '').trim().toLowerCase();
+  if (['yes', 'y', 'true', '1'].includes(v)) {
+    return '<span style="color:var(--rag-green);font-weight:700;">&#10003;</span>';
+  }
+  return '';
 }
 
-function renderInitiativeTable(sid) {
-  ensureInitiativeSubsectorOptions(sid);
-  const ragEl  = document.getElementById('init-rag-'+sid);
-  const subEl  = document.getElementById('init-subsector-'+sid);
-  const srchEl = document.getElementById('init-search-'+sid);
-  const ragF   = ragEl ? ragEl.value : 'ALL';
-  const subF   = subEl ? subEl.value : 'ALL';
-  const srch   = ((srchEl&&srchEl.value)||'').toLowerCase();
+function isLifeSciencesSectorTag(value) {
+  return /\blife[\s_-]*sciences?\b/i.test(String(value || ''));
+}
 
-  let rows = (STATE.data.lwInitiatives||[]).map(r=>Object.assign({},r));
+function renderCommitmentsTable() {
+  const tbody = document.getElementById('commitments-tbody-GLOBAL');
+  if (!tbody) return;
 
-  if (ragF!=='ALL') rows=rows.filter(r=>r.rag_status===ragF);
-  if (subF!=='ALL') rows=rows.filter(r=>{ const ids=relatedSubsectorsForRow(r); return ids.includes('ALL') || ids.includes(subF); });
-  if (srch) rows=rows.filter(r=>[r.initiative_name,r.pillar,r.owner_ministry,r.description,r.next_milestone].join(' ').toLowerCase().includes(srch));
-
-  if (initSort.col && initSort.sid===sid) {
-    rows=[...rows].sort((a,b)=>{
-      const av=(a[initSort.col]||'').toLowerCase(), bv=(b[initSort.col]||'').toLowerCase();
-      return av<bv?-initSort.dir:av>bv?initSort.dir:0;
-    });
+  let rows = (STATE.data.lsCommitments || []).slice();
+  if (!rows.length) {
+    rows = (STATE.data.lwInitiatives || []).map((r) => ({
+      Goal: r.initiative_name || '',
+      Stream: r.stream || '',
+      Pillar: r.pillar || '',
+      Theme: r.theme || r.status || '',
+      Timeframe: r.timeframe || r.next_milestone_date || '',
+    }));
   }
 
-  const tbody = document.getElementById('init-tbody-'+sid);
-  if (!tbody) return;
-  const total = (STATE.data.lwInitiatives||[]).length;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--color-text-subtle);font-size:12px;font-style:italic;">No commitments available.</td></tr>';
+    return;
+  }
 
-  tbody.innerHTML = !rows.length
-    ? `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--color-text-subtle);font-size:12px;font-style:italic;">No initiatives available.</td></tr>`
-    : rows.map(r => {
-      const pct = Math.min(100,Math.max(0,+r.progress_pct||0));
-      return `<tr>
-        <td style="max-width:220px;line-height:1.4;">${r.initiative_name}</td>
-        <td style="white-space:nowrap;font-size:11px;color:var(--color-text-muted);">${r.pillar}</td>
-        <td style="font-size:11px;color:var(--color-text-muted);max-width:180px;line-height:1.4;">${subsectorLabelForRow(r)}</td>
-        <td style="font-size:11px;color:var(--color-text-muted);max-width:140px;">${r.owner_ministry}</td>
-        <td><span class="status-badge ${r.status}">${r.status}</span></td>
-        <td><span class="rag-pill ${r.rag_status}">${r.rag_status}</span></td>
-        <td><div style="font-size:11px;font-weight:600;">${pct}%</div><div class="prog-track"><div class="prog-fill ${r.rag_status}" style="width:${pct}%"></div></div></td>
-        <td style="font-size:11px;max-width:160px;line-height:1.4;">${r.next_milestone||'â€”'}${r.next_milestone_date?`<br><span style="color:var(--color-text-subtle);">${r.next_milestone_date}</span>`:''}</td>
-        <td style="font-size:11px;color:var(--color-text-subtle);">${r.last_review_date||'â€”'}</td>
-        
-      </tr>`;
-    }).join('');
-
-  const cEl = document.getElementById('init-count-'+sid);
-  if (cEl) cEl.textContent = `${rows.length} of ${total}`;
+  tbody.innerHTML = rows.map((r) => {
+    const goal = pickField(r, ['goal', 'Goal', 'initiative_name', 'Initiative']);
+    const stream = pickField(r, ['stream', 'Stream']);
+    const pillar = pickField(r, ['pillar', 'Pillar']);
+    const theme = pickField(r, ['theme', 'Theme']);
+    const timeframe = pickField(r, ['timeframe', 'Timeframe', 'time_frame']);
+    return `<tr>
+      <td style="max-width:260px;line-height:1.4;"><strong>${goal || '--'}</strong></td>
+      <td>${stream || '--'}</td>
+      <td>${pillar || '--'}</td>
+      <td>${theme || '--'}</td>
+      <td>${timeframe || '--'}</td>
+    </tr>`;
+  }).join('');
 }
 
-/* â”€â”€ EDIT MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-function exportInitiativesCSV() {
-  downloadCSV((STATE.data.lwInitiatives||[]), 'lookwest_initiatives_export.csv');
+function renderRelevantAnnouncementsTable() {
+  const tbody = document.getElementById('announcements-tbody-GLOBAL');
+  if (!tbody) return;
+
+  const filtered = (STATE.data.sharedAnnouncements || [])
+    .filter((r) =>
+      isLifeSciencesSectorTag(pickField(r, ['Primary Sector'])) ||
+      isLifeSciencesSectorTag(pickField(r, ['Secondary Sectors']))
+    )
+    .sort((a, b) => {
+      const da = Date.parse(pickField(a, ['Date']));
+      const db = Date.parse(pickField(b, ['Date']));
+      if (Number.isFinite(da) && Number.isFinite(db)) return db - da;
+      if (Number.isFinite(da)) return -1;
+      if (Number.isFinite(db)) return 1;
+      return pickField(b, ['Date']).localeCompare(pickField(a, ['Date']));
+    });
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--color-text-subtle);font-size:12px;font-style:italic;">No life sciences announcements found in shared dataset.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((r) => {
+    const date = pickField(r, ['Date']);
+    const headline = pickField(r, ['Headline']);
+    const subtitle = pickField(r, ['Subtitle']);
+    const source = pickField(r, ['Source']);
+    const url = pickField(r, ['URL']);
+    const region = pickField(r, ['Region']);
+    const sourceCell = /^https?:\/\//i.test(url)
+      ? `<a href="${url}" target="_blank" rel="noopener">${source || 'Link'}</a>`
+      : (source || '--');
+    const headlineCell = subtitle
+      ? `<strong>${headline || '--'}</strong><br><span style="color:var(--color-text-subtle);font-size:11px;">${subtitle}</span>`
+      : `<strong>${headline || '--'}</strong>`;
+
+    return `<tr>
+      <td>${date || '--'}</td>
+      <td style="max-width:320px;line-height:1.4;">${headlineCell}</td>
+      <td>${sourceCell}</td>
+      <td>${region || '--'}</td>
+      <td style="text-align:center;">${toTick(pickField(r, ['Funding/Investment?']))}</td>
+      <td style="text-align:center;">${toTick(pickField(r, ['Policy/Regulation?']))}</td>
+      <td style="text-align:center;">${toTick(pickField(r, ['Investment Promotion?']))}</td>
+      <td style="text-align:center;">${toTick(pickField(r, ['Infrastructure?']))}</td>
+    </tr>`;
+  }).join('');
 }
 
 /* â”€â”€ COLLAPSIBLE EVIDENCE & RISKS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -2665,6 +2685,7 @@ async function loadExcelFile(input) {
       console.warn('Sector trends CSV refresh failed:', csvErr);
       STATE.data.lsSectorTrends = null;
     }
+    await loadLifeSciencesSupplementalData();
     // Destroy cached charts so panels rebuild cleanly
     Object.values(STATE.charts).forEach(c=>{ try{c.destroy();}catch(e){} });
     STATE.charts = {};
@@ -2675,10 +2696,9 @@ async function loadExcelFile(input) {
     renderLookWest('GLOBAL');
     renderSectorKPIs();
     renderSectorCharts();
-    renderInitiativeTable('GLOBAL');
+    renderCommitmentsTable();
+    renderRelevantAnnouncementsTable();
     buildDisplayPanels();
-    renderEvidence();
-    renderRisks();
     // Mock banner
     const mb = document.getElementById('mock-banner');
     if (mb) mb.style.display = STATE.hasMockData ? '' : 'none';
@@ -2706,11 +2726,9 @@ async function init() {
     renderLookWest('GLOBAL');
     renderSectorKPIs();
     renderSectorCharts();
-    renderInitiativeTable('GLOBAL');
+    renderCommitmentsTable();
+    renderRelevantAnnouncementsTable();
     buildDisplayPanels();
-    renderEvidence();
-    renderRisks();
-    initEvidenceCollapse();
   } catch(err) {
     console.error('Dashboard init error:', err);
     const msg = String((err&&err.message)||'');
@@ -2731,4 +2749,8 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
+
+
+
+
 

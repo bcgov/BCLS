@@ -1,0 +1,9 @@
+﻿goal_id,pillar,goal_name,related_subsectors,baseline_year,baseline_value,target_year,target_value,current_year,current_value,unit,rag_status,progress_pct,last_updated
+TG-01,Visitor Economy,Grow B.C. tourism GDP contribution,TRANSPORT|TRAVEL|RECREATION|ACCOMMODATION|FOOD,2022,19.4,2030,25.0,2025,21.1,billion CAD,AMBER,46,2026-05-20
+TG-02,Regional Development,Increase tourism business activity outside Metro Vancouver,ACCOMMODATION|FOOD|RECREATION,2025,31.0,2030,38.0,2025,32.8,percent of sector businesses,AMBER,26,2026-05-20
+TG-03,Workforce,Improve labour availability in accommodation and food services,ACCOMMODATION|FOOD,2023,6.4,2030,4.8,2025,5.9,unemployment rate percent,GREEN,45,2026-05-20
+TG-04,Connectivity,Expand scheduled and non-scheduled air visitor access,TRANSPORT,2022,2.1,2030,3.1,2025,2.4,million annual seats equivalent,AMBER,30,2026-05-20
+TG-05,Experience Quality,Increase recreation and entertainment capacity,RECREATION,2025,3063,2030,3600,2025,3063,business count,AMBER,0,2026-05-20
+TG-06,Destination Readiness,Increase year-round accommodation capacity,ACCOMMODATION,2025,1790,2030,2150,2025,1790,business count,AMBER,0,2026-05-20
+TG-07,Market Reach,Expand travel-arrangement service footprint,TRAVEL,2025,662,2030,760,2025,662,business count,AMBER,0,2026-05-20
+TG-08,Sector Productivity,Raise real output per tourism worker,TRANSPORT|TRAVEL|RECREATION|ACCOMMODATION|FOOD,2022,128.0,2030,142.0,2025,133.5,index 2022=100,GREEN,39,2026-05-20

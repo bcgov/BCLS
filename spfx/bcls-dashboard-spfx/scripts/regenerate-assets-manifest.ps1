@@ -20,7 +20,7 @@ $xml += '<?xml version="1.0" encoding="utf-8"?>'
 $xml += '<Elements xmlns="http://schemas.microsoft.com/sharepoint/">'
 $xml += '  <Module Name="BCLSDashboardAssets" Url="SiteAssets/BCLS-Dashboard">'
 foreach ($rel in $rels) {
-  $xml += "    <File Path=\"BCLS-Dashboard/$rel\" Url=\"$rel\" Type=\"GhostableInLibrary\" ReplaceContent=\"TRUE\" />"
+  $xml += "    <File Path=""BCLS-Dashboard/$rel"" Url=""$rel"" Type=""GhostableInLibrary"" ReplaceContent=""TRUE"" />"
 }
 $xml += '  </Module>'
 $xml += '</Elements>'

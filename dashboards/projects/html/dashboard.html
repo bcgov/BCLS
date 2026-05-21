@@ -3,55 +3,1146 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script>
+    /* BCLS_EMBED_ONLY_REDIRECT */
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search || '');
+        if (params.get('standalone') === '1') return;
+        if (window.self !== window.top) return;
+        var target = new URL('../../bc_dashboard_hub/html/dashboard.html', window.location.href);
+        target.searchParams.set('section', 'projects');
+        window.location.replace(target.toString());
+      } catch (_) {}
+    })();
+  </script>
   <title>Projects Dashboard</title>
+  <script src="../../../shared/vendor/chart.umd.min.js"></script>
+  <script src="../../../shared/vendor/plotly-2.35.2.min.js"></script>
   <style>
     :root {
-      --accent: #BF360C;
-      --bg: #f4f7fb;
-      --ink: #17324d;
-      --muted: #5c6f82;
+      --bg: #f3f6fa;
       --card: #ffffff;
-      --border: #d8e1ea;
+      --ink: #1c2a39;
+      --muted: #5f7388;
+      --border: #d7e0ea;
+      --primary: #9f3f16;
+      --primary-2: #c1652f;
+      --shadow: 0 12px 28px rgba(17, 34, 51, 0.08);
+      --radius: 12px;
     }
+
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: linear-gradient(180deg, #eef4fa 0%, var(--bg) 100%); color: var(--ink); }
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 24px 48px; }
-    .hero { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px; box-shadow: 0 18px 45px rgba(23,50,77,0.08); }
-    .eyebrow { display: inline-block; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 12px; }
-    h1 { margin: 0 0 10px; font-size: 34px; line-height: 1.15; }
-    p { margin: 0; color: var(--muted); line-height: 1.6; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 24px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 20px; }
-    .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
-    .value { font-size: 20px; font-weight: 700; color: var(--ink); }
-    .note { margin-top: 24px; padding: 18px 20px; border-left: 4px solid var(--accent); background: rgba(255,255,255,0.8); border-radius: 14px; }
-    code { background: #eef3f8; padding: 2px 6px; border-radius: 6px; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #eef3f9 0%, var(--bg) 100%);
+      color: var(--ink);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .header {
+      background: linear-gradient(110deg, var(--primary) 0%, var(--primary-2) 100%);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .header-title { font-size: 24px; font-weight: 700; letter-spacing: -0.2px; }
+    .header-sub { font-size: 12px; opacity: 0.92; margin-top: 3px; }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .header-meta { font-size: 11px; opacity: 0.95; }
+    .cache-line {
+      margin: 0 24px;
+      padding: 8px 0 12px;
+      font-size: 12px;
+      color: #4a5f7f;
+      border-bottom: 1px solid #dbe6f4;
+    }
+
+    .btn {
+      border: 1px solid rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { background: rgba(255,255,255,0.24); }
+
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8d3a17;
+    }
+    .section-sub { font-size: 11px; color: var(--muted); }
+
+    .kpi-grid {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+    }
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+      position: relative;
+    }
+    .kpi::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      border-radius: 10px 10px 0 0;
+      background: var(--kpi-accent, #9f3f16);
+      opacity: 0.95;
+    }
+    .kpi-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #8d3a17;
+      line-height: 1.05;
+    }
+    .kpi-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    .toolbar {
+      padding: 12px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+    .toolbar label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .toolbar select,
+    .toolbar input {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: var(--ink);
+      background: #fff;
+    }
+    .toolbar input { min-width: 280px; }
+    .toolbar .count { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 600; }
+    .toolbar .btn-plain {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .toolbar .btn-plain:hover { background: #f7fbff; }
+
+    .visual-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    }
+    @media (max-width: 1100px) {
+      .visual-grid { grid-template-columns: 1fr; }
+    }
+
+    .map-wrap {
+      position: relative;
+      padding: 14px;
+    }
+    .map-frame {
+      width: 100%;
+      min-height: 450px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: linear-gradient(180deg, #ecf4fc 0%, #e5eef8 100%);
+      overflow: hidden;
+      position: relative;
+    }
+    .plotly-map {
+      width: 100%;
+      height: 450px;
+    }
+
+    .legend-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding: 0 14px 14px;
+    }
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+
+    .chart-wrap {
+      padding: 12px 14px 16px;
+      height: 500px;
+    }
+
+    .table-wrap { overflow: auto; }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 12px;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f7f9fc;
+      text-align: left;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      padding: 10px;
+      white-space: nowrap;
+    }
+    tbody td {
+      border-bottom: 1px solid #edf1f5;
+      padding: 9px 10px;
+      vertical-align: top;
+      line-height: 1.45;
+    }
+    tbody tr:hover { background: #f8fbff; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .nowrap { white-space: nowrap; }
+    .small { color: var(--muted); font-size: 11px; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .status.in-progress { background: #e9f2fd; color: #1556a5; border-color: #c6dcfa; }
+    .status.scoping { background: #fff4df; color: #8a6300; border-color: #f1dda6; }
+    .status.new { background: #e7f8f1; color: #166d4b; border-color: #bfead8; }
+    .status.completed { background: #e8f7ea; color: #1f7a39; border-color: #c7e8ce; }
+    .status.stalled { background: #fdecee; color: #9b1f2c; border-color: #f4c6cc; }
+
+    .error {
+      margin-top: 2px;
+      padding: 10px 12px;
+      border: 1px solid #efc9c9;
+      background: #fff2f2;
+      color: #8a1f1f;
+      border-radius: 9px;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <section class="hero">
-      <div class="eyebrow">Standalone Dashboard</div>
-      <h1>Projects</h1>
-      <p>Placeholder dashboard for the projects workbook and milestone tracking.</p>
-      <div class="grid">
-        <div class="card">
-          <div class="label">Status</div>
-          <div class="value">Planned</div>
-        </div>
-        <div class="card">
-          <div class="label">Expected Excel File</div>
-          <div class="value">Projects.xlsx</div>
-        </div>
-        <div class="card">
-          <div class="label">Folder</div>
-          <div class="value">dashboards/projects</div>
+  <header class="header">
+    <div>
+      <div class="header-title">Projects</div>
+      <div class="header-sub">Major project portfolio monitoring with integrated tracker details.</div>
+    </div>
+    <div class="header-right">
+      <button class="btn" id="btn-refresh" onclick="refreshData()">Update Data</button>
+      <div class="header-meta" id="meta-status">Loading...</div>
+    </div>
+  </header>
+  <div class="cache-line" id="cache-line">No cached data - click Update Data to load.</div>
+
+  <main class="main">
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Project Snapshot</div>
+          <div class="section-sub">High-level view of commitments, jobs, and contribution metrics</div>
         </div>
       </div>
-      <div class="note">
-        Add the standalone Projects dashboard here. The parent BC Dashboard Hub will embed this file automatically.
+      <div id="kpi-grid" class="kpi-grid"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Filters</div>
+          <div class="section-sub">Select a project to view matching tracker rows and map focus</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label>Project</label>
+        <select id="project-filter"></select>
+        <label>Region</label>
+        <select id="region-filter"></select>
+        <label>Status</label>
+        <select id="status-filter"></select>
+        <label>Tracker Search</label>
+        <input id="tracker-search" type="text" placeholder="Search change, next step, note, ministry..." />
+        <button class="btn-plain" id="btn-reset">Reset Filters</button>
+        <span class="count" id="filter-count"></span>
       </div>
     </section>
-  </div>
+
+    <section class="visual-grid">
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Project Footprint in B.C.</div>
+            <div class="section-sub">Interactive points by region. Click a point to filter by project.</div>
+          </div>
+        </div>
+        <div class="map-wrap">
+          <div class="map-frame" id="map-frame">
+            <svg id="bc-map" viewBox="0 0 680 460" preserveAspectRatio="xMidYMid meet">
+              <path id="bc-boundary" class="bc-boundary"></path>
+              <g id="project-points"></g>
+              <g id="project-labels"></g>
+            </svg>
+            <div class="map-tooltip" id="map-tooltip"></div>
+          </div>
+        </div>
+        <div class="legend-row" id="map-legend"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <div>
+            <div class="section-title">Investment and GDP by Project</div>
+            <div class="section-sub">Sum of tracker updates for selected projects</div>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="project-bars"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Major Projects</div>
+          <div class="section-sub">Portfolio-level reference table</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Project ID</th>
+              <th>Project Name</th>
+              <th>Region</th>
+              <th>Status</th>
+              <th class="num">Total Commitment ($M)</th>
+              <th class="num">Jobs Created</th>
+              <th class="num">Jobs Protected</th>
+              <th>Lead Ministry</th>
+              <th>Date Announced</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="projects-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Major Project Tracker</div>
+          <div class="section-sub">Announcement-level changes and next steps aligned to each project</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Announcement ID</th>
+              <th>Project ID</th>
+              <th>Ministry</th>
+              <th>Announcement Type</th>
+              <th>What Changed</th>
+              <th>Next Step</th>
+              <th class="num">Investment Attracted to B.C. ($M)</th>
+              <th class="num">Jobs Created</th>
+              <th class="num">Jobs Protected</th>
+              <th class="num">GDP Contribution ($M)</th>
+              <th class="num">Government Revenue Contribution ($M)</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody id="tracker-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div id="error-box"></div>
+  </main>
+
+  <script>
+    const DATA_FILES = {
+      projects: '../../../data/look_west_strategy/Major Projects.csv',
+      tracker: '../../../data/look_west_strategy/Major Project Tracker.csv',
+      bcBoundary: '../../../data/look_west_strategy/bc_pr_boundary_2021.geojson'
+    };
+
+    const STATUS_COLORS = {
+      'In Progress': '#1f70c1',
+      'Scoping': '#b78a14',
+      'New': '#2f9b72',
+      'Completed': '#4b9d4f',
+      'Stalled': '#c65567'
+    };
+
+    const REGION_COORDS = {
+      'Northern BC': { lat: 55.7, lon: -125.2 },
+      'Lower Mainland': { lat: 49.25, lon: -123.05 },
+      'Fraser Valley': { lat: 49.18, lon: -121.95 },
+      'Vancouver Island Coast': { lat: 49.40, lon: -124.20 },
+      'Kootenay': { lat: 49.60, lon: -116.95 },
+      'Thompson Okanagan': { lat: 50.20, lon: -119.35 }
+    };
+
+    const MAP_DIM = {
+      width: 680,
+      height: 460,
+      padding: 18
+    };
+
+    const STATE = {
+      projects: [],
+      tracker: [],
+      boundaryRings: [],
+      mapProjector: null,
+      filteredProjects: [],
+      filteredTracker: [],
+      chart: null,
+      loadedAt: null
+    };
+
+    function normalizeText(v) {
+      return String(v || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function parseNumber(v) {
+      const s = normalizeText(v).replace(/[$,]/g, '');
+      if (!s || s.toUpperCase() === 'N/A') return 0;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function toDateValue(v) {
+      const s = normalizeText(v);
+      if (!s) return null;
+      const d = new Date(s);
+      return isNaN(d) ? null : d;
+    }
+
+    function formatDate(v) {
+      const d = v instanceof Date ? v : toDateValue(v);
+      if (!d) return '-';
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${d.getFullYear()}-${mm}-${dd}`;
+    }
+
+    function formatNumber(n) {
+      return Number(n || 0).toLocaleString('en-CA');
+    }
+
+    function formatMoneyM(n) {
+      return '$' + formatNumber(Math.round(Number(n || 0))) + 'M';
+    }
+
+    function canonicalStatus(raw) {
+      const s = normalizeText(raw).toLowerCase();
+      if (!s) return 'Unknown';
+      if (s.includes('in progress')) return 'In Progress';
+      if (s.includes('scope')) return 'Scoping';
+      if (s.includes('new')) return 'New';
+      if (s.includes('complete')) return 'Completed';
+      if (s.includes('stall') || s.includes('delay') || s.includes('pause')) return 'Stalled';
+      return normalizeText(raw);
+    }
+
+    function statusClass(status) {
+      return normalizeText(status).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    }
+
+    function parseCsvText(text) {
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+      const src = String(text || '');
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        const next = src[i + 1];
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            cell += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+        if (ch === ',' && !inQuotes) {
+          row.push(cell);
+          cell = '';
+          continue;
+        }
+        if ((ch === '\n' || ch === '\r') && !inQuotes) {
+          if (ch === '\r' && next === '\n') i += 1;
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = '';
+          continue;
+        }
+        cell += ch;
+      }
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell);
+        rows.push(row);
+      }
+      if (!rows.length) return [];
+      const headers = rows[0].map((h) => normalizeText(h));
+      return rows.slice(1)
+        .filter((r) => r.some((v) => normalizeText(v)))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = String(r[i] || '').trim(); });
+          return obj;
+        });
+    }
+
+    async function loadCsv(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to fetch required dataset (HTTP ${res.status})`);
+      return parseCsvText(await res.text());
+    }
+
+    async function loadJson(url) {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to fetch required dataset (HTTP ${res.status})`);
+      return res.json();
+    }
+
+    function extractRingsFromGeometry(geometry) {
+      if (!geometry || !geometry.type) return [];
+      if (geometry.type === 'Polygon') return Array.isArray(geometry.coordinates) ? geometry.coordinates : [];
+      if (geometry.type === 'MultiPolygon') {
+        return (geometry.coordinates || []).flatMap((poly) => Array.isArray(poly) ? poly : []);
+      }
+      return [];
+    }
+
+    function extractBoundaryRings(geojson) {
+      if (!geojson) return [];
+      if (geojson.type === 'FeatureCollection') {
+        return (geojson.features || []).flatMap((f) => extractRingsFromGeometry(f.geometry));
+      }
+      if (geojson.type === 'Feature') return extractRingsFromGeometry(geojson.geometry);
+      return extractRingsFromGeometry(geojson);
+    }
+
+    function simplifyRing(ring, step) {
+      const coords = Array.isArray(ring) ? ring : [];
+      if (coords.length <= 120 || step <= 1) return coords;
+      const out = [];
+      for (let i = 0; i < coords.length; i += step) out.push(coords[i]);
+      const first = coords[0];
+      const last = coords[coords.length - 1];
+      const outLast = out[out.length - 1];
+      if (!outLast || outLast[0] !== last[0] || outLast[1] !== last[1]) out.push(last);
+      if (out[0] && out[out.length - 1] && (out[0][0] !== out[out.length - 1][0] || out[0][1] !== out[out.length - 1][1])) {
+        out.push(out[0]);
+      }
+      return out;
+    }
+
+    function buildProjector(rings) {
+      const points = [];
+      rings.forEach((ring) => ring.forEach((pt) => {
+        if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) points.push(pt);
+      }));
+      if (!points.length) {
+        return (lon, lat) => ({ x: MAP_DIM.width / 2, y: MAP_DIM.height / 2 });
+      }
+
+      const lons = points.map((p) => p[0]);
+      const lats = points.map((p) => p[1]);
+      const minLon = Math.min(...lons);
+      const maxLon = Math.max(...lons);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const innerWidth = MAP_DIM.width - MAP_DIM.padding * 2;
+      const innerHeight = MAP_DIM.height - MAP_DIM.padding * 2;
+      const lonSpan = Math.max(0.0001, maxLon - minLon);
+      const latSpan = Math.max(0.0001, maxLat - minLat);
+      const scale = Math.min(innerWidth / lonSpan, innerHeight / latSpan);
+      const usedWidth = lonSpan * scale;
+      const usedHeight = latSpan * scale;
+      const offsetX = MAP_DIM.padding + (innerWidth - usedWidth) / 2;
+      const offsetY = MAP_DIM.padding + (innerHeight - usedHeight) / 2;
+
+      return (lon, lat) => ({
+        x: offsetX + (lon - minLon) * scale,
+        y: offsetY + (maxLat - lat) * scale
+      });
+    }
+
+    function normalizeProject(row) {
+      const id = normalizeText(row['Project-ID'] || row['Project ID']);
+      return {
+        id,
+        name: normalizeText(row['Project Name']),
+        description: normalizeText(row['Description']),
+        displayOrder: parseNumber(row['Display Order']) || 999,
+        dateAnnounced: toDateValue(row['Date Announced']),
+        stream: normalizeText(row['Stream']),
+        pillar: normalizeText(row['Pillar']),
+        theme: normalizeText(row['Theme']),
+        sector: normalizeText(row['Sector']),
+        region: normalizeText(row['Region']),
+        totalCommitment: parseNumber(row['Total Commitment Value']),
+        jobsCreated: parseNumber(row['Jobs Created']),
+        jobsProtected: parseNumber(row['Jobs Protected']),
+        status: canonicalStatus(row['Status']),
+        leadMinistry: normalizeText(row['Lead Ministry']),
+        fundingSource: normalizeText(row['Funding Source']),
+        url: normalizeText(row['URL'])
+      };
+    }
+
+    function normalizeTracker(row) {
+      return {
+        announcementId: normalizeText(row['Announcement ID']),
+        projectId: normalizeText(row['Project ID'] || row['Project-ID']),
+        ministry: normalizeText(row['Ministry']),
+        announcementType: normalizeText(row['Announcement Type']),
+        whatChanged: normalizeText(row['What Changed']),
+        nextStep: normalizeText(row['Next Step']),
+        investmentAttracted: parseNumber(row['Investment Attracted to BC ($M)']),
+        jobsCreated: parseNumber(row['Jobs Created']),
+        jobsProtected: parseNumber(row['Jobs Protected']),
+        gdpContribution: parseNumber(row['GDP Contribution ($M)']),
+        govRevenueContribution: parseNumber(row['Government Revenue Contribution ($M)']),
+        note: normalizeText(row['Note'])
+      };
+    }
+
+    async function loadData() {
+      const [projectRows, trackerRows, bcBoundary] = await Promise.all([
+        loadCsv(new URL(DATA_FILES.projects, window.location.href).toString()),
+        loadCsv(new URL(DATA_FILES.tracker, window.location.href).toString()),
+        loadJson(new URL(DATA_FILES.bcBoundary, window.location.href).toString())
+      ]);
+      STATE.projects = projectRows.map(normalizeProject).filter((p) => p.id && p.name)
+        .sort((a, b) => a.displayOrder - b.displayOrder || a.id.localeCompare(b.id));
+      STATE.tracker = trackerRows.map(normalizeTracker).filter((r) => r.announcementId && r.projectId);
+      STATE.boundaryRings = extractBoundaryRings(bcBoundary)
+        .filter((ring) => Array.isArray(ring) && ring.length > 3)
+        .map((ring) => simplifyRing(ring, 4));
+      STATE.mapProjector = buildProjector(STATE.boundaryRings);
+      STATE.loadedAt = new Date();
+    }
+
+    function buildFilterOptions() {
+      const projectSelect = document.getElementById('project-filter');
+      const regionSelect = document.getElementById('region-filter');
+      const statusSelect = document.getElementById('status-filter');
+      const prevProject = projectSelect.value;
+      const prevRegion = regionSelect.value;
+      const prevStatus = statusSelect.value;
+
+      const projectOptions = ['<option value="ALL">All Projects</option>']
+        .concat(STATE.projects.map((p) => `<option value="${esc(p.id)}">${esc(p.id)} - ${esc(p.name)}</option>`));
+      const regionOptions = ['<option value="ALL">All Regions</option>']
+        .concat([...new Set(STATE.projects.map((p) => p.region).filter(Boolean))].sort()
+          .map((v) => `<option value="${esc(v)}">${esc(v)}</option>`));
+      const statusOptions = ['<option value="ALL">All Statuses</option>']
+        .concat([...new Set(STATE.projects.map((p) => p.status).filter(Boolean))].sort()
+          .map((v) => `<option value="${esc(v)}">${esc(v)}</option>`));
+
+      projectSelect.innerHTML = projectOptions.join('');
+      regionSelect.innerHTML = regionOptions.join('');
+      statusSelect.innerHTML = statusOptions.join('');
+
+      if ([...projectSelect.options].some((o) => o.value === prevProject)) projectSelect.value = prevProject;
+      if ([...regionSelect.options].some((o) => o.value === prevRegion)) regionSelect.value = prevRegion;
+      if ([...statusSelect.options].some((o) => o.value === prevStatus)) statusSelect.value = prevStatus;
+    }
+
+    function activeFilters() {
+      return {
+        project: document.getElementById('project-filter').value || 'ALL',
+        region: document.getElementById('region-filter').value || 'ALL',
+        status: document.getElementById('status-filter').value || 'ALL',
+        search: normalizeText(document.getElementById('tracker-search').value).toLowerCase()
+      };
+    }
+
+    function applyFilters() {
+      const f = activeFilters();
+      const filteredProjects = STATE.projects.filter((p) => {
+        if (f.project !== 'ALL' && p.id !== f.project) return false;
+        if (f.region !== 'ALL' && p.region !== f.region) return false;
+        if (f.status !== 'ALL' && p.status !== f.status) return false;
+        return true;
+      });
+
+      const visibleProjectIds = new Set(filteredProjects.map((p) => p.id));
+      let filteredTracker = STATE.tracker.filter((r) => visibleProjectIds.has(r.projectId));
+      if (f.search) {
+        filteredTracker = filteredTracker.filter((r) => {
+          const blob = [
+            r.announcementId, r.projectId, r.ministry, r.announcementType,
+            r.whatChanged, r.nextStep, r.note
+          ].join(' ').toLowerCase();
+          return blob.includes(f.search);
+        });
+      }
+
+      STATE.filteredProjects = filteredProjects;
+      STATE.filteredTracker = filteredTracker;
+      document.getElementById('filter-count').textContent =
+        `${filteredProjects.length} projects | ${filteredTracker.length} tracker rows`;
+    }
+
+    function sum(arr, key) {
+      return arr.reduce((acc, x) => acc + (Number(x[key]) || 0), 0);
+    }
+
+    function renderKpis() {
+      const projects = STATE.filteredProjects;
+      const tracker = STATE.filteredTracker;
+
+      const totalCommitment = sum(projects, 'totalCommitment');
+      const jobsCreatedProjects = sum(projects, 'jobsCreated');
+      const jobsProtectedProjects = sum(projects, 'jobsProtected');
+      const investmentAttracted = sum(tracker, 'investmentAttracted');
+      const gdpContribution = sum(tracker, 'gdpContribution');
+      const govRevenue = sum(tracker, 'govRevenueContribution');
+      const ministries = new Set(tracker.map((r) => r.ministry).filter(Boolean)).size;
+
+      const cards = [
+        { label: 'Projects in View', value: formatNumber(projects.length), note: 'Filtered portfolio count' },
+        { label: 'Total Commitment', value: formatMoneyM(totalCommitment), note: 'From major projects portfolio' },
+        { label: 'Jobs Created / Protected', value: `${formatNumber(jobsCreatedProjects)} / ${formatNumber(jobsProtectedProjects)}`, note: 'Portfolio-level job outlook' },
+        { label: 'Tracker Updates', value: formatNumber(tracker.length), note: 'Announcement-level rows in scope' },
+        { label: 'Investment Attracted', value: formatMoneyM(investmentAttracted), note: 'Sum of tracker investment values' },
+        { label: 'GDP Contribution', value: formatMoneyM(gdpContribution), note: 'Sum of tracker GDP contributions' },
+        { label: 'Gov Revenue Contribution', value: formatMoneyM(govRevenue), note: 'Sum of tracker government revenue' },
+        { label: 'Ministries Involved', value: formatNumber(ministries), note: 'Distinct ministries in tracker rows' }
+      ];
+
+      const palette = ['#9f3f16', '#2f7fb4', '#3e8d74', '#ab7f1b', '#6b67a8', '#4f7f63', '#9a4f75', '#5b8299'];
+      document.getElementById('kpi-grid').innerHTML = cards.map((c, i) => `
+        <div class="kpi" style="--kpi-accent:${palette[i % palette.length]}">
+          <div class="kpi-label">${esc(c.label)}</div>
+          <div class="kpi-value">${esc(c.value)}</div>
+          <div class="kpi-note">${esc(c.note)}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderProjectsTable() {
+      const rows = STATE.filteredProjects;
+      const tbody = document.getElementById('projects-body');
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="10" class="small">No projects match the selected filters.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map((p) => `
+        <tr>
+          <td class="nowrap"><strong>${esc(p.id)}</strong></td>
+          <td><div>${esc(p.name)}</div><div class="small">${esc(p.description || '')}</div></td>
+          <td>${esc(p.region || '-')}</td>
+          <td><span class="status ${statusClass(p.status)}">${esc(p.status || 'Unknown')}</span></td>
+          <td class="num">${formatNumber(p.totalCommitment)}</td>
+          <td class="num">${formatNumber(p.jobsCreated)}</td>
+          <td class="num">${formatNumber(p.jobsProtected)}</td>
+          <td>${esc(p.leadMinistry || '-')}</td>
+          <td class="nowrap">${formatDate(p.dateAnnounced)}</td>
+          <td>${p.url ? `<a href="${esc(p.url)}" target="_blank" rel="noopener">Link</a>` : '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderTrackerTable() {
+      const rows = STATE.filteredTracker;
+      const tbody = document.getElementById('tracker-body');
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="12" class="small">No tracker rows match the current project/filter selection.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map((r) => `
+        <tr>
+          <td class="nowrap">${esc(r.announcementId)}</td>
+          <td class="nowrap"><strong>${esc(r.projectId)}</strong></td>
+          <td>${esc(r.ministry || '-')}</td>
+          <td>${esc(r.announcementType || '-')}</td>
+          <td>${esc(r.whatChanged || '-')}</td>
+          <td>${esc(r.nextStep || '-')}</td>
+          <td class="num">${formatNumber(r.investmentAttracted)}</td>
+          <td class="num">${formatNumber(r.jobsCreated)}</td>
+          <td class="num">${formatNumber(r.jobsProtected)}</td>
+          <td class="num">${formatNumber(r.gdpContribution)}</td>
+          <td class="num">${formatNumber(r.govRevenueContribution)}</td>
+          <td>${esc(r.note || '-')}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderMap() {
+      const boundary = document.getElementById('bc-boundary');
+      const pointsGroup = document.getElementById('project-points');
+      const labelsGroup = document.getElementById('project-labels');
+      const tooltip = document.getElementById('map-tooltip');
+      const mapFrame = document.getElementById('map-frame');
+      const selectedProjectId = document.getElementById('project-filter').value;
+      const projector = STATE.mapProjector || (() => ({ x: MAP_DIM.width / 2, y: MAP_DIM.height / 2 }));
+
+      const boundaryPath = (STATE.boundaryRings || []).map((ring) => {
+        const pts = (ring || []).filter((pt) => Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1]));
+        if (pts.length < 3) return '';
+        return pts.map((pt, idx) => {
+          const p = projector(pt[0], pt[1]);
+          return `${idx === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+        }).join(' ') + ' Z';
+      }).join(' ');
+      boundary.setAttribute('d', boundaryPath);
+
+      const activeIds = new Set(STATE.filteredProjects.map((p) => p.id));
+      const groupedByRegion = {};
+      STATE.projects.forEach((p) => {
+        const key = p.region || 'Unknown';
+        if (!groupedByRegion[key]) groupedByRegion[key] = [];
+        groupedByRegion[key].push(p);
+      });
+
+      const circles = [];
+      const labels = [];
+      Object.keys(groupedByRegion).forEach((region) => {
+        const ll = REGION_COORDS[region];
+        if (!ll) return;
+        const center = projector(ll.lon, ll.lat);
+        groupedByRegion[region].forEach((p, idx) => {
+          const offsetX = (idx % 3) * 13 - 13;
+          const offsetY = Math.floor(idx / 3) * 13 - 6;
+          const x = center.x + offsetX;
+          const y = center.y + offsetY;
+          const color = STATUS_COLORS[p.status] || '#6a7f93';
+          const dimmed = activeIds.size && !activeIds.has(p.id);
+          const selected = selectedProjectId !== 'ALL' && p.id === selectedProjectId;
+          const radius = selected ? 8.8 : 7;
+          circles.push(`
+            <circle
+              class="project-point ${dimmed ? 'dimmed' : ''} ${selected ? 'selected' : ''}"
+              data-project-id="${esc(p.id)}"
+              cx="${x.toFixed(1)}"
+              cy="${y.toFixed(1)}"
+              r="${radius}"
+              fill="${color}"></circle>
+          `);
+          labels.push(`<text class="map-label" x="${(x + 10).toFixed(1)}" y="${(y + 3).toFixed(1)}">${esc(p.id)}</text>`);
+        });
+      });
+
+      pointsGroup.innerHTML = circles.join('');
+      labelsGroup.innerHTML = labels.join('');
+
+      pointsGroup.querySelectorAll('.project-point').forEach((node) => {
+        node.addEventListener('mouseenter', () => {
+          const id = node.getAttribute('data-project-id');
+          const p = STATE.projects.find((x) => x.id === id);
+          if (!p) return;
+          tooltip.innerHTML = `
+            <div><strong>${esc(p.id)} - ${esc(p.name)}</strong></div>
+            <div>Region: ${esc(p.region || '-')}</div>
+            <div>Status: ${esc(p.status || '-')}</div>
+            <div>Total Commitment: ${formatMoneyM(p.totalCommitment)}</div>
+          `;
+          tooltip.classList.add('show');
+        });
+        node.addEventListener('mousemove', (event) => {
+          const rect = mapFrame.getBoundingClientRect();
+          const left = Math.min(rect.width - 270, Math.max(10, event.clientX - rect.left + 12));
+          const top = Math.min(rect.height - 80, Math.max(10, event.clientY - rect.top + 12));
+          tooltip.style.transform = `translate(${left}px, ${top}px)`;
+        });
+        node.addEventListener('mouseleave', () => {
+          tooltip.classList.remove('show');
+          tooltip.style.transform = 'translate(-999px, -999px)';
+        });
+        node.addEventListener('click', () => {
+          const id = node.getAttribute('data-project-id');
+          const projectSelect = document.getElementById('project-filter');
+          projectSelect.value = id;
+          applyFilters();
+          renderAll();
+        });
+      });
+
+      const resetFilterFromMap = () => {
+        const projectSelect = document.getElementById('project-filter');
+        if (projectSelect.value === 'ALL') return;
+        projectSelect.value = 'ALL';
+        applyFilters();
+        renderAll();
+      };
+      boundary.onclick = resetFilterFromMap;
+
+      const counts = {};
+      STATE.projects.forEach((p) => {
+        counts[p.status] = (counts[p.status] || 0) + 1;
+      });
+      document.getElementById('map-legend').innerHTML = Object.keys(counts).sort().map((status) => `
+        <span class="legend-item">
+          <span class="legend-dot" style="background:${STATUS_COLORS[status] || '#6a7f93'}"></span>
+          ${esc(status)} (${formatNumber(counts[status])})
+        </span>
+      `).join('');
+    }
+
+    function renderChart() {
+      if (typeof Chart === 'undefined') return;
+      const canvas = document.getElementById('project-bars');
+      if (STATE.chart) {
+        STATE.chart.destroy();
+        STATE.chart = null;
+      }
+
+      const projectLookup = Object.fromEntries(STATE.filteredProjects.map((p) => [p.id, p.name]));
+      const projectIds = STATE.filteredProjects.map((p) => p.id);
+      const agg = {};
+      projectIds.forEach((id) => { agg[id] = { investment: 0, gdp: 0 }; });
+      STATE.filteredTracker.forEach((row) => {
+        if (!agg[row.projectId]) return;
+        agg[row.projectId].investment += row.investmentAttracted;
+        agg[row.projectId].gdp += row.gdpContribution;
+      });
+
+      const labels = projectIds;
+      const investmentData = projectIds.map((id) => Math.round(agg[id].investment));
+      const gdpData = projectIds.map((id) => Math.round(agg[id].gdp));
+      const rawMax = Math.max(...investmentData, ...gdpData, 1);
+      const axisMax = Math.max(100, Math.ceil((rawMax * 1.2) / 5) * 5);
+
+      if (!labels.length) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#6a7e94';
+        ctx.font = '12px Segoe UI';
+        ctx.fillText('No project data available for current filters.', 24, 32);
+        return;
+      }
+
+      Chart.defaults.font.family = '"Segoe UI", Arial, sans-serif';
+      Chart.defaults.color = '#5f7388';
+
+      STATE.chart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Investment Attracted ($M)',
+              data: investmentData,
+              borderRadius: 4,
+              backgroundColor: '#2f7fb4'
+            },
+            {
+              label: 'GDP Contribution ($M)',
+              data: gdpData,
+              borderRadius: 4,
+              backgroundColor: '#3e8d74'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  if (!items || !items.length) return '';
+                  const id = items[0].label;
+                  return `${id} - ${projectLookup[id] || ''}`;
+                },
+                label: (ctx) => ` ${ctx.dataset.label}: ${formatMoneyM(ctx.parsed.x)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 0,
+              max: axisMax,
+              grace: '10%',
+              grid: { color: '#edf1f5' },
+              ticks: { callback: (v) => '$' + v + 'M', font: { size: 11 } }
+            },
+            y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function updateMeta(sourceLabel) {
+      const source = sourceLabel || 'Live data';
+      const el = document.getElementById('meta-status');
+      const cacheLine = document.getElementById('cache-line');
+      if (!STATE.loadedAt) {
+        el.textContent = 'No data loaded';
+        cacheLine.textContent = 'No cached data - click Update Data to load.';
+        return;
+      }
+      const when = STATE.loadedAt.toLocaleString('en-CA');
+      el.textContent = source + ' - Last updated: ' + when;
+      cacheLine.textContent = source + ' - Last updated: ' + when + ' - Click Update Data to refresh.';
+    }
+
+    function showError(msg) {
+      document.getElementById('error-box').innerHTML = `<div class="error">${msg}</div>`;
+    }
+
+    function clearError() {
+      document.getElementById('error-box').innerHTML = '';
+    }
+
+    function renderAll() {
+      renderKpis();
+      renderMap();
+      renderChart();
+      renderProjectsTable();
+      renderTrackerTable();
+    }
+
+    async function refreshData() {
+      const btn = document.getElementById('btn-refresh');
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      clearError();
+      try {
+        await loadData();
+        buildFilterOptions();
+        applyFilters();
+        renderAll();
+        updateMeta('Live data');
+        btn.textContent = 'Updated';
+      } catch (e) {
+        const protoHint = location.protocol === 'file:' ? ' Start local server (python scripts/serve.py).' : '';
+        showError('Could not load projects data: ' + (e && e.message ? e.message : e) + protoHint);
+        btn.textContent = 'Update Data';
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = 'Update Data';
+        }, 700);
+      }
+    }
+
+    function bindFilters() {
+      document.getElementById('project-filter').addEventListener('change', () => {
+        applyFilters();
+        renderAll();
+      });
+      document.getElementById('region-filter').addEventListener('change', () => {
+        applyFilters();
+        renderAll();
+      });
+      document.getElementById('status-filter').addEventListener('change', () => {
+        applyFilters();
+        renderAll();
+      });
+      document.getElementById('tracker-search').addEventListener('input', () => {
+        applyFilters();
+        renderAll();
+      });
+      document.getElementById('btn-reset').addEventListener('click', () => {
+        document.getElementById('project-filter').value = 'ALL';
+        document.getElementById('region-filter').value = 'ALL';
+        document.getElementById('status-filter').value = 'ALL';
+        document.getElementById('tracker-search').value = '';
+        applyFilters();
+        renderAll();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      bindFilters();
+      if (location.protocol === 'file:') {
+        document.getElementById('meta-status').textContent = 'File mode - server required';
+        showError('Opened as local file. Run python scripts/serve.py and open via http://localhost:8080.');
+        return;
+      }
+      refreshData();
+    });
+  </script>
 </body>
 </html>

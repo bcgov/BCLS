@@ -16,6 +16,8 @@
     <File Path="BCLS-Dashboard/dashboards/sectors/construction_innovation/html/dashboard.html" Url="dashboards/sectors/construction_innovation/html/dashboard.html" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/dashboards/sectors/future_sector_01/html/dashboard.html" Url="dashboards/sectors/future_sector_01/html/dashboard.html" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/dashboards/sectors/future_sector_02/html/dashboard.html" Url="dashboards/sectors/future_sector_02/html/dashboard.html" Type="GhostableInLibrary" ReplaceContent="TRUE" />
+    <File Path="BCLS-Dashboard/dashboards/sectors/life_sciences/data/LS Business Count.csv" Url="dashboards/sectors/life_sciences/data/LS Business Count.csv" Type="GhostableInLibrary" ReplaceContent="TRUE" />
+    <File Path="BCLS-Dashboard/dashboards/sectors/life_sciences/data/LS GDP.csv" Url="dashboards/sectors/life_sciences/data/LS GDP.csv" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/dashboards/sectors/life_sciences/docs/Logo.png" Url="dashboards/sectors/life_sciences/docs/Logo.png" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/dashboards/sectors/life_sciences/html/dashboard.html" Url="dashboards/sectors/life_sciences/html/dashboard.html" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/dashboards/sectors/maritime/docs/Logo.png" Url="dashboards/sectors/maritime/docs/Logo.png" Type="GhostableInLibrary" ReplaceContent="TRUE" />
@@ -28,7 +30,6 @@
     <File Path="BCLS-Dashboard/data/look_west_strategy/look_west_media_coverage_mock.xlsx" Url="data/look_west_strategy/look_west_media_coverage_mock.xlsx" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/data/look_west_strategy/lw_related_funding_investments_mock.xlsx" Url="data/look_west_strategy/lw_related_funding_investments_mock.xlsx" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/data/sectors/life_sciences/Life_Sciences_light.xlsx" Url="data/sectors/life_sciences/Life_Sciences_light.xlsx" Type="GhostableInLibrary" ReplaceContent="TRUE" />
-    <File Path="BCLS-Dashboard/data/sectors/tourism/Tourism_light.xlsx" Url="data/sectors/tourism/Tourism_light.xlsx" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/shared/vendor/chart.umd.min.js" Url="shared/vendor/chart.umd.min.js" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/shared/vendor/chartjs-chart-treemap.min.js" Url="shared/vendor/chartjs-chart-treemap.min.js" Type="GhostableInLibrary" ReplaceContent="TRUE" />
     <File Path="BCLS-Dashboard/shared/vendor/xlsx.full.min.js" Url="shared/vendor/xlsx.full.min.js" Type="GhostableInLibrary" ReplaceContent="TRUE" />

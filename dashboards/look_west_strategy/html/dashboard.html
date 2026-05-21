@@ -3,8 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+  /* BCLS_EMBED_ONLY_REDIRECT */
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../bc_dashboard_hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'strategy');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
   <title>Look West Strategy Dashboard</title>
-  <script src="../../../shared/vendor/xlsx.full.min.js"></script>
   <script src="../../../shared/vendor/chart.umd.min.js"></script>
   <style>
     :root {
@@ -107,6 +119,21 @@
       border-radius: 10px;
       padding: 12px;
       background: #fff;
+      position: relative;
+      overflow: visible;
+      z-index: 0;
+    }
+    .kpi::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      border-radius: 10px 10px 0 0;
+      z-index: 1;
+      opacity: 0.95;
+      background: var(--kpi-accent, #4b7ea8);
     }
     .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 6px; }
     .kpi-value { font-size: 28px; font-weight: 700; color: var(--primary); line-height: 1.05; }
@@ -138,20 +165,21 @@
       max-height: 520px;
       overflow: auto;
     }
-    #media-table {
+    .media-data-table {
       table-layout: fixed;
       width: 100%;
     }
-    #media-table th,
-    #media-table td {
+    .media-data-table th,
+    .media-data-table td {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    #media-table td:nth-child(6) {
+    .media-data-table td:nth-child(5) {
       max-width: 520px;
     }
-    #media-table td:nth-child(7) {
+    .media-data-table td:nth-child(6),
+    .media-data-table td:nth-child(7) {
       white-space: normal;
       overflow: visible;
       text-overflow: clip;
@@ -346,8 +374,8 @@
     <section class="card">
       <div class="section-head">
         <div>
-          <div class="section-title">Summary KPIs</div>
-          <div class="section-sub">Media coverage + funding and investments</div>
+          <div class="section-title">Strategy Delivery Snapshot</div>
+          <div class="section-sub">Integrated strategy, announcements, funding, and policy records</div>
         </div>
       </div>
       <div id="kpi-grid" class="kpi-grid"></div>
@@ -356,8 +384,8 @@
     <!-- ── Funding & Investment Charts (Life-Sciences-style) ── -->
     <div class="lw-section" id="lw-funding-charts-section" style="display:none">
       <div class="lw-section-head">
-        <h2>Funding &amp; Investment Overview</h2>
-        <span class="sh-sub">Aggregate breakdown from Funding and Investments table</span>
+        <h2>Investment and Project Pipeline</h2>
+        <span class="sh-sub">Cross-program commitments and delivery trends</span>
         <button class="chart-settings-btn" onclick="lwToggleChartPanel()">
           &#9881; Select Charts
         </button>
@@ -376,39 +404,77 @@
     <section class="card">
       <div class="section-head">
         <div>
-          <div class="section-title">Media Coverage Tracker</div>
+          <div class="section-title">Media Coverage</div>
+          <div class="section-sub">Announcements and news relevant to strategy delivery</div>
+        </div>
+      </div>
+
+      <div class="section-head" style="border-bottom:1px solid var(--border);padding-top:10px;padding-bottom:10px;">
+        <div>
+          <div class="section-title" style="font-size:11px;">Announcements</div>
         </div>
       </div>
       <div class="toolbar">
-        <label>Source</label><select id="media-source" onchange="renderMediaTable()"></select>
-        <label>Pillar</label><select id="media-pillar" onchange="renderMediaTable()"></select>
-        <label>Theme</label><select id="media-theme" onchange="renderMediaTable()"></select>
-        <input id="media-search" type="text" placeholder="Search headline, source, sector..." oninput="renderMediaTable()" />
-        <span class="count" id="media-count"></span>
+        <label>Source</label><select id="ann-source" onchange="renderAnnouncementsTable()"></select>
+        <label>Pillar</label><select id="ann-pillar" onchange="renderAnnouncementsTable()"></select>
+        <label>Theme</label><select id="ann-theme" onchange="renderAnnouncementsTable()"></select>
+        <input id="ann-search" type="text" placeholder="Search headline, source, sector..." oninput="renderAnnouncementsTable()" />
+        <span class="count" id="ann-count"></span>
       </div>
       <div class="table-wrap media-table-wrap">
-        <table id="media-table">
+        <table class="media-data-table">
           <thead>
             <tr>
-              <th onclick="setSort('media','date')">Date</th>
-              <th onclick="setSort('media','sourceType')">Source Type</th>
-              <th onclick="setSort('media','source')">Source</th>
-              <th onclick="setSort('media','pillar')">Pillar</th>
-              <th onclick="setSort('media','theme')">Theme</th>
-              <th onclick="setSort('media','headline')">Headline</th>
-              <th onclick="setSort('media','sector')">Sector</th>
+              <th onclick="setSort('announcements','date')">Date</th>
+              <th onclick="setSort('announcements','source')">Source</th>
+              <th onclick="setSort('announcements','pillar')">Pillar</th>
+              <th onclick="setSort('announcements','theme')">Theme</th>
+              <th onclick="setSort('announcements','headline')">Headline</th>
+              <th onclick="setSort('announcements','primarySector')">Primary Sector</th>
+              <th onclick="setSort('announcements','region')">Region</th>
             </tr>
           </thead>
-          <tbody id="media-body"></tbody>
+          <tbody id="ann-body"></tbody>
         </table>
       </div>
-      <div class="pager" id="media-pager"></div>
+      <div class="pager" id="ann-pager"></div>
+
+      <div class="section-head" style="border-bottom:1px solid var(--border);padding-top:10px;padding-bottom:10px;">
+        <div>
+          <div class="section-title" style="font-size:11px;">News</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label>Source</label><select id="news-source" onchange="renderNewsTable()"></select>
+        <label>Pillar</label><select id="news-pillar" onchange="renderNewsTable()"></select>
+        <label>Theme</label><select id="news-theme" onchange="renderNewsTable()"></select>
+        <input id="news-search" type="text" placeholder="Search title, source, sector..." oninput="renderNewsTable()" />
+        <span class="count" id="news-count"></span>
+      </div>
+      <div class="table-wrap media-table-wrap">
+        <table class="media-data-table">
+          <thead>
+            <tr>
+              <th onclick="setSort('news','date')">Date</th>
+              <th onclick="setSort('news','source')">Source</th>
+              <th onclick="setSort('news','pillar')">Pillar</th>
+              <th onclick="setSort('news','theme')">Theme</th>
+              <th onclick="setSort('news','headline')">Title</th>
+              <th onclick="setSort('news','sector')">Sector</th>
+              <th onclick="setSort('news','region')">Region</th>
+            </tr>
+          </thead>
+          <tbody id="news-body"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="news-pager"></div>
     </section>
 
     <section class="card">
       <div class="section-head">
         <div>
-          <div class="section-title">Funding and Investments</div>
+          <div class="section-title">Investment and Project Pipeline</div>
+          <div class="section-sub">Funding, project, infrastructure, and investment promotion records</div>
         </div>
       </div>
       <div class="toolbar">
@@ -444,7 +510,8 @@
     <section class="card">
       <div class="section-head">
         <div>
-          <div class="section-title">Policy and Regulations</div>
+          <div class="section-title">Policy &amp; Regulations</div>
+          <div class="section-sub">Regulatory and policy tracking records</div>
         </div>
       </div>
       <div class="toolbar">
@@ -477,17 +544,18 @@
   </main>
 
   <script>
-    const MEDIA_FILE_CANDIDATES = [
-      '/api/excel-file?key=look_west_media'
-    ];
-    const FUNDING_FILE_CANDIDATES = [
-      '/api/excel-file?key=look_west_funding'
-    ];
-    const POLICY_FILE_CANDIDATES = [
-      '/api/excel-file?key=look_west_policy'
-    ];
-
-    const MEDIA_SHEETS = ['"Look West" news', 'BC Gov News', 'Federal Announcements', 'Other related news'];
+    const CSV_FILES = {
+      actionPlans: 'Action Plans.csv',
+      commitments: 'Action Plans Commitments.csv',
+      fundingPrograms: 'Funding Programs.csv',
+      infrastructures: 'Infrastructures.csv',
+      investmentPromotion: 'Investment Promotion.csv',
+      announcements: 'LW Announcements.csv',
+      news: 'LW News.csv',
+      majorProjects: 'Major Projects.csv',
+      policy: 'Policy & Regulations.csv',
+      targets: 'Targets.csv'
+    };
 
     const PILLARS = [
       'Strengthening Our Workforce',
@@ -496,37 +564,37 @@
       'Growing Targeted Sectors'
     ];
 
-    const STATUSES = ['New', 'Scoping', 'In Progress', 'Stalled', 'Completed'];
-
-    const THEMES = [
-      'Skills Training',
-      'policy',
-      'Investment Attraction',
-      'Permitting & Authorizations',
-      'Tech adoption',
-      'Supply Chain',
-      'Partnerships'
-    ];
-
     const STATE = {
+      actionPlans: [],
+      commitments: [],
+      fundingPrograms: [],
+      infrastructures: [],
+      investmentPromotion: [],
+      announcements: [],
+      news: [],
+      majorProjects: [],
+      targets: [],
       media: [],
       funding: [],
       policy: [],
       loadedAt: null,
-      dataMode: 'unknown',
-      mediaPage: 1,
-      mediaPageSize: 10,
+      dataMode: 'integrated',
+      annPage: 1,
+      annPageSize: 10,
+      newsPage: 1,
+      newsPageSize: 10,
       fundPage: 1,
       fundPageSize: 10,
       polPage: 1,
       polPageSize: 10,
       sort: {
-        media: { key: 'date', dir: 'desc' },
+        announcements: { key: 'date', dir: 'desc' },
+        news: { key: 'date', dir: 'desc' },
         fund: { key: 'date', dir: 'desc' },
         policy: { key: 'date', dir: 'desc' }
       }
     };
-    const CACHE_KEY = 'LW_DASHBOARD_CACHE_V1';
+    const CACHE_KEY = 'LW_DASHBOARD_CACHE_V2';
 
     function normalizeText(v) {
       return String(v || '').replace(/\s+/g, ' ').trim();
@@ -544,6 +612,62 @@
       if (!s) return '';
       if (/^https?:\/\//i.test(s)) return s;
       return '';
+    }
+    function parseCsvText(text) {
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+      const src = String(text || '');
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        const next = src[i + 1];
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            cell += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+        if (ch === ',' && !inQuotes) {
+          row.push(cell);
+          cell = '';
+          continue;
+        }
+        if ((ch === '\n' || ch === '\r') && !inQuotes) {
+          if (ch === '\r' && next === '\n') i += 1;
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = '';
+          continue;
+        }
+        cell += ch;
+      }
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell);
+        rows.push(row);
+      }
+      if (!rows.length) return [];
+      const headers = rows[0].map((h) => normalizeText(h));
+      return rows.slice(1)
+        .filter((r) => r.some((v) => normalizeText(v) !== ''))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = String(r[idx] || '').trim(); });
+          return obj;
+        });
+    }
+    function csvUrl(fileName) {
+      return new URL(`../../../data/look_west_strategy/${fileName}`, window.location.href).toString();
+    }
+    async function loadCsvFile(fileName) {
+      const url = csvUrl(fileName);
+      const res = await fetch(url, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`Failed to fetch required dataset (HTTP ${res.status})`);
+      return parseCsvText(await res.text());
     }
     function getField(row, candidates) {
       if (!row || !candidates || !candidates.length) return '';
@@ -568,7 +692,7 @@
 
     function toDateValue(v) {
       if (v instanceof Date && !isNaN(v)) return v;
-      if (typeof v === 'number') {
+      if (typeof v === 'number' && typeof XLSX !== 'undefined' && XLSX.SSF && XLSX.SSF.parse_date_code) {
         const d = XLSX.SSF.parse_date_code(v);
         if (d && d.y) return new Date(d.y, d.m - 1, d.d);
       }
@@ -584,43 +708,6 @@
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
       return `${d.getFullYear()}-${mm}-${dd}`;
-    }
-
-    function sheetToObjects(ws, requiredHeader) {
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-      if (!rows.length) return [];
-
-      const target = requiredHeader.toLowerCase();
-      let headerIndex = -1;
-      for (let i = 0; i < Math.min(rows.length, 20); i++) {
-        const has = (rows[i] || []).some(c => normalizeText(c).toLowerCase() === target);
-        if (has) {
-          headerIndex = i;
-          break;
-        }
-      }
-      if (headerIndex < 0) return [];
-
-      const headers = (rows[headerIndex] || []).map(h => normalizeText(h));
-      const out = [];
-      for (let r = headerIndex + 1; r < rows.length; r++) {
-        const row = rows[r] || [];
-        const obj = {};
-        const links = {};
-        let hasData = false;
-        for (let c = 0; c < headers.length; c++) {
-          if (!headers[c]) continue;
-          obj[headers[c]] = row[c];
-          const ref = XLSX.utils.encode_cell({ r, c });
-          const cell = ws[ref];
-          const target = normalizeUrl(cell && cell.l ? (cell.l.Target || cell.l.target || '') : '');
-          if (target) links[headers[c]] = target;
-          if (normalizeText(row[c])) hasData = true;
-        }
-        if (Object.keys(links).length) obj.__links = links;
-        if (hasData) out.push(obj);
-      }
-      return out;
     }
 
     function canonicalStatus(raw) {
@@ -652,6 +739,12 @@
       const m = String(text || '').match(rx);
       return m ? normalizeText(m[1]) : '';
     }
+    function normalizeFlag(value) {
+      const s = normalizeText(value).toLowerCase();
+      if (!s) return '';
+      if (['yes', 'y', 'true', '1', 'warm', 'hot'].includes(s)) return 'Y';
+      return 'N';
+    }
 
     function inferPillar(text) {
       const s = normalizeText(text).toLowerCase();
@@ -660,213 +753,224 @@
       if (/(export|market|trade mission|indo-pacific|diversif)/.test(s)) return 'Diversifying Markets';
       return 'Growing Targeted Sectors';
     }
-
-    function normalizeMediaRow(sheetName, row) {
-      const date = toDateValue(row['Date'] || row['Date Announced']);
-      const source = normalizeText(row['Source'] || row['Ministry'] || '');
-      const sector = normalizeText(row['Sector / Stakeholder'] || row['Sector (column to be replaced with Primary Sector/Secondary Theme)'] || row['Primary Sector'] || row['Sector'] || '');
-      const headline = normalizeText(row['Headline'] || row['Announcement'] || '');
-      const headlineUrl = normalizeUrl(
-        (row.__links && (row.__links['Headline'] || row.__links['Announcement'])) ||
-        row['URL'] ||
-        row['Url'] ||
-        row['Link'] ||
-        row['Article URL'] ||
-        row['Article Url'] ||
-        row['Source URL'] ||
-        row['Source Url'] ||
-        row['Hyperlink'] ||
-        ''
-      );
-      const message = normalizeText(getField(row, [
-        'Theme / Key message',
-        'Theme / Key Message',
-        'Theme / Key  Message',
-        'Theme/Key Message',
-        'Theme / Key Msg',
-        'Theme',
-        'Key Message'
-      ]));
-      const temp = normalizeText(row['"Temp Check"'] || row['Temp Check'] || row['LW Mention'] || '');
-
-      const sourceBlob = [sector, headline, message, temp, row['Secondary Theme'], row['LW Pillar']].map(normalizeText).join(' | ');
-      const parsedStatus = canonicalStatus(extractToken(sourceBlob, 'Status'));
-      const parsedTheme = canonicalTheme(extractToken(sourceBlob, 'Theme'));
-
-      const theme = parsedTheme || canonicalTheme(row['Secondary Theme'] || row['Theme / Key message'] || row['Theme / Key  Message']) || 'Partnerships';
-      const status = parsedStatus || canonicalStatus(temp) || (sheetName === 'Federal Announcements' ? 'Scoping' : 'In Progress');
-      const pillar = inferPillar([sector, headline, message, theme].join(' '));
-
+    function sourceAmounts(total, sourceText) {
+      const src = normalizeText(sourceText).toLowerCase();
+      const amt = Number(total) || 0;
+      const out = { provincial: 0, attracted: 0, federal: 0, other: 0 };
+      if (!amt) return out;
+      if (src.includes('provincial')) out.provincial = amt;
+      else if (src.includes('federal')) out.federal = amt;
+      else if (src.includes('attracted') || src.includes('private') || src.includes('investor')) out.attracted = amt;
+      else out.other = amt;
+      return out;
+    }
+    function normalizeMediaFromNews(row) {
+      const theme = canonicalTheme(row['Theme']) || 'Partnerships';
       return {
-        date,
-        sourceType: sheetName,
-        source,
-        sector,
-        headline,
-        headlineUrl,
-        message,
-        tempCheck: temp,
+        date: toDateValue(row['Date']),
+        sourceType: 'News',
+        source: normalizeText(row['Ministry']) || normalizeText(row['Source']) || 'News',
+        sector: normalizeText(row['Sector']),
+        headline: normalizeText(row['Title']),
+        headlineUrl: normalizeUrl(row['URL']),
+        message: normalizeText(row['Key Message']),
+        tempCheck: normalizeFlag(row['LW Mentioned?'] || row['Temperature Rate']),
         theme,
-        status,
-        pillar
+        status: canonicalStatus(row['Temperature Rate']) || 'In Progress',
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Sector'], row['Title'], row['Key Message'], theme].join(' '))
       };
     }
-
-    function normalizeFundingRow(row) {
-      const date = toDateValue(row['Date Announced']);
-      const project = normalizeText(row['Project/Program Name']);
-      const details = normalizeText(row['Project Details']);
-
-      const explicitStatus = canonicalStatus(extractToken(details, 'Status'));
-      const explicitTheme = canonicalTheme(extractToken(details, 'Theme'));
-
-      const status = explicitStatus || canonicalStatus(row['New/Old Announcement?']) || 'In Progress';
-      const theme = explicitTheme || canonicalTheme(row['LW Sector'] || row['Secondary Sector'] || details) || 'Partnerships';
-
-      const provincial = parseNumber(row['Provincial Commitment ($M)']) || 0;
-      const attracted = parseNumber(row['Investment attracted to BC($M)']) || 0;
-      const federal = parseNumber(row['Federal ($M)']) || 0;
-      const other = parseNumber(row['Other Sources ($M)']) || 0;
-      const totalRaw = parseNumber(row['Total Investment Value ($M)']);
-      const total = totalRaw !== null ? totalRaw : provincial + attracted + federal + other;
-
+    function normalizeMediaFromAnnouncement(row) {
+      const theme = canonicalTheme(row['Theme']) || 'Partnerships';
       return {
-        date,
-        source: normalizeText(row['Funding Source']),
-        project,
-        pillar: normalizeText(row['LW Pillar']) || inferPillar([row['LW Sector'], details].join(' ')),
-        lwSector: normalizeText(row['LW Sector']),
+        date: toDateValue(row['Date']),
+        sourceType: 'Announcement',
+        source: normalizeText(row['Source']) || normalizeText(row['Ministry']) || 'Announcement',
+        sector: [normalizeText(row['Primary Sector']), normalizeText(row['Secondary Sectors'])].filter(Boolean).join('; '),
+        headline: [normalizeText(row['Headline']), normalizeText(row['Subtitle'])].filter(Boolean).join(' - '),
+        headlineUrl: normalizeUrl(row['URL']),
+        message: normalizeText(row['Key Message']),
+        tempCheck: normalizeFlag(row['LW Mentioned?']),
         theme,
-        status,
-        partner: normalizeText(row['Partner Org.']),
-        details,
-        provincial,
-        attracted,
-        federal,
-        other,
+        status: 'In Progress',
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Primary Sector'], row['Headline'], row['Key Message'], theme].join(' '))
+      };
+    }
+    function normalizeMediaFromActionPlan(row) {
+      const theme = canonicalTheme(row['Theme']) || 'Partnerships';
+      return {
+        date: toDateValue(row['Release Date']),
+        sourceType: 'Action Plan',
+        source: normalizeText(row['Lead Ministry']) || 'Action Plan',
+        sector: normalizeText(row['Sector']),
+        headline: normalizeText(row['Title']),
+        headlineUrl: normalizeUrl(row['URL']),
+        message: normalizeText(row['Description']),
+        tempCheck: 'Y',
+        theme,
+        status: canonicalStatus(row['Status']) || 'In Progress',
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Sector'], row['Title'], row['Description'], theme].join(' '))
+      };
+    }
+    function normalizeFundingFromProgram(row) {
+      const total = parseNumber(row['Total Commitment Value']) || 0;
+      const parts = sourceAmounts(total, row['Lead Funding Source']);
+      return {
+        date: toDateValue(row['Date Announced']),
+        source: normalizeText(row['Lead Funding Source']) || 'Other',
+        project: normalizeText(row['Program Name']),
+        pillar: normalizeText(row['Pillar.lookupValue']) || inferPillar(row['Description']),
+        lwSector: normalizeText(row['Sector.lookupValue']),
+        theme: canonicalTheme(row['Theme.lookupValue']) || 'Partnerships',
+        status: canonicalStatus(row['Commitment Status']) || 'In Progress',
+        partner: normalizeText(row['Partner Organizations']),
+        details: normalizeText(row['Description']),
+        provincial: parts.provincial,
+        attracted: parts.attracted,
+        federal: parts.federal,
+        other: parts.other,
         total,
         jobsCreated: parseNumber(row['Jobs Created']) || 0,
         jobsProtected: parseNumber(row['Jobs Protected']) || 0,
-        region: normalizeText(row['Econ. Devt. Region']),
-        dataSource: normalizeText(row['Data Source'])
+        region: normalizeText(row['Region.lookupValue']),
+        dataSource: 'Funding Programs.csv'
       };
     }
-
+    function normalizeFundingFromMajorProject(row) {
+      const total = parseNumber(row['Total Commitment Value']) || 0;
+      const parts = sourceAmounts(total, row['Funding Source']);
+      return {
+        date: toDateValue(row['Date Announced']),
+        source: normalizeText(row['Funding Source']) || 'Other',
+        project: normalizeText(row['Project Name']),
+        pillar: normalizeText(row['Pillar']) || inferPillar(row['Description']),
+        lwSector: normalizeText(row['Sector']),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        status: canonicalStatus(row['Status']) || 'In Progress',
+        partner: normalizeText(row['Lead Ministry']),
+        details: normalizeText(row['Description']),
+        provincial: parts.provincial,
+        attracted: parts.attracted,
+        federal: parts.federal,
+        other: parts.other,
+        total,
+        jobsCreated: parseNumber(row['Jobs Created']) || 0,
+        jobsProtected: parseNumber(row['Jobs Protected']) || 0,
+        region: normalizeText(row['Region']),
+        dataSource: 'Major Projects.csv'
+      };
+    }
+    function normalizeFundingFromInfrastructure(row) {
+      const total = parseNumber(row['Total Estimated Value ($M)']) || 0;
+      const parts = sourceAmounts(total, row['Funding Source']);
+      return {
+        date: toDateValue(row['Date Announced']),
+        source: normalizeText(row['Funding Source']) || 'Other',
+        project: normalizeText(row['Infrastructure Name']),
+        pillar: normalizeText(row['Pillar']) || inferPillar(row['Description']),
+        lwSector: normalizeText(row['Sector']),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        status: 'In Progress',
+        partner: normalizeText(row['Partner/Stakeholder']),
+        details: normalizeText(row['Description']),
+        provincial: parts.provincial,
+        attracted: parts.attracted,
+        federal: parts.federal,
+        other: parts.other,
+        total,
+        jobsCreated: parseNumber(row['Jobs Created']) || 0,
+        jobsProtected: parseNumber(row['Jobs Protected']) || 0,
+        region: normalizeText(row['Region']),
+        dataSource: 'Infrastructures.csv'
+      };
+    }
+    function normalizeFundingFromInvestmentPromotion(row) {
+      const total = parseNumber(row['Estimated Value ($M)']) || 0;
+      const parts = sourceAmounts(total, 'Attracted');
+      return {
+        date: toDateValue(row['Date Announced']),
+        source: 'Attracted',
+        project: normalizeText(row['Initiative Name']),
+        pillar: normalizeText(row['Pillar']) || inferPillar(row['Description']),
+        lwSector: normalizeText(row['Sector']),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        status: canonicalStatus(row['Status']) || 'In Progress',
+        partner: normalizeText(row['Partner Organizations']),
+        details: normalizeText(row['Description']),
+        provincial: parts.provincial,
+        attracted: parts.attracted,
+        federal: parts.federal,
+        other: parts.other,
+        total,
+        jobsCreated: 0,
+        jobsProtected: 0,
+        region: normalizeText(row['Region']),
+        dataSource: 'Investment Promotion.csv'
+      };
+    }
     function normalizePolicyRow(row) {
       return {
         date: toDateValue(row['Date Announced'] || row['Date']),
-        policyRegulation: normalizeText(row['Policy/Regulation'] || row['Policy / Regulation']),
+        policyRegulation: normalizeText(row['Policy / Regulation'] || row['Policy/Regulation']),
         jurisdiction: normalizeText(row['Jurisdiction']),
-        lwSector: normalizeText(row['LW Sector']),
+        lwSector: normalizeText(row['Sector'] || row['LW Sector']),
         secondarySector: normalizeText(row['Secondary Sector']),
         policyType: normalizeText(row['Policy Type']),
-        whatChanged: normalizeText(row['What Changed']),
-        outcomeArea: normalizeText(row['LW Outome Area'] || row['LW Outcome Area']),
+        whatChanged: normalizeText(row['Description'] || row['What Changed']),
+        outcomeArea: normalizeText(row['LW Outcome Area']),
         source: normalizeText(row['Source']),
-        sourceUrl: normalizeUrl(
-          (row.__links && row.__links['Source']) ||
-          row['Source URL'] ||
-          row['Source Url'] ||
-          row['URL'] ||
-          row['Url'] ||
-          row['Link'] ||
-          ''
-        )
+        sourceUrl: normalizeUrl(row['URL'] || row['Source URL'] || row['Source Url'])
       };
-    }
-
-    async function loadWorkbook(url) {
-      const res = await fetch(url);
-      if (!res.ok) {
-        let detail = '';
-        try {
-          const ct = (res.headers.get('content-type') || '').toLowerCase();
-          if (ct.includes('application/json')) {
-            const j = await res.json();
-            detail = j && (j.error || j.details || '');
-          } else {
-            detail = (await res.text() || '').slice(0, 220);
-          }
-        } catch (_) {}
-        const suffix = detail ? `: ${detail}` : '';
-        throw new Error(`Failed to fetch ${url} (HTTP ${res.status})${suffix}`);
-      }
-      const ab = await res.arrayBuffer();
-      const sourceHeader = String(res.headers.get('x-bcls-data-source') || '').toLowerCase();
-      let sourceKind = 'unknown';
-      if (sourceHeader === 'mapped-path') sourceKind = 'real';
-      if (sourceHeader === 'mock-fallback') sourceKind = 'mock';
-      return {
-        wb: XLSX.read(new Uint8Array(ab), { type: 'array' }),
-        sourceKind
-      };
-    }
-
-    async function loadWorkbookFromCandidates(candidates, label) {
-      let lastErr = null;
-      for (const url of candidates) {
-        try {
-          return await loadWorkbook(url);
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-      throw new Error(`${label} workbook not found/readable. Tried: ${candidates.join(', ')}. Last error: ${(lastErr && lastErr.message) || lastErr}`);
     }
 
     async function loadData() {
-      if (typeof XLSX === 'undefined') {
-        throw new Error('SheetJS library not loaded. Check internet access for CDN script.');
-      }
+      const entries = Object.entries(CSV_FILES);
+      const loaded = await Promise.all(entries.map(async ([key, name]) => [key, await loadCsvFile(name)]));
+      const data = Object.fromEntries(loaded);
 
-      const mediaSrc = await loadWorkbookFromCandidates(MEDIA_FILE_CANDIDATES, 'Media');
-      const fundSrc = await loadWorkbookFromCandidates(FUNDING_FILE_CANDIDATES, 'Funding');
-      const policySrc = await loadWorkbookFromCandidates(POLICY_FILE_CANDIDATES, 'Policy');
-      parseWorkbooks(mediaSrc.wb, fundSrc.wb, policySrc.wb);
-      const kinds = [mediaSrc.sourceKind, fundSrc.sourceKind, policySrc.sourceKind];
-      if (kinds.every(k => k === 'real')) STATE.dataMode = 'real';
-      else if (kinds.every(k => k === 'mock')) STATE.dataMode = 'mock';
-      else if (kinds.includes('real') && kinds.includes('mock')) STATE.dataMode = 'mixed';
-      else STATE.dataMode = 'unknown';
-    }
+      STATE.actionPlans = data.actionPlans || [];
+      STATE.commitments = data.commitments || [];
+      STATE.fundingPrograms = data.fundingPrograms || [];
+      STATE.infrastructures = data.infrastructures || [];
+      STATE.investmentPromotion = data.investmentPromotion || [];
+      STATE.announcements = data.announcements || [];
+      STATE.news = data.news || [];
+      STATE.majorProjects = data.majorProjects || [];
+      STATE.targets = data.targets || [];
+      STATE.policy = (data.policy || []).map(normalizePolicyRow).filter(r => normalizeText(r.policyRegulation));
 
-    function parseWorkbooks(mediaWb, fundWb, policyWb) {
+      const mediaRows = []
+        .concat(STATE.news.map(normalizeMediaFromNews))
+        .concat(STATE.announcements.map(normalizeMediaFromAnnouncement))
+        .concat(STATE.actionPlans.map(normalizeMediaFromActionPlan))
+        .filter(r => r.date || r.headline);
 
-      const mediaRows = [];
-      for (const sheetName of MEDIA_SHEETS) {
-        const ws = mediaWb.Sheets[sheetName];
-        if (!ws) continue;
-        const required = sheetName === 'Other related news' ? 'Date' : 'Date';
-        const rows = sheetToObjects(ws, required);
-        rows.forEach(r => mediaRows.push(normalizeMediaRow(sheetName, r)));
-      }
+      const fundingRows = []
+        .concat(STATE.fundingPrograms.map(normalizeFundingFromProgram))
+        .concat(STATE.majorProjects.map(normalizeFundingFromMajorProject))
+        .concat(STATE.infrastructures.map(normalizeFundingFromInfrastructure))
+        .concat(STATE.investmentPromotion.map(normalizeFundingFromInvestmentPromotion))
+        .filter(r => normalizeText(r.project));
 
-      const fundSheetName = (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'funding and investments')
-        || (fundWb.SheetNames || []).find(n => normalizeText(n).toLowerCase().includes('funding and investments'))
-        || 'Funding and Investments';
-      const fundWs = fundWb.Sheets[fundSheetName];
-      const fundingRows = fundWs
-        ? sheetToObjects(fundWs, 'Date Announced').map(normalizeFundingRow).filter(r => normalizeText(r.project))
-        : [];
-      const policySheetName = (policyWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'policy & regulations')
-        || (policyWb.SheetNames || []).find(n => normalizeText(n).toLowerCase() === 'policy and regulations')
-        || (policyWb.SheetNames || []).find(n => normalizeText(n).toLowerCase().includes('policy') && normalizeText(n).toLowerCase().includes('regulation'))
-        || 'Policy & Regulations';
-      const policyWs = policyWb.Sheets[policySheetName];
-      const policyRows = policyWs
-        ? sheetToObjects(policyWs, 'Date Announced').map(normalizePolicyRow).filter(r => normalizeText(r.policyRegulation))
-        : [];
-
-      STATE.media = mediaRows.filter(r => r.date || r.headline);
+      STATE.media = mediaRows;
       STATE.funding = fundingRows;
-      STATE.policy = policyRows;
       STATE.loadedAt = new Date();
+      STATE.dataMode = 'integrated';
     }
 
     function storageSave() {
       try {
         const payload = {
           loadedAt: STATE.loadedAt ? STATE.loadedAt.toISOString() : null,
+          actionPlans: STATE.actionPlans,
+          commitments: STATE.commitments,
+          fundingPrograms: STATE.fundingPrograms,
+          infrastructures: STATE.infrastructures,
+          investmentPromotion: STATE.investmentPromotion,
+          announcements: STATE.announcements,
+          news: STATE.news,
+          majorProjects: STATE.majorProjects,
+          targets: STATE.targets,
           media: STATE.media,
           funding: STATE.funding,
           policy: STATE.policy,
@@ -881,12 +985,21 @@
         const raw = localStorage.getItem(CACHE_KEY);
         if (!raw) return false;
         const payload = JSON.parse(raw);
-        if (!payload || !Array.isArray(payload.media) || !Array.isArray(payload.funding)) return false;
+        if (!payload || !Array.isArray(payload.media) || !Array.isArray(payload.funding) || !Array.isArray(payload.policy)) return false;
+        STATE.actionPlans = Array.isArray(payload.actionPlans) ? payload.actionPlans : [];
+        STATE.commitments = Array.isArray(payload.commitments) ? payload.commitments : [];
+        STATE.fundingPrograms = Array.isArray(payload.fundingPrograms) ? payload.fundingPrograms : [];
+        STATE.infrastructures = Array.isArray(payload.infrastructures) ? payload.infrastructures : [];
+        STATE.investmentPromotion = Array.isArray(payload.investmentPromotion) ? payload.investmentPromotion : [];
+        STATE.announcements = Array.isArray(payload.announcements) ? payload.announcements : [];
+        STATE.news = Array.isArray(payload.news) ? payload.news : [];
+        STATE.majorProjects = Array.isArray(payload.majorProjects) ? payload.majorProjects : [];
+        STATE.targets = Array.isArray(payload.targets) ? payload.targets : [];
         STATE.media = payload.media;
         STATE.funding = payload.funding;
-        STATE.policy = Array.isArray(payload.policy) ? payload.policy : [];
+        STATE.policy = payload.policy;
         STATE.loadedAt = payload.loadedAt ? new Date(payload.loadedAt) : null;
-        STATE.dataMode = payload.dataMode || 'unknown';
+        STATE.dataMode = payload.dataMode || 'integrated';
         return true;
       } catch (_) {
         return false;
@@ -894,10 +1007,8 @@
     }
 
     function dataModeLabel() {
-      if (STATE.dataMode === 'real') return 'Real';
-      if (STATE.dataMode === 'mock') return 'Mock';
-      if (STATE.dataMode === 'mixed') return 'Mixed';
-      return 'Unknown';
+      if (STATE.dataMode === 'integrated') return 'Integrated data';
+      return 'Data';
     }
 
     function sum(arr, fn) {
@@ -917,10 +1028,10 @@
     const LW_CHART_PREFS_KEY = 'lw_chart_prefs_v1';
 
     const LW_CHART_DEFS = [
-      { id: 'pillar-invest',  title: 'Investment by Pillar ($M)' },
-      { id: 'funding-mix',   title: 'Funding Mix' },
-      { id: 'top-regions',   title: 'Top Regions by Investment ($M)' },
-      { id: 'employment',    title: 'Employment Impact by Pillar' }
+      { id: 'pillar-invest',  title: 'Total Commitment Value by Pillar ($M)' },
+      { id: 'funding-mix',   title: 'Lead Funding Source Mix' },
+      { id: 'top-regions',   title: 'Top Regions by Total Commitment Value ($M)' },
+      { id: 'employment',    title: 'Jobs Created and Protected by Pillar' }
     ];
 
     function lwGetChartPrefs() {
@@ -1029,10 +1140,10 @@
     }
 
     function lwChartSubtitle(id) {
-      if (id === 'pillar-invest')  return 'Stacked by funding type — Provincial, Attracted, Federal, Other';
-      if (id === 'funding-mix')    return 'Total investment share by source type';
-      if (id === 'top-regions')    return 'Economic development regions ranked by total investment value';
-      if (id === 'employment')     return 'Jobs created and protected per Look West pillar';
+      if (id === 'pillar-invest')  return 'Combined funding, project, infrastructure, and investment promotion records';
+      if (id === 'funding-mix')    return 'Grouped by funding source across integrated records';
+      if (id === 'top-regions')    return 'Grouped by region across integrated records';
+      if (id === 'employment')     return 'Jobs metrics from funding, project, and infrastructure records';
       return '';
     }
 
@@ -1155,9 +1266,12 @@
       const media = STATE.media;
       const funding = STATE.funding;
       const policy = STATE.policy;
+      const actionPlans = STATE.actionPlans;
+      const targets = STATE.targets;
+      const totalAnnouncements = STATE.announcements.filter(r => normalizeText(r['Announcement ID']) || normalizeText(r['Headline'])).length;
 
       const totalMedia = media.length;
-      const govtMentions = media.filter(r => r.sourceType === 'BC Gov News' || String(r.tempCheck).toUpperCase() === 'Y').length;
+      const govtMentions = media.filter(r => normalizeText(r.source).toLowerCase().includes('government') || String(r.tempCheck).toUpperCase() === 'Y').length;
       const fundingCount = funding.length;
       const totalInvestment = sum(funding, r => r.total);
       const jobsCreated = sum(funding, r => r.jobsCreated);
@@ -1169,18 +1283,18 @@
       ]).size;
 
       const cards = [
-        { label: 'Media Coverage Items', value: formatNumber(totalMedia), note: 'Across first four media sheets' },
-        { label: 'BC Gov Mentions', value: formatNumber(govtMentions), note: 'Rows marked Y or BC Gov sheet' },
-        { label: 'Funding Announcements', value: formatNumber(fundingCount), note: 'Funding and Investments sheet' },
-        { label: 'Policy / Regulation Items', value: formatNumber(policy.length), note: 'Policy & Regulations sheet' },
-        { label: 'Total Investment Value', value: formatMillions(totalInvestment), note: 'Sum of total investment value' },
-        { label: 'Jobs Created', value: formatNumber(jobsCreated), note: 'From funding announcements' },
-        { label: 'Jobs Protected', value: formatNumber(jobsProtected), note: 'From funding announcements' },
-        { label: 'Pillars Covered', value: formatNumber(pillarsCovered), note: 'Distinct pillars represented' }
+        { label: 'Action Plans', value: formatNumber(actionPlans.length), note: 'Strategy action plan records' },
+        { label: 'Targets', value: formatNumber(targets.length), note: 'Strategic target records' },
+        { label: 'Announcements', value: formatNumber(totalAnnouncements), note: 'Sector-relevant announcement records' },
+        { label: 'Policy / Regulation Items', value: formatNumber(policy.length), note: 'Policy and regulatory records' },
+        { label: 'Funding Entries', value: formatNumber(fundingCount), note: 'Funding, project, infrastructure, and promotion records' },
+        { label: 'Total Investment Value', value: formatMillions(totalInvestment), note: 'Aggregated across funding and investment records' },
+        { label: 'Jobs Created / Protected', value: `${formatNumber(jobsCreated)} / ${formatNumber(jobsProtected)}`, note: `Pillars covered: ${formatNumber(pillarsCovered)} | Media items: ${formatNumber(totalMedia)} | Gov mentions: ${formatNumber(govtMentions)}` }
       ];
+      const kpiAccentPalette = ['#4b7ea8', '#4f8d7a', '#b08a4c', '#7d78a8', '#5b8a63', '#a0617f', '#5d7f93'];
 
-      document.getElementById('kpi-grid').innerHTML = cards.map(c => `
-        <div class="kpi">
+      document.getElementById('kpi-grid').innerHTML = cards.map((c, i) => `
+        <div class="kpi" style="--kpi-accent:${kpiAccentPalette[i % kpiAccentPalette.length]}">
           <div class="kpi-label">${c.label}</div>
           <div class="kpi-value">${c.value}</div>
           <div class="kpi-note">${c.note}</div>
@@ -1200,9 +1314,22 @@
     }
 
     function buildFilters() {
-      setOptions('media-source', [...new Set(STATE.media.map(r => r.sourceType))]);
-      setOptions('media-pillar', [...new Set(STATE.media.map(r => r.pillar))]);
-      setOptions('media-theme', [...new Set(STATE.media.map(r => r.theme))]);
+      const annRows = STATE.announcements.map((r) => ({
+        source: normalizeText(r['Source'] || r['Ministry']),
+        pillar: normalizeText(r['Pillar']),
+        theme: canonicalTheme(r['Theme']) || 'Partnerships'
+      }));
+      const newsRows = STATE.news.map((r) => ({
+        source: normalizeText(r['Source'] || r['Ministry']),
+        pillar: normalizeText(r['Pillar']),
+        theme: canonicalTheme(r['Theme']) || 'Partnerships'
+      }));
+      setOptions('ann-source', [...new Set(annRows.map(r => r.source))]);
+      setOptions('ann-pillar', [...new Set(annRows.map(r => r.pillar))]);
+      setOptions('ann-theme', [...new Set(annRows.map(r => r.theme))]);
+      setOptions('news-source', [...new Set(newsRows.map(r => r.source))]);
+      setOptions('news-pillar', [...new Set(newsRows.map(r => r.pillar))]);
+      setOptions('news-theme', [...new Set(newsRows.map(r => r.theme))]);
 
       setOptions('fund-pillar', [...new Set(STATE.funding.map(r => r.pillar))]);
       setOptions('fund-theme', [...new Set(STATE.funding.map(r => r.theme))]);
@@ -1217,7 +1344,8 @@
       if (!s) return;
       if (s.key === key) s.dir = s.dir === 'asc' ? 'desc' : 'asc';
       else { s.key = key; s.dir = 'asc'; }
-      if (section === 'media') renderMediaTable();
+      if (section === 'announcements') renderAnnouncementsTable();
+      if (section === 'news') renderNewsTable();
       if (section === 'fund') renderFundingTable();
       if (section === 'policy') renderPolicyTable();
     }
@@ -1243,44 +1371,148 @@
       return `<span class="pill status-${cls || 'unknown'}">${esc(status || '-')}</span>`;
     }
 
-    function renderMediaTable() {
-      const source = document.getElementById('media-source').value;
-      const pillar = document.getElementById('media-pillar').value;
-      const theme = document.getElementById('media-theme').value;
-      const q = normalizeText(document.getElementById('media-search').value).toLowerCase();
+    function normalizeAnnouncementRow(row) {
+      return {
+        date: toDateValue(row['Date']),
+        source: normalizeText(row['Source'] || row['Ministry']),
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Primary Sector'], row['Headline'], row['Key Message']].join(' ')),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        headline: normalizeText(row['Headline']),
+        subtitle: normalizeText(row['Subtitle']),
+        headlineUrl: normalizeUrl(row['URL']),
+        primarySector: normalizeText(row['Primary Sector']),
+        region: normalizeText(row['Region']),
+        keyMessage: normalizeText(row['Key Message'])
+      };
+    }
 
-      let rows = STATE.media.filter(r => {
-        if (source !== 'ALL' && r.sourceType !== source) return false;
+    function normalizeNewsRow(row) {
+      return {
+        date: toDateValue(row['Date']),
+        source: normalizeText(row['Source'] || row['Ministry']),
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Sector'], row['Title'], row['Key Message']].join(' ')),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        headline: normalizeText(row['Title']),
+        headlineUrl: normalizeUrl(row['URL']),
+        sector: normalizeText(row['Sector']),
+        region: normalizeText(row['Region']),
+        keyMessage: normalizeText(row['Key Message'])
+      };
+    }
+
+    function renderAnnouncementsTable() {
+      const source = document.getElementById('ann-source').value;
+      const pillar = document.getElementById('ann-pillar').value;
+      const theme = document.getElementById('ann-theme').value;
+      const q = normalizeText(document.getElementById('ann-search').value).toLowerCase();
+
+      let rows = STATE.announcements.map(normalizeAnnouncementRow).filter(r => r.date || r.headline);
+      rows = rows.filter(r => {
+        if (source !== 'ALL' && r.source !== source) return false;
         if (pillar !== 'ALL' && r.pillar !== pillar) return false;
         if (theme !== 'ALL' && r.theme !== theme) return false;
         if (q) {
-          const blob = [r.sourceType, r.source, r.sector, r.headline, r.message, r.theme, r.status].join(' ').toLowerCase();
+          const blob = [r.source, r.pillar, r.theme, r.headline, r.subtitle, r.primarySector, r.region, r.keyMessage].join(' ').toLowerCase();
           if (!blob.includes(q)) return false;
         }
         return true;
       });
 
-      rows = sortRows(rows, 'media');
-
-      const tbody = document.getElementById('media-body');
-      const pager = document.getElementById('media-pager');
+      rows = sortRows(rows, 'announcements');
+      const tbody = document.getElementById('ann-body');
+      const pager = document.getElementById('ann-pager');
       const totalRows = rows.length;
-      const pageSize = Math.max(1, Number(STATE.mediaPageSize) || 10);
+      const pageSize = Math.max(1, Number(STATE.annPageSize) || 10);
       const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
-      if (STATE.mediaPage > totalPages) STATE.mediaPage = totalPages;
-      if (STATE.mediaPage < 1) STATE.mediaPage = 1;
-      const startIdx = (STATE.mediaPage - 1) * pageSize;
+      if (STATE.annPage > totalPages) STATE.annPage = totalPages;
+      if (STATE.annPage < 1) STATE.annPage = 1;
+      const startIdx = (STATE.annPage - 1) * pageSize;
       const pageRows = rows.slice(startIdx, startIdx + pageSize);
+
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="small">No media records for current filters.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="small">No announcement records for current filters.</td></tr>';
         if (pager) pager.innerHTML = '';
       } else {
         tbody.innerHTML = pageRows.map(r => {
-          const hoverMsg = esc(r.message || '');
+          const hoverMsg = esc(r.keyMessage || '');
+          const title = r.subtitle ? `${r.headline} - ${r.subtitle}` : r.headline;
           return `
           <tr>
             <td class="nowrap" title="${hoverMsg}">${formatDate(r.date)}</td>
-            <td title="${hoverMsg}">${esc(r.sourceType || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.source || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.pillar || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.theme || '-')}</td>
+            <td class="text-limit" title="${hoverMsg}">
+              ${r.headlineUrl
+                ? `<a href="${esc(r.headlineUrl)}" target="_blank" rel="noopener noreferrer">${esc(title || '-')}</a>`
+                : esc(title || '-')}
+            </td>
+            <td title="${hoverMsg}">${esc(r.primarySector || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.region || '-')}</td>
+          </tr>`;
+        }).join('');
+        if (pager) {
+          const pageNumbers = [];
+          const from = Math.max(1, STATE.annPage - 2);
+          const to = Math.min(totalPages, STATE.annPage + 2);
+          for (let p = from; p <= to; p++) pageNumbers.push(p);
+          pager.innerHTML = `
+            <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
+            <button class="pager-btn" onclick="setAnnPage(${STATE.annPage - 1})" ${STATE.annPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setAnnPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.annPage ? 'active' : ''}" onclick="setAnnPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setAnnPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setAnnPage(${STATE.annPage + 1})" ${STATE.annPage >= totalPages ? 'disabled' : ''}>Next</button>
+          `;
+        }
+      }
+      document.getElementById('ann-count').textContent = `${rows.length} of ${STATE.announcements.length}`;
+    }
+
+    function setAnnPage(page) {
+      const p = Number(page) || 1;
+      STATE.annPage = Math.max(1, p);
+      renderAnnouncementsTable();
+    }
+
+    function renderNewsTable() {
+      const source = document.getElementById('news-source').value;
+      const pillar = document.getElementById('news-pillar').value;
+      const theme = document.getElementById('news-theme').value;
+      const q = normalizeText(document.getElementById('news-search').value).toLowerCase();
+
+      let rows = STATE.news.map(normalizeNewsRow).filter(r => r.date || r.headline);
+      rows = rows.filter(r => {
+        if (source !== 'ALL' && r.source !== source) return false;
+        if (pillar !== 'ALL' && r.pillar !== pillar) return false;
+        if (theme !== 'ALL' && r.theme !== theme) return false;
+        if (q) {
+          const blob = [r.source, r.pillar, r.theme, r.headline, r.sector, r.region, r.keyMessage].join(' ').toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      });
+
+      rows = sortRows(rows, 'news');
+      const tbody = document.getElementById('news-body');
+      const pager = document.getElementById('news-pager');
+      const totalRows = rows.length;
+      const pageSize = Math.max(1, Number(STATE.newsPageSize) || 10);
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      if (STATE.newsPage > totalPages) STATE.newsPage = totalPages;
+      if (STATE.newsPage < 1) STATE.newsPage = 1;
+      const startIdx = (STATE.newsPage - 1) * pageSize;
+      const pageRows = rows.slice(startIdx, startIdx + pageSize);
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="small">No news records for current filters.</td></tr>';
+        if (pager) pager.innerHTML = '';
+      } else {
+        tbody.innerHTML = pageRows.map(r => {
+          const hoverMsg = esc(r.keyMessage || '');
+          return `
+          <tr>
+            <td class="nowrap" title="${hoverMsg}">${formatDate(r.date)}</td>
             <td title="${hoverMsg}">${esc(r.source || '-')}</td>
             <td title="${hoverMsg}">${esc(r.pillar || '-')}</td>
             <td title="${hoverMsg}">${esc(r.theme || '-')}</td>
@@ -1290,30 +1522,31 @@
                 : esc(r.headline || '-')}
             </td>
             <td title="${hoverMsg}">${esc(r.sector || '-')}</td>
-          </tr>
-        `}).join('');
+            <td title="${hoverMsg}">${esc(r.region || '-')}</td>
+          </tr>`;
+        }).join('');
         if (pager) {
           const pageNumbers = [];
-          const from = Math.max(1, STATE.mediaPage - 2);
-          const to = Math.min(totalPages, STATE.mediaPage + 2);
+          const from = Math.max(1, STATE.newsPage - 2);
+          const to = Math.min(totalPages, STATE.newsPage + 2);
           for (let p = from; p <= to; p++) pageNumbers.push(p);
           pager.innerHTML = `
             <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
-            <button class="pager-btn" onclick="setMediaPage(${STATE.mediaPage - 1})" ${STATE.mediaPage <= 1 ? 'disabled' : ''}>Prev</button>
-            ${from > 1 ? `<button class="pager-btn" onclick="setMediaPage(1)">1</button><span class="small">...</span>` : ''}
-            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.mediaPage ? 'active' : ''}" onclick="setMediaPage(${p})">${p}</button>`).join('')}
-            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setMediaPage(${totalPages})">${totalPages}</button>` : ''}
-            <button class="pager-btn" onclick="setMediaPage(${STATE.mediaPage + 1})" ${STATE.mediaPage >= totalPages ? 'disabled' : ''}>Next</button>
+            <button class="pager-btn" onclick="setNewsPage(${STATE.newsPage - 1})" ${STATE.newsPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setNewsPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.newsPage ? 'active' : ''}" onclick="setNewsPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setNewsPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setNewsPage(${STATE.newsPage + 1})" ${STATE.newsPage >= totalPages ? 'disabled' : ''}>Next</button>
           `;
         }
       }
-      document.getElementById('media-count').textContent = `${rows.length} of ${STATE.media.length}`;
+      document.getElementById('news-count').textContent = `${rows.length} of ${STATE.news.length}`;
     }
 
-    function setMediaPage(page) {
+    function setNewsPage(page) {
       const p = Number(page) || 1;
-      STATE.mediaPage = Math.max(1, p);
-      renderMediaTable();
+      STATE.newsPage = Math.max(1, p);
+      renderNewsTable();
     }
 
     function renderFundingTable() {
@@ -1495,7 +1728,8 @@
         renderKPIs();
         renderCharts();
         buildFilters();
-        renderMediaTable();
+        renderAnnouncementsTable();
+        renderNewsTable();
         renderFundingTable();
         renderPolicyTable();
         updateMeta('Live data');
@@ -1525,7 +1759,8 @@
         renderKPIs();
         renderCharts();
         buildFilters();
-        renderMediaTable();
+        renderAnnouncementsTable();
+        renderNewsTable();
         renderFundingTable();
         renderPolicyTable();
         updateMeta('Cached data');
@@ -1538,3 +1773,7 @@
   </script>
 </body>
 </html>
+
+
+
+

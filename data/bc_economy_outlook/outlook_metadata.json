@@ -1,0 +1,23 @@
+﻿{
+  "dataset_name": "BC Economy Outlook - Q2 2025/26",
+  "source_report": "2025/26 Second Quarterly Report",
+  "publication_date": "2025-11-27",
+  "source_file": "data/bc_economy_outlook/raw/2025-26-q2-report.pdf",
+  "extract_method": "Manual extraction from report tables",
+  "source_tables": ["Table 2.1", "Table 2.6.1", "Table 2.6.2", "Table 2.6.3"],
+  "extracted_on": "2026-05-19",
+  "summary_points": [
+    "Ministry real GDP growth forecast is 1.4% in 2025 and 1.3% in 2026.",
+    "Nominal GDP growth is forecast at 3.8% in 2025 and 4.1% in 2026.",
+    "Employment growth is expected to moderate to 1.1% in 2025 and 0.7% in 2026.",
+    "Unemployment rate is forecast at 6.2% in 2025 and 6.1% in 2026.",
+    "Consumer price inflation is forecast at 2.1% in both 2025 and 2026.",
+    "Housing starts are forecast at 44,500 units in 2025 and 44,823 in 2026.",
+    "Key risks highlighted: global trade conflict, weak home sales, migration volatility, and commodity price swings."
+  ],
+  "update_instructions": [
+    "Replace values in annual_forecast.csv from the same tables in the new quarterly report.",
+    "Replace values in quarterly_conditions_2025.csv from the newest Table 2.1.",
+    "Update publication_date, source_file, and summary_points in this metadata file."
+  ]
+}

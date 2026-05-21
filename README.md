@@ -1,16 +1,29 @@
 # BCLS Dashboard Workspace
 
-## Structure
-- `dashboards/bc_dashboard_hub/`: parent dashboard that embeds the standalone dashboards.
-- `dashboards/bc_macroeconomy/`: standalone BC macroeconomy dashboard.
-- `dashboards/look_west_strategy/`: standalone Look West strategy dashboard.
-- `dashboards/projects/`: standalone projects dashboard.
-- `dashboards/sectors/<sector_name>/`: standalone sector dashboards, each with its own `html/`, `data/`, and `docs/` folders.
-- `shared/assets/logo/`: shared image assets reused across dashboards.
-- `scripts/serve.py`: local UTF-8 web server for the restructured workspace.
-- `archive/`: legacy dashboards and pre-restructure working state.
+## Runtime Model (Hub-First)
+- Single entrypoint: `dashboards/bc_dashboard_hub/html/dashboard.html`
+- Child dashboards are now **embed-only** pages (loaded by the hub in tabs/iframes).
+- If a child dashboard is opened directly, it auto-redirects back to the hub tab.
+- Optional debug escape hatch for direct child testing: append `?standalone=1`.
 
-## Conventions
-- Each dashboard folder is self-contained: `html/` for the dashboard, `data/` for workbook inputs, `docs/` for notes.
-- The parent dashboard should only embed child dashboards and should not duplicate their implementation logic.
-- When a child dashboard is updated, the parent hub updates automatically because it points to the child `html/dashboard.html` file.
+## Canonical Source
+- Edit only canonical source folders:
+  - `dashboards/`
+  - `data/`
+  - `shared/`
+- Treat `dist/BCLS_Dashboard_App/` and `spfx/bcls-dashboard-spfx/sharepoint/assets/BCLS-Dashboard/` as generated runtime targets.
+- Those generated folders are intentionally **not tracked in git** to keep the repo lightweight.
+
+## Sync Generated Targets
+- Run after source changes:
+  - `powershell -ExecutionPolicy Bypass -File scripts/sync_runtime_targets.ps1`
+- Dist-only:
+  - `powershell -ExecutionPolicy Bypass -File scripts/sync_runtime_targets.ps1 -SkipSpfx`
+- SPFx-only:
+  - `powershell -ExecutionPolicy Bypass -File scripts/sync_runtime_targets.ps1 -SkipDist`
+
+## Local Run
+- Start local server:
+  - `python scripts/serve.py`
+- Open:
+  - `http://localhost:8080/dashboards/bc_dashboard_hub/html/dashboard.html`

@@ -1,8 +1,21 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+  /* BCLS_EMBED_ONLY_REDIRECT */
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../bc_dashboard_hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'trade');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
   <title>B.C. Trade Composition</title>
   <script src="../../../shared/vendor/chart.umd.min.js"></script>
   <script src="../../../shared/vendor/chartjs-chart-treemap.min.js"></script>
@@ -359,7 +372,7 @@
     function renderTreemap(flow, year) {
       const rows = APP.data.flows[flow].categories[year] || [];
       const total = rows.reduce((s, r) => s + (r.value || 0), 0);
-      document.getElementById('treeSub').textContent = `${flow.toUpperCase()} · ${year}`;
+      document.getElementById('treeSub').textContent = `${flow.toUpperCase()} Â· ${year}`;
       const drillRows = [];
       rows.forEach(r => {
         const splits = SUBCATEGORY_SPLITS[r.name] || [[r.name, 1]];
@@ -422,7 +435,7 @@
     function renderPartners(flow, year, mode) {
       const rows = partnerRows(flow, year, mode);
       const total = rows.reduce((s, r) => s + (r.value || 0), 0);
-      document.getElementById('partnerSub').textContent = `${mode === 'regions' ? 'Regions' : 'Countries'} · ${year}`;
+      document.getElementById('partnerSub').textContent = `${mode === 'regions' ? 'Regions' : 'Countries'} Â· ${year}`;
       ensureDestroy('partnerBar');
       const top = rows.slice(0, 12);
       APP.charts.partnerBar = new Chart(document.getElementById('partnerBar'), {
@@ -446,7 +459,7 @@
                 label: ctx => {
                   const r = top[ctx.dataIndex];
                   const share = total ? (r.value / total) * 100 : 0;
-                  return `${money(r.value)}M (${pct(share)}) · ${r.region}`;
+                  return `${money(r.value)}M (${pct(share)}) Â· ${r.region}`;
                 }
               }
             }
@@ -536,7 +549,7 @@
       });
 
       const partners = d.partners[year] || d.partners[String(Math.max(...Object.keys(d.partners).map(Number)))] || [];
-      document.getElementById('interprovSub').textContent = `BC exports/imports with other provinces · ${year}`;
+      document.getElementById('interprovSub').textContent = `BC exports/imports with other provinces Â· ${year}`;
       document.getElementById('interprovTable').innerHTML = partners.length ? partners
         .slice()
         .sort((a, b) => (b.exports + b.imports) - (a.exports + a.imports))
@@ -570,3 +583,7 @@
   </script>
 </body>
 </html>
+
+
+
+

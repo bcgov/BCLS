@@ -1,0 +1,545 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../bc_dashboard_hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'outlook');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
+  <title>BC Economy Outlook</title>
+  <script src="../../../shared/vendor/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --line: #d9e2ef;
+      --text: #1a2a44;
+      --muted: #5f6b7b;
+      --primary: #0f4c81;
+      --accent: #1f7a8c;
+      --good: #2e7d32;
+      --warn: #b26a00;
+      --shadow: 0 10px 24px rgba(21, 45, 75, 0.08);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .wrap {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .hero {
+      background: linear-gradient(120deg, #0f4c81 0%, #115f97 45%, #1f7a8c 100%);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      opacity: 0.95;
+      font-size: 14px;
+    }
+
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      font-size: 12px;
+    }
+
+    .tag {
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 999px;
+      padding: 5px 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(170px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .kpi {
+      padding: 14px;
+      border-top: 4px solid var(--primary);
+    }
+
+    .kpi .lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+
+    .kpi .val {
+      margin-top: 7px;
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .kpi .next {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .kpi .src {
+      margin-top: 7px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .section {
+      padding: 14px 16px;
+    }
+
+    .section h2 {
+      margin: 0;
+      font-size: 17px;
+      color: var(--text);
+    }
+
+    .section .sub {
+      margin-top: 5px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .bullets {
+      margin: 11px 0 0;
+      padding-left: 20px;
+      color: #243753;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .bullets li { margin-bottom: 7px; }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .chart-card {
+      padding: 12px 14px 14px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #25344a;
+      margin-bottom: 2px;
+    }
+
+    .chart-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 270px;
+    }
+
+    .note {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      background: #f9fbff;
+      border-radius: 10px;
+      color: #3a4a62;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .error {
+      color: #b42318;
+      background: #fff5f5;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 1300px) {
+      .grid-cards { grid-template-columns: repeat(3, minmax(170px, 1fr)); }
+      .split { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      .grid-cards { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+      .charts-grid { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 24px; }
+    }
+
+    @media (max-width: 560px) {
+      .grid-cards { grid-template-columns: 1fr; }
+      .wrap { padding: 14px; }
+      .hero { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <h1>BC Economy Outlook Snapshot</h1>
+      <p>Brief outlook summary page based on the Ministry of Finance quarterly report dataset. The page reads from local CSV/JSON files for easy manual updates.</p>
+      <div class="meta-row" id="meta-row"></div>
+    </div>
+
+    <div id="content-root"></div>
+  </div>
+
+<script>
+const DATA_PATHS = {
+  annual: '../../../data/bc_economy_outlook/annual_forecast.csv',
+  quarterly: '../../../data/bc_economy_outlook/quarterly_conditions_2025.csv',
+  meta: '../../../data/bc_economy_outlook/outlook_metadata.json'
+};
+
+function parseCsv(text) {
+  const lines = String(text || '').trim().split(/\r?\n/).filter(Boolean);
+  if (!lines.length) return [];
+  const headers = lines[0].split(',').map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const cols = line.split(',');
+    const row = {};
+    headers.forEach((h, i) => { row[h] = (cols[i] || '').trim(); });
+    return row;
+  });
+}
+
+function toNum(v) {
+  const n = Number(String(v || '').replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+}
+
+function fmtPct(v) {
+  return v === null ? '--' : `${v.toFixed(1)}%`;
+}
+
+function fmtInt(v) {
+  return v === null ? '--' : Math.round(v).toLocaleString('en-CA');
+}
+
+function metricMap(rows) {
+  const map = {};
+  rows.forEach(r => { map[r.metric_id] = r; });
+  return map;
+}
+
+function yearSeries(row, years) {
+  return years.map(y => toNum(row[y]));
+}
+
+function createChart(id, config) {
+  const c = document.getElementById(id);
+  if (!c) return null;
+  return new Chart(c, config);
+}
+
+function buildMeta(meta) {
+  const row = document.getElementById('meta-row');
+  if (!row || !meta) return;
+  row.innerHTML = '';
+  const tags = [
+    `Report: ${meta.source_report || 'N/A'}`,
+    `Published: ${meta.publication_date || 'N/A'}`,
+    `Extracted: ${meta.extracted_on || 'N/A'}`,
+    `Tables: ${(meta.source_tables || []).join(' | ')}`
+  ];
+  tags.forEach(t => {
+    const span = document.createElement('span');
+    span.className = 'tag';
+    span.textContent = t;
+    row.appendChild(span);
+  });
+}
+
+function render(annualRows, quarterlyRows, meta) {
+  const years = ['2023', '2024', '2025', '2026'];
+  const m = metricMap(annualRows);
+
+  const content = document.getElementById('content-root');
+  if (!content) return;
+
+  const cards = [
+    { id: 'real_gdp_growth_pct', label: 'Real GDP Growth' },
+    { id: 'nominal_gdp_growth_pct', label: 'Nominal GDP Growth' },
+    { id: 'cpi_growth_pct', label: 'CPI Inflation' },
+    { id: 'employment_growth_pct', label: 'Employment Growth' },
+    { id: 'unemployment_rate_pct', label: 'Unemployment Rate' },
+    { id: 'housing_starts_units', label: 'Housing Starts' }
+  ];
+
+  const cardsHtml = cards.map(c => {
+    const row = m[c.id] || {};
+    const v2025 = toNum(row['2025']);
+    const v2026 = toNum(row['2026']);
+    const isUnits = String(row.unit || '').toLowerCase().includes('unit');
+    const v1 = isUnits ? fmtInt(v2025) : fmtPct(v2025);
+    const v2 = isUnits ? fmtInt(v2026) : fmtPct(v2026);
+    return `
+      <div class="card kpi">
+        <div class="lbl">${c.label}</div>
+        <div class="val">${v1}</div>
+        <div class="next">2026 outlook: ${v2}</div>
+        <div class="src">Source: ${row.source_table || 'N/A'}</div>
+      </div>`;
+  }).join('');
+
+  const summaryItems = (meta && Array.isArray(meta.summary_points) ? meta.summary_points : [])
+    .map(s => `<li>${s}</li>`)
+    .join('');
+
+  content.innerHTML = `
+    <div class="grid-cards">${cardsHtml}</div>
+
+    <div class="split">
+      <div class="card section">
+        <h2>Brief Economic Outlook</h2>
+        <div class="sub">Narrative summary from the quarterly report dataset metadata</div>
+        <ul class="bullets">${summaryItems || '<li>No summary points found.</li>'}</ul>
+      </div>
+      <div class="card section">
+        <h2>Dataset Notes</h2>
+        <div class="sub">Manual update workflow</div>
+        <ul class="bullets">
+          <li>Update annual values in <code>annual_forecast.csv</code> from the same report tables each quarter.</li>
+          <li>Update short-term momentum values in <code>quarterly_conditions_2025.csv</code> from Table 2.1.</li>
+          <li>Update report metadata and summary bullets in <code>outlook_metadata.json</code>.</li>
+        </ul>
+        <div class="note">This page is intentionally data-file driven so future report updates can be done without changing dashboard code.</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="card chart-card">
+        <div class="chart-title">GDP Growth Outlook</div>
+        <div class="chart-sub">Annual percent change</div>
+        <div class="chart-wrap"><canvas id="chart-gdp-growth"></canvas></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Labour Market Outlook</div>
+        <div class="chart-sub">Employment growth and unemployment rate</div>
+        <div class="chart-wrap"><canvas id="chart-labour"></canvas></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Demand and Inflation Outlook</div>
+        <div class="chart-sub">Retail sales, CPI, and population growth</div>
+        <div class="chart-wrap"><canvas id="chart-demand"></canvas></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-title">Housing Outlook</div>
+        <div class="chart-sub">Housing starts (units) and growth (%)</div>
+        <div class="chart-wrap"><canvas id="chart-housing"></canvas></div>
+      </div>
+
+      <div class="card chart-card" style="grid-column: 1 / -1;">
+        <div class="chart-title">2025 In-year Momentum (Table 2.1)</div>
+        <div class="chart-sub">Year-to-date percent change</div>
+        <div class="chart-wrap" style="height:320px;"><canvas id="chart-quarterly"></canvas></div>
+      </div>
+    </div>
+  `;
+
+  const realGdpGrowth = yearSeries(m.real_gdp_growth_pct, years);
+  const nominalGdpGrowth = yearSeries(m.nominal_gdp_growth_pct, years);
+
+  createChart('chart-gdp-growth', {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [
+        { label: 'Real GDP growth', data: realGdpGrowth, borderColor: '#0f4c81', backgroundColor: 'rgba(15,76,129,0.12)', tension: 0.3, fill: false },
+        { label: 'Nominal GDP growth', data: nominalGdpGrowth, borderColor: '#1f7a8c', backgroundColor: 'rgba(31,122,140,0.12)', tension: 0.3, fill: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { ticks: { callback: v => `${v}%` }, title: { display: true, text: 'Percent' } } }
+    }
+  });
+
+  const employmentGrowth = yearSeries(m.employment_growth_pct, years);
+  const unemployment = yearSeries(m.unemployment_rate_pct, years);
+
+  createChart('chart-labour', {
+    type: 'bar',
+    data: {
+      labels: years,
+      datasets: [
+        { type: 'bar', label: 'Employment growth (%)', data: employmentGrowth, backgroundColor: 'rgba(64, 145, 108, 0.65)', yAxisID: 'y' },
+        { type: 'line', label: 'Unemployment rate (%)', data: unemployment, borderColor: '#b26a00', backgroundColor: '#b26a00', tension: 0.3, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        y: { title: { display: true, text: 'Employment growth (%)' } },
+        y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Unemployment rate (%)' } }
+      }
+    }
+  });
+
+  const cpi = yearSeries(m.cpi_growth_pct, years);
+  const retail = yearSeries(m.retail_sales_growth_pct, years);
+  const pop = yearSeries(m.population_growth_pct, years);
+
+  createChart('chart-demand', {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [
+        { label: 'CPI growth', data: cpi, borderColor: '#7b2cbf', backgroundColor: 'rgba(123,44,191,0.12)', tension: 0.3, fill: false },
+        { label: 'Retail sales growth', data: retail, borderColor: '#0077b6', backgroundColor: 'rgba(0,119,182,0.12)', tension: 0.3, fill: false },
+        { label: 'Population growth', data: pop, borderColor: '#2d6a4f', backgroundColor: 'rgba(45,106,79,0.12)', tension: 0.3, fill: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } },
+      scales: { y: { ticks: { callback: v => `${v}%` }, title: { display: true, text: 'Percent' } } }
+    }
+  });
+
+  const starts = yearSeries(m.housing_starts_units, years);
+  const startsGrowth = yearSeries(m.housing_starts_growth_pct, years);
+
+  createChart('chart-housing', {
+    type: 'bar',
+    data: {
+      labels: years,
+      datasets: [
+        { type: 'bar', label: 'Housing starts (units)', data: starts, backgroundColor: 'rgba(34, 87, 122, 0.70)', yAxisID: 'y' },
+        { type: 'line', label: 'Housing starts growth (%)', data: startsGrowth, borderColor: '#d9480f', backgroundColor: '#d9480f', tension: 0.3, yAxisID: 'y2' }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom' } },
+      scales: {
+        y: { title: { display: true, text: 'Units' }, ticks: { callback: v => Number(v).toLocaleString('en-CA') } },
+        y2: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Growth (%)' }, ticks: { callback: v => `${v}%` } }
+      }
+    }
+  });
+
+  const qLabels = quarterlyRows.map(r => r.indicator);
+  const qYtd = quarterlyRows.map(r => toNum(r.ytd_2025_change));
+  const qColors = qYtd.map(v => v >= 0 ? 'rgba(46, 125, 50, 0.75)' : 'rgba(198, 40, 40, 0.75)');
+
+  createChart('chart-quarterly', {
+    type: 'bar',
+    data: {
+      labels: qLabels,
+      datasets: [{ label: 'YTD change (%)', data: qYtd, backgroundColor: qColors }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.parsed.x.toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        x: { title: { display: true, text: 'Percent change' }, ticks: { callback: v => `${v}%` } },
+        y: { ticks: { autoSkip: false } }
+      }
+    }
+  });
+}
+
+async function boot() {
+  const root = document.getElementById('content-root');
+  try {
+    const [annualText, quarterlyText, meta] = await Promise.all([
+      fetch(DATA_PATHS.annual).then(r => { if (!r.ok) throw new Error(`annual_forecast.csv HTTP ${r.status}`); return r.text(); }),
+      fetch(DATA_PATHS.quarterly).then(r => { if (!r.ok) throw new Error(`quarterly_conditions_2025.csv HTTP ${r.status}`); return r.text(); }),
+      fetch(DATA_PATHS.meta).then(r => { if (!r.ok) throw new Error(`outlook_metadata.json HTTP ${r.status}`); return r.json(); })
+    ]);
+
+    const annualRows = parseCsv(annualText);
+    const quarterlyRows = parseCsv(quarterlyText);
+
+    buildMeta(meta);
+    render(annualRows, quarterlyRows, meta);
+  } catch (err) {
+    if (root) {
+      root.innerHTML = `<div class="error">Failed to load outlook dataset: ${err && err.message ? err.message : err}</div>`;
+    }
+    console.error(err);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>

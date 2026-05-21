@@ -1,2023 +1,1325 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>[Standalone · 2026-04-07] B.C. Tourism — Look West Strategy Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<style>
-/* ── RESET & BASE ── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  background: #F2F5F9; color: #1A202C; min-height: 100vh;
-}
-
-/* ── BC GOVERNMENT HEADER ── */
-.bc-gov-header {
-  background: #003366;
-  border-bottom: 3px solid #FCBA19;
-  position: sticky; top: 0; z-index: 200;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
-}
-.bc-gov-header-inner {
-  max-width: 1440px; margin: 0 auto; height: 62px;
-  padding: 0 28px;
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 16px;
-}
-.bc-gov-logo-area { display: flex; align-items: center; gap: 14px; }
-.bc-gov-logo { height: 38px; width: auto; object-fit: contain; }
-.bc-gov-title h1 { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -.3px; line-height: 1.2; }
-.bc-gov-title h1 span { color: #FCBA19; }
-.bc-gov-title p { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 1px; }
-.bc-gov-header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-.bc-gov-badge {
-  background: rgba(252,186,25,0.2); border: 1px solid rgba(252,186,25,0.5);
-  color: #FCBA19; font-size: .72rem; font-weight: 700; letter-spacing: .8px;
-  padding: 3px 12px; border-radius: 20px; text-transform: uppercase;
-}
-.bc-gov-header-right p { font-size: .72rem; color: rgba(255,255,255,0.55); }
-
-/* ── REFRESH BUTTON ── */
-.refresh-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(252,186,25,0.12); border: 1px solid rgba(252,186,25,0.35);
-  color: #FCBA19; font-size: .75rem; font-weight: 600; padding: 5px 13px;
-  border-radius: 20px; cursor: pointer; transition: all .2s;
-  font-family: inherit; letter-spacing: .3px; margin-top: 2px;
-}
-.refresh-btn:hover:not(:disabled) {
-  background: rgba(252,186,25,0.22); border-color: rgba(252,186,25,0.65);
-  box-shadow: 0 0 10px rgba(252,186,25,0.15);
-}
-.refresh-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-@keyframes refresh-spin { to { transform: rotate(360deg); } }
-.rspin { display: inline-block; animation: refresh-spin .7s linear infinite; }
-
-/* ── REFRESH TOAST ── */
-.refresh-toast {
-  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-  max-width: 440px; min-width: 260px;
-  padding: 13px 18px; border-radius: 10px;
-  font-size: .82rem; font-family: 'Segoe UI', system-ui, sans-serif;
-  line-height: 1.5; box-shadow: 0 8px 32px rgba(0,0,0,.55);
-  transform: translateY(16px); opacity: 0;
-  transition: transform .28s ease, opacity .28s ease;
-  pointer-events: none;
-}
-.refresh-toast.rt-show { transform: translateY(0); opacity: 1; pointer-events: auto; }
-.refresh-toast.rt-loading { background:#EBF5FF; border:1px solid #388bfd; color:#1565C0; }
-.refresh-toast.rt-success { background:#F0FFF4; border:1px solid #2ea043; color:#276749; }
-.refresh-toast.rt-warn    { background:#FFFBEB; border:1px solid #d29922; color:#92400E; }
-.refresh-toast.rt-error   { background:#FFF5F5; border:1px solid #f85149; color:#C53030; }
-
-/* ── TAB NAVIGATION ── */
-.bc-tab-bar {
-  background: #FFFFFF; border-bottom: 2px solid #D6DCE4;
-  display: flex; align-items: stretch; padding: 0 28px; overflow-x: auto;
-  box-shadow: 0 1px 4px rgba(0,0,0,.06);
-}
-.bc-tab-btn {
-  background: transparent; border: none; border-bottom: 3px solid transparent;
-  color: #4A5568; cursor: pointer;
-  font-family: inherit; font-size: .85rem; font-weight: 600;
-  padding: 13px 22px; transition: all .2s;
-  display: flex; align-items: center; gap: 8px; white-space: nowrap; letter-spacing: .2px;
-}
-.bc-tab-btn:hover { color: #1A202C; background: #F2F5F9; }
-.bc-tab-btn.active { color: #003366; border-bottom-color: #003366; background: #EBF2FA; }
-.bc-tab-btn .tab-badge { font-size: .66rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; letter-spacing: .5px; }
-.bc-tab-btn .statcan-badge { background: rgba(56,139,253,0.12); color: #1565C0; }
-.bc-tab-btn .bcstats-badge { background: rgba(46,196,182,0.12); color: #00796B; }
-.bc-tab-btn.active .statcan-badge { background: rgba(56,139,253,0.2); }
-.bc-tab-btn.active .bcstats-badge { background: rgba(46,196,182,0.2); }
-
-/* ── TAB PANELS ── */
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-/* ── DATA SOURCE BANNER ── */
-.data-source-banner {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 28px; font-size: .75rem; border-bottom: 1px solid;
-}
-.data-source-banner.statcan {
-  background: rgba(21,101,192,0.06); border-color: rgba(21,101,192,0.2); color: #1565C0;
-}
-.data-source-banner.bcstats {
-  background: rgba(0,121,107,0.06); border-color: rgba(0,121,107,0.2); color: #00796B;
-}
-.data-source-banner .ds-icon { font-size: 1rem; }
-.data-source-banner a { color: inherit; text-decoration: underline; text-underline-offset: 2px; font-weight:600; }
-
-/* ── SHARED SCROLLBAR ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #CBD5E0; border-radius: 3px; }
-
-/* ── SHARED FOOTER ── */
-.bc-gov-footer {
-  background: #003366; border-top: 3px solid #FCBA19;
-  padding: 20px 28px; text-align: center;
-  color: rgba(255,255,255,0.55); font-size: .72rem; line-height: 1.8;
-}
-.bc-gov-footer strong { color: rgba(255,255,255,0.7); }
-.bc-gov-footer a { color: #FCBA19; text-decoration: none; }
-.bc-gov-footer a:hover { text-decoration: underline; }
-
-/* ── PANEL 1: STATCAN ── */
-#panel-statcan {
-  --bg: #F2F5F9; --surface: #FFFFFF; --surface2: #EEF2F7; --border: #D6DCE4;
-  --accent1: #16A34A; --accent2: #1565C0; --accent3: #B45309; --accent4: #9C4221; --accent5: #6B21A8;
-  --text: #1A202C; --text-muted: #4A5568; --radius: 8px; --shadow: 0 4px 12px rgba(0,0,0,.08);
-}
-#panel-statcan .main { max-width: 1440px; margin: 0 auto; padding: 28px 28px 0; background: #F2F5F9; }
-#panel-statcan .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 28px; }
-#panel-statcan .kpi-card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 20px 20px 16px; position: relative; overflow: hidden;
-  transition: transform .15s, box-shadow .15s;
-  box-shadow: 0 1px 3px rgba(0,0,0,.06);
-}
-#panel-statcan .kpi-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-#panel-statcan .kpi-card::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:3px;
-  background: var(--kpi-color, var(--accent1));
-}
-#panel-statcan .kpi-label { font-size:.72rem; font-weight:600; letter-spacing:.8px; color:var(--text-muted); text-transform:uppercase; margin-bottom:10px; }
-#panel-statcan .kpi-value { font-size:1.9rem; font-weight:700; line-height:1; color:var(--text); }
-#panel-statcan .kpi-unit  { font-size:.78rem; color:var(--text-muted); margin-top:6px; }
-#panel-statcan .kpi-icon  { position:absolute; top:16px; right:16px; font-size:1.5rem; opacity:.12; }
-#panel-statcan .charts-grid { display:grid; grid-template-columns:repeat(12, 1fr); gap:20px; margin-bottom:28px; }
-#panel-statcan .card {
-  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-  padding:20px 22px; box-shadow:0 2px 8px rgba(0,0,0,.25); transition:box-shadow .15s;
-}
-#panel-statcan .card:hover { box-shadow:var(--shadow); }
-#panel-statcan .card-title { font-size:.8rem; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; }
-#panel-statcan .card-subtitle { font-size:.72rem; color:var(--text-muted); margin-bottom:16px; opacity:.7; }
-#panel-statcan .chart-wrap { position:relative; }
-#panel-statcan .col-8  { grid-column:span 8; }
-#panel-statcan .col-4  { grid-column:span 4; }
-#panel-statcan .col-6  { grid-column:span 6; }
-#panel-statcan .col-5  { grid-column:span 5; }
-#panel-statcan .col-7  { grid-column:span 7; }
-#panel-statcan .col-12 { grid-column:span 12; }
-@media (max-width:1100px) {
-  #panel-statcan .col-8, #panel-statcan .col-4, #panel-statcan .col-6,
-  #panel-statcan .col-5, #panel-statcan .col-7 { grid-column:span 12; }
-}
-#panel-statcan .province-bar-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-#panel-statcan .province-name { width:175px; font-size:.82rem; color:#1A202C; flex-shrink:0; }
-#panel-statcan .province-bar-track { flex:1; background:#EEF2F7; border-radius:4px; height:18px; overflow:hidden; }
-#panel-statcan .province-bar-fill { height:100%; border-radius:4px; transition:width .6s ease; }
-#panel-statcan .province-val { font-size:.8rem; color:#4A5568; width:80px; text-align:right; flex-shrink:0; }
-#panel-statcan .insights-row { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:28px; }
-#panel-statcan .insight-pill {
-  background:var(--surface); border:1px solid var(--border); border-radius:8px;
-  padding:10px 16px; flex:1; min-width:200px; display:flex; align-items:flex-start; gap:10px;
-  box-shadow:0 1px 3px rgba(0,0,0,.05);
-}
-#panel-statcan .insight-dot { width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0; }
-#panel-statcan .insight-text { font-size:.8rem; color:#4A5568; line-height:1.5; }
-#panel-statcan .insight-text strong { color:#1A202C; }
-#panel-statcan .section-label { font-size:.68rem; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:#003366; margin-bottom:12px; padding-left:2px; }
-#panel-statcan .panel-footer { text-align:center; color:#718096; font-size:.72rem; margin-top:36px; padding:24px 28px; border-top:1px solid var(--border); background:#FFFFFF; border-radius:0 0 8px 8px; }
-
-/* ── PANEL 2: BC STATS ── */
-#panel-bcstats {
-  --bg:#F2F5F9; --surface:#FFFFFF; --surface2:#EEF2F7; --border:#D6DCE4;
-  --text:#1A202C; --text-muted:#4A5568;
-  --accent-blue:#1565C0; --accent-teal:#00796B; --accent-green:#276749;
-  --accent-amber:#92400E; --accent-red:#C53030; --accent-purple:#6B21A8; --accent-pink:#BE185D;
-}
-#bcstats-subnav {
-  display:flex; align-items:center; gap:4px;
-  padding:0 28px; height:44px;
-  background:#FFFFFF; border-bottom:1px solid #D6DCE4;
-  overflow-x:auto; white-space:nowrap;
-  position:sticky; top:105px; z-index:100;
-  box-shadow:0 2px 6px rgba(0,0,0,.05);
-}
-#bcstats-subnav a { padding:5px 13px; border-radius:20px; font-size:12px; font-weight:500; color:#4A5568; text-decoration:none; transition:all .2s; }
-#bcstats-subnav a:hover { background:#EBF2FA; color:#003366; }
-#bcstats-subnav a.active { background:#003366; color:#fff; }
-#panel-bcstats main { max-width:1400px; margin:0 auto; padding:28px; background:#F2F5F9; }
-#panel-bcstats section { margin-bottom:44px; scroll-margin-top:155px; }
-#panel-bcstats .section-header { display:flex; align-items:center; gap:10px; margin-bottom:18px; }
-#panel-bcstats .section-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-#panel-bcstats .section-header h2 { font-size:15px; font-weight:700; color:#1A202C; }
-#panel-bcstats .section-header p { font-size:12px; color:#4A5568; margin-top:2px; }
-#panel-bcstats .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(195px, 1fr)); gap:14px; margin-bottom:28px; }
-#panel-bcstats .kpi-card { background:#FFFFFF; border:1px solid #D6DCE4; border-radius:8px; padding:18px 20px; position:relative; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-#panel-bcstats .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--kpi-color,#4e9af1); }
-#panel-bcstats .kpi-label { font-size:10px; color:#4A5568; font-weight:700; letter-spacing:.6px; text-transform:uppercase; margin-bottom:8px; }
-#panel-bcstats .kpi-value { font-size:26px; font-weight:700; line-height:1; margin-bottom:6px; color:#003366; }
-#panel-bcstats .kpi-sub { font-size:11px; color:#718096; }
-#panel-bcstats .kpi-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; margin-left:8px; }
-#panel-bcstats .badge-up { background:#F0FFF4; color:#276749; border:1px solid #68D391; }
-#panel-bcstats .badge-down { background:#FFF5F5; color:#C53030; border:1px solid #FC8181; }
-#panel-bcstats .chart-grid-2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(440px, 1fr)); gap:18px; }
-#panel-bcstats .chart-grid-3 { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:18px; }
-#panel-bcstats .chart-card { background:#FFFFFF; border:1px solid #D6DCE4; border-radius:8px; padding:22px; position:relative; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-#panel-bcstats .chart-card.full { grid-column:1 / -1; }
-#panel-bcstats .chart-title { font-size:13px; font-weight:600; color:#1A202C; margin-bottom:4px; }
-#panel-bcstats .chart-sub { font-size:11px; color:#718096; margin-bottom:18px; }
-#panel-bcstats .chart-wrap { position:relative; }
-#panel-bcstats .chart-wrap canvas { display:block; }
-#panel-bcstats .toggle-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
-#panel-bcstats .toggle-btn { padding:4px 11px; border-radius:6px; font-size:11px; font-weight:600; border:1px solid #D6DCE4; background:transparent; color:#4A5568; cursor:pointer; transition:all .18s; }
-#panel-bcstats .toggle-btn.on { border-color:transparent; color:#fff; background:#003366; }
-#panel-bcstats .legend-row { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; }
-#panel-bcstats .legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:#4A5568; }
-#panel-bcstats .legend-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-#panel-bcstats .panel-footer { text-align:center; padding:24px 28px; color:#718096; font-size:11px; border-top:1px solid #D6DCE4; }
-#panel-bcstats .panel-footer strong { color:#003366; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../../bc_dashboard_hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'sector-detail');
+      target.searchParams.set('sector', 'tourism');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
+  <title>B.C. Tourism Sector Dashboard</title>
+  <script src="../../../../shared/vendor/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --color-primary: #003366;
+      --color-primary-lt: #1a5276;
+      --color-primary-xlt: #ebf2fa;
+      --color-bg: #f2f5f9;
+      --color-card: #ffffff;
+      --color-border: #d6dce4;
+      --color-text: #1a202c;
+      --color-text-muted: #4a5568;
+      --color-text-subtle: #718096;
+      --rag-red: #c53030;
+      --rag-red-bg: #fff5f5;
+      --rag-amber: #c05621;
+      --rag-amber-bg: #fffbeb;
+      --rag-green: #276749;
+      --rag-green-bg: #f0fff4;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--color-text);
+      background: var(--color-bg);
+    }
+    .main { max-width: 1340px; margin: 0 auto; padding: 22px 28px 56px; }
+    .section { margin-bottom: 26px; }
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid var(--color-border);
+      padding-bottom: 9px;
+      margin-bottom: 16px;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-primary);
+    }
+    .section-head .sh-sub { font-size: 11px; color: var(--color-text-subtle); }
+    .card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .sector-def {
+      border-left: 4px solid var(--color-primary);
+      padding: 14px 18px;
+      margin-bottom: 14px;
+    }
+    .sector-def-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 5px;
+    }
+    .sector-def-body { font-size: 12px; color: var(--color-text-muted); line-height: 1.7; }
+    .def-table-wrap { overflow-x: auto; }
+    .def-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+      font-size: 12px;
+    }
+    .def-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--color-text-muted);
+    }
+    .def-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eef2f7;
+      vertical-align: top;
+      color: var(--color-text-muted);
+      line-height: 1.45;
+    }
+    .def-table tr:last-child td { border-bottom: none; }
+    .row-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin: 12px 0 8px;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px;
+    }
+    .kpi-card {
+      position: relative;
+      overflow: hidden;
+      padding: 16px 16px 12px;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-color, var(--color-primary));
+    }
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--color-primary);
+      letter-spacing: -.9px;
+    }
+    .kpi-unit { font-size: 11px; color: var(--color-text-subtle); margin-top: 4px; }
+    .kpi-source { margin-top: 8px; font-size: 10px; color: var(--color-text-subtle); }
+    .source-line { margin-top: 8px; font-size: 11px; color: var(--color-text-subtle); }
+    .source-line a { color: var(--color-primary); }
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .chart-card { padding: 16px; }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title { font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 2px; }
+    .chart-subtitle { font-size: 11px; color: var(--color-text-subtle); margin-bottom: 10px; }
+    .chart-wrap { position: relative; height: 250px; }
+    .chart-wrap.tall { height: 320px; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .sum-card { text-align: center; padding: 14px 12px; }
+    .sum-value { font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -1.4px; color: var(--color-primary); }
+    .sum-value.green { color: var(--rag-green); }
+    .sum-value.amber { color: var(--rag-amber); }
+    .sum-value.red { color: var(--rag-red); }
+    .sum-label { margin-top: 4px; font-size: 10px; color: var(--color-text-subtle); text-transform: uppercase; letter-spacing: .5px; }
+    .goals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+    }
+    .goal-card { padding: 14px; }
+    .goal-top { display: flex; gap: 8px; margin-bottom: 8px; }
+    .goal-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .goal-dot.GREEN { background: var(--rag-green); box-shadow: 0 0 0 3px var(--rag-green-bg); }
+    .goal-dot.AMBER { background: var(--rag-amber); box-shadow: 0 0 0 3px var(--rag-amber-bg); }
+    .goal-dot.RED { background: var(--rag-red); box-shadow: 0 0 0 3px var(--rag-red-bg); }
+    .goal-name { font-size: 12px; font-weight: 600; line-height: 1.35; flex: 1; }
+    .goal-meta { font-size: 10px; color: var(--color-text-subtle); margin-bottom: 8px; }
+    .goal-track { height: 7px; border-radius: 4px; background: var(--color-border); overflow: hidden; margin-bottom: 5px; }
+    .goal-fill { height: 100%; border-radius: 4px; }
+    .goal-fill.GREEN { background: var(--rag-green); }
+    .goal-fill.AMBER { background: var(--rag-amber); }
+    .goal-fill.RED { background: var(--rag-red); }
+    .goal-foot { display: flex; justify-content: space-between; font-size: 10px; color: var(--color-text-subtle); }
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .toolbar .lbl {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--color-text-subtle);
+    }
+    .toolbar select, .toolbar input {
+      font-size: 12px;
+      padding: 5px 9px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      background: #fff;
+    }
+    .toolbar input { min-width: 220px; flex: 1; }
+    .toolbar .count { margin-left: auto; font-size: 11px; color: var(--color-text-subtle); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); }
+    .init-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+      font-size: 12px;
+      background: #fff;
+    }
+    .init-table th {
+      text-align: left;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--color-border);
+      background: #f8fafc;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+    .init-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #eef2f7;
+      vertical-align: top;
+      color: var(--color-text-muted);
+      line-height: 1.4;
+    }
+    .init-table tr:last-child td { border-bottom: none; }
+    .pill {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      white-space: nowrap;
+    }
+    .pill.GREEN { background: var(--rag-green-bg); color: var(--rag-green); }
+    .pill.AMBER { background: var(--rag-amber-bg); color: var(--rag-amber); }
+    .pill.RED { background: var(--rag-red-bg); color: var(--rag-red); }
+    .error {
+      background: #fff5f5;
+      border: 1px solid #fecaca;
+      color: #b42318;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    @media (max-width: 900px) {
+      .main { padding: 16px 14px 32px; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .chart-card.full { grid-column: auto; }
+    }
+  </style>
 </head>
 <body>
-
-<header class="bc-gov-header">
-  <div class="bc-gov-header-inner">
-    <div class="bc-gov-logo-area">
-      <img class="bc-gov-logo" src="data:image/webp;base64,UklGRuxWAABXRUJQVlA4IOBWAACQOgGdASqQAWgBPjEYiUOiIaESKZXMIAMEpu/HvvBTi/7H8wPAVj3wh+N/sf7Z/3j9xvmGr79//sX6p/v37h/Lrrb658u/zP9f/5X97/Mz5t/4v/sf5L3M/of/vf479//oA/Vn/jf4T95PfH9T/7sf872Bf0v/D//D/b+8b/qv2v9zX+J/3/7Tf7z5Af61/m//R68vsR/vH7B/9L/2P/s9dj9y/hM/rf+//+n+3/5PyQ/sX/4fz/+QD/zeoB/7PUA9O/yz+Y/5/9bP7v5xv4r+6fkh/df/Z5ofsf79+Uf9y/7n1v/h+fPs//0fRX+Z/Yz8P/b/3K/yP7j/e7+Q/yf9f8pf2b+I/0n5cfAL+cfyr/B/3r9lf7t+0P4gw28Yv5AfAL7W/OP8z/gP2a/sv7mfXH83/4f6h/ivYf7M/7T7WPsA/p/9O/0n5pf3////Wf/L/YfzHvvv/L/53uB/yj+0/8H/Nf5n9mfi+/2v8h/pf209xn6H/kv+p/pv8z/7/959iP82/qX+p/vP+l/7v+O////w++f2Ffu5///dC/Xf/yMEH3xC8b3D7n/ZcLK1NfIRhgBUQhQcm1wFGJww0TkZ+VBdlBxqzkAo7Bsp3l7HF76ttKG1GA84HeCWVrCyYe2czb+VzW0ArQOsljFZLydpuAyK/+++fs+CVmgfz/GicI57Trt5zIziUU2caOZSPPGSYDuOz7AkNzLFj1SJtPf52gMTWCRsYSFRceFFZsLkPjyW+9ctsghxC4mOKA3ljWBnhlQC+iOFuMAi0jYRbqIwhGp2aZBy4Q976/+Wk3S5kV1ChI8pd05P0FTzHz+KYL7lrZbkQsW3QinV39xTk0d1hwtm6eOcK72W5MujfwM4q/DPFKUUctdJzOO4KONtic99/wMc12AjTEpKag4pUu1Mcl4Vuog4iDeb6zj46yOwzWTkkyZZwpezBQnIRrn9prRtRHlVb+2MbCY3+vlfBfIH4HghMIYmtkD6ij7L/I/SEoP0Iej6sic1sBTxbZYK5uxVoHxWcqz8LfAqg5dHBiaLWBH3jVCsohqnRJnA5pfXytRzs+2V3SZPDRTT8XC8N9KPqQodHJ0BeoPsxyHibr2lONaIi/L77wkRLMThbc4wHT5P7A6Ztkhc+FusjcZ7e3I/63qxKz5oPL3DPEhREWUFBemdQanr9LpdCz8NqC51mfKxhJJnOcvuOrnBmLMPheaIRP+fh3fe5zzc8meVgI4PSmlq7C90sdnyF68CwaV0phS1Ek2Flu2nuKZMoivr3XlSnmzQ3QQH4kAawGdTrQkCuDSqXz7yIkEow5v4UBGJ5LaG061Y5NgL2ThIaqoCPTBGDRxSbT8f+WRYDo2SDzI1FFNu5OCJH304QQLhgRHTQjPCnJHn9ihhvJOpDcCk9alF3T8CNUYNeH6B96hBJD0G5TfYe+e6nr9LDlOWV6znFPuqClqk2hxej7NwUN3Go3aW4rnT73MHlyNv/cOfvfbMzlhB1h+WN+KhSzpJSqmYQbfpF7tCvoNMNq+nGzqrCQHinr1dEpgrOTj9Y5etjuR/siNy60ROweublhMZ77BmoL0mH2U8avepnYNeGpDrWyue4NO//6pLJv74uJTzPNeHEru4S2mmOLQj7znmxSz94Kk2notz2Hwak8LYt91EdrhNQY6nNpunVisVisU2RdcmMHUFRNWDUtidSK8FU4aM7zxbPwMe2Ys7sc4TesyeGvX0L59okprhNZN2Ox2Ox0xZQtKxwvvUJNDRLKw2oZKJG6uS0oeTTpVmDAH6BpYz6+LXfAnF7rlTuiunT3Y6LlL/6B6mfIu0kd7NLSiaPVQSg/Wz7tiqUqT8xyncf8aJe8MrYasYKeXB2XbyAerK/QyE1zLp/cbNqHu7L3wKlNYc3OsGBS05AUNaKhpvt9t0OhloRyDbH/mgBWkjprwJ0LMV1KquOlxpi8fyyOq6q3kwsjfdP11JjTn4T1II+Qptnpvimij+zsA8Wo+w71PH3Ejc4HqffAjop0XoJRM0MihuPGk84S/2fqDau7da0llOEEqX295ul2YKZeo6BgMCd/GL5d4/vtuHqTykhR967YvmJeHFkn8/OS3RDzKfSqVSJmG97S4jPnj4XrsoYQnDqgK3+TAE91EP65tSA9/i6X2XmLqIEkxdSTOXLdHC8Wd1ys5DJtxuCLQj9R6QqC4DWsscSubVWrnAZsxc4gwStKLVuuKWUPDKIJdhnnZvWh/toVp7sy5cbbLIvUJmPtmXp5yjXdAAk8mTo9SsynwZut8Jabm2bT5Uf8j2NYpsZDJoAXR119nqBeqNjHxk2aBl8D4jMuIn6ewRd8cHgt8680TxiNCZwVmM3m3EiZuk+YMdRujTsP91u39Ihkf9BrUKB0WDYXFeXnlGiPt3Bup+6kMjPV4BQzJDzX99itrQdhL7UBs8BKNnueGJrpPoly/G1uBiilHAgbQyLdm+IJC6elNiZnyOAfw0ENi9ecxWiWnWYxtLPGZisghVN/EPLwWlNUuRFCAA9P2hY7AKtvDX/wOJjDLTU5Oh+5HtwBoA9IEgP6bCa6AaqwQ++wmo1ey2qIcmzUawIJXU41+6OOQsOtuTsT7nWwYC/eA5RD+cmCYj9BA7Fh1cl4rQUCQhsnDvQrQUbzZOUuNI90Pd2htXGL4VchFfWMOM2oPb/hf3aUejLsnxzjUE9CePw0+WwBXBIOntz4IfrUydUCP7vxWQsUhR5I8ePOqXhC2yVGuxjHDOH4DLy842lA7YTzB3mQhqq2sxC94N16oBmjMpzSsLf+vd+0K6bcDre0cp2juNo52rI+hlC6WGK/gC5JgbwfdLDbSCnc4XxvHDiuVdwKmkT7de1EA2wnvrX1Vn5ldSD70loilPibB3WG/k8AQH6oFO7y8dF3NAz5gxyCgdvlJ9+YK6oaC65FV1Nwlalm02lxjRqqojoGpSpbvYt0QEnJl6KvCycU9/fX0UjKjQxNr/uPDjNMA8g6nxO2549ox9OIUOcAaQ5Bn86wRiXOTjMlypKyCA+gpQm2fAuzXVcEDQ2jAYyDDtH8bQSinjCaiEco/2LjodMIuzcmi7v+fHczCjcWsCToOe23N+N726gwodaUAE4xWjUk+pdWXYiexryzqs6kEbWv9GQlgYS0f7iOYJzxbwhQf+ZHUoOBTB2mwGliDgl5lbsKQmubOKI2ma3qtuU5eJObamcPawVxmmRMe0BiRKPI/ZNoRuNU+we7hnN7sszJ6F/5owEncULFDJU8mFngddtuf1pBm2P6sdSaqWmynNkYWWcsOQ6pHD/4qc9CNkCXBgoULiIKbKrLk4Ix6WWJxwfprDLX00aQ3Fl6RG5Rd1pyYYxu4bir/7JppP0AD+/6UO7KeiSHhFGJV8whcqS3C7vbhb0k+xA5W6Vm1+YOB8A3IxCb8N5QSu6v5WRjIAkX/Va0Ak781kgfsIXKktwvjxkxlDU4YCnpWHq93uPMfYd6FLGCh175rSQ8036yISyH4MeSoVuaeyew1c6GJJ55AOIJTdLmvcVllLk3CDwHIOJb0bIc1zvWZIol1JD1LVcaeytZJMttJmIuPnscyPYFsCFtLax+z6YzeEdPPc/88w3PU7XWxCXy1or7L/K6N7kTnya2L+fs/hX/q9km6p/cJzADW5WnYSQHskNxdfdLZMwDNhL5PdFHocfP7d+uuI+mW2A9170jGDTM1mVeC+0AVoelFSM0hJXPVqRGh0IUpFSAz1/xxHNB5nbTZznUS6JJZb8D5ZGLldmE19lFkIk0fSFDKaA0QhP99oRz7LKmqZYSAhmd5TOcSvjSo6F5ecTCV6lNncT79XVQ/scSfU5RF8NbtifnBuPpl36JSaRa+iboMyGltRrb+Wr/OnHRtS19dE/TwvBxKcsIlnB3dDwCuMiFnBs8bokZpD8k3aVk3bXSwp1BGgdwAbVEPgUU1LcROBySNtAq7Q5BLoRKPOXSlKWUTbUwymTAqsHPRfHveP2loym0YEEZ59OsDIhwwg5P7v6opPw5F/FniqGRmQx8RfTiMS/yxJkaTmkzhkhDrEfw4Xjw+AaEjwsydaubBcRh72A2JtZ3OD8E910J6YjjpbRn5vHkLnEPSFTOGSEO0R/DilP6Qn4HzK7wJIAIE/9kQUMWTyhbNPs6EKuMbjIroLTbGCfpXL0anW71p98VVJVbmqPJGoTbw79m7pRqQCgN5pRCabYwT9LHi0iwb7GdPVSDCphWari22V3lwNGE8lKQk5NflxfthksPJfgRFLDAR8EWWzI9yyOxGgHkFvARD/oly6GfYjHRGd0pnvmDo2oD5e7UhDmos4InkX7d33wTq4j93oP7HGUMw4/tNK2MNaiZNXH/ILfR/WofVum3Du4H7uCUUY96C4+0i1E4tk40Oi8t9IZqrek7EivcE/b0nBbnQX0WKc3a1HEm2qyTnN/dKqQDbySjdCumJCOr2cHl2VjqnlUZqsXMYt1+H5fDLUUNSrxWMm7+ccDe52Nk4MgoWkpCmr9KzNOmCPqSx3jiUPPqhNNKTObt73NKXrI5BXE/sMbgknhQtLtUinrEPWzS+sp8C4nMftLntDydOBvuvyu0Ws7wh2TvZHwRA704Mee/EZl+O/yCwsrVlHFVY90a/32GbSQQRGE93/AynUNRKcmwcenzWN48mAWjoXxpi2cjuJdvWuvLsrMKEP23hEdDjPcw+VJc/EyeShm959HSQuC+46VYnybI5OnZ6NcI0+sTOZjrp3N4AWnkZ+ubcfu+Sgr8L8ft3f33vd3sFXA/eo1dsaiDPy7LrUdd75Qbl9fqwa1wnXLXjtUCXwG6eccQnl6VR5y9Wbuq49XBQ6kEmgybHFrv4igyapWsUppPRiFkz5Ed72rO2kJTFglKjM5Gn1yRCguAXDVAmkR1UqfJs4BflAi5o6JpAuGYsdLTFwq5FEDEaBJO3cKA41FvCckpp/7ap8I2jAMhFzR0TRmBaMgzkc3mdC0SvISFoEX22idyrVvmkQ3q9an5SslIPf9VO/OUykV9+IeeAlKNUq+nk9p9MRS4KdjtDbsWUzlqX/1k2HHdQcPrQAacp3BbFl8kGwtTqvX8fYT+/RJ1M89DgmpeurYBaY+MRt7nwHJCG50hNxSWfkCdE+7XubnEUbfo8rHvJ1tduyFfTfXmgy7e4RQNeRGBnv0sJi3lgV1GB+re8dU7zXl3qVjlMau1EZiPNJSylKDePjkMbDI3leHXdPdFPlaD8OGeKZFJmegi5GilcODeVjl5xtIopDehFR9f9RYQPF+U3phQ5uQbaGL1aokQ8N/pMPI0cXbnAz4wwfV6EsG9xolj37zjpRfqd5m8vJJ7SdTmUGb2iCrRvpri0CIsSIAG5g27pXES6afNNNJJionVHhEhMbWZFquej7bc43MPiHVzeR+BSP0fRfdr8gyZc3HF5CGbg1CmJFiMz0S66ml/MExF2b2Fo3E3d03qqnznZKZAhSwebx+eoDWIc32rUfMY84r26SnMt+VbWqkFIHLmh0V9nXusMoR6s/qyPd9VLB1o7m+zyNgSGnMJ3H2RBCD91/Q0mPuRByMppdLDHAJ1XePZ3vKR2mLZI9pthZaWEGOsXw7lPRgS4QbcTohtaJD5/Rr4+UpevbGeK/Vr48/f/MrgnigZn/wB8pRAkaRyw5MvxFteII8gL6BRVmeTvxdC2pcA2LkgoKLm5ir+F1JuiFmwtA9eGhNhq0xNf9lRKVPe5vIJMP0k06MibigLhXo9q+VcmfE6ayEwx8M8oBZ1vDjkF7yAQDo1bOQqbnm1K/BTi9PQ/1+kSlrDwZn15CATAxdG9Aarc7UL5eP5fqh4T0m4R6VVpgI204WT+ZPQbhio7ZbbA+5SMh4vXWI9CWO4oxLOXnBydFGY1Nibch0TgMrYDjQmjOiORZfEzHFr/+oNNBw2o7ZaY6GAIRczuGGd+eWZRRP31kcwF4XFmxC9fzb//fS6cGIrfwLybn8tB7u4N43kPNtjvI+ahDn3UpDOUmQAry/36qlwsWn3/IyQVKKoo8xkdEHwHpFi746us0UigxM08+MtUQ2iB/YaZzcN3Qtcy4+fjSgDcVEvNN82CFeUyyJ/Wy5OtLrQ1G2M9KUMpYZBZdUDY3cIY8kcv7/PGrU+srY3lpwxqaPpyS0au31SwPZ3XD6cSIJQv4PlZW7fKosj1joB/MlUMCRFh8aMNChZIfZWhuqJkdLT0eT5QScidiiqjyXlqLazP0E0bKey486qdUYQgHctvkV+i+/NWxxhNJrPdDizo25hUgrBXpW/v6hpEbjf51Tmo1DlMGocs2WY1/0n6U9G52nlDQSVqf3SmJhn+C9vcNzXuVVQzgNYI24XNjDZ4o5nrfO7px7mhuhd1ZKp03P4ab2WL/t/3+flTD81fwPUqrZqA962QpZ2F26Fa+J0ORv0CByocr4uM9J0tXO9gNYpUpZnwJzQLfA0STgQBNjg6lUoACxfCs4ldPm+zUEb+6W4RuJkmnYqvXiqTP80ypg+2KicIBLtJlYDcYjtwIXPccCQKA6h+jC1MC6K5TzVtC4YNr/81mwSIDArOQYVI/n/XmNEfTr1Yp/986atjXq5itEWbID9r4kMaL4vexje8ovSypLhXolrYSANb7pxWfCLeGFA6tXGgPeiHP8BNJAm2tfqyYYPMNFdJ1jyMCmNKBpHQeuUVS38biUFBCzCFJfRVvxOGmNHbMlbEPhl/OcS2zzDxStKCT8D3dNZaOjpbPZ7JkcVn0h1A+dUYxMagOHE3xcmrwMWdI49eLzsCzQQgn5rxOv7te7dYzNuovlpIYHpTqVcdddYbhhF15adQobYcdcC6DmrWmykvtGHVtqcQuYIfFZa9yk5svL6nBVx7iO2tvM8B2T5lRQ7dsFlMbaHbq4Ig5J2wzLjl/OHsJxSeiQAcPTneDG/rdkaNxZDpCfududznNLpE3Vkzem9GwG7bLWfD7Lo9C7KJYDyFGm4IIxxmangzYLHUX889yub9ouWUwiOBRj3LotJ5xmquMctlPJp7eDs+YIZLu+h55+xVA1HUOujRcjC03Uy0MWl4/J8/Egzv6RUeH0hc2lcUCRhsUD63DFRtBqvyVR0qhRKpmafnNCodGPpuwoo4ShomPdU6OdbGnbV6UsRAupxLeMfig2r7a7UQLbKmSzrymHRpGq/iakGRIrB2V0M+KjMdKW9Ti23WDaMMiVVM6pBGVV++xd1EZVUQdKkldJ5LzmUA527y8aOItoS5gxgDuQS2NDhHNsyFQyaGCyxZj5izJ6uJbj2yCubjIotqzxkWLQkIVv86E9UQiLKUMiXbdd1N85mU2kNzk90+byy7CJY1qjeOpEi8b2rX/JE4Ne2H46XuarlkczZ+dCWVt8MjV2zLyeCu++GSh4upiG+5L+lKSbTMufeTHduCWPgQg0LNl9aMhfERIKwoUJPgv95tM49z/QVOW3RZn5uzGSN6Cqg6alQItgdv5P7DfndrC4EB5AF8s79FkHxbZnGHN5inwmp6BbhQg0Jm/lmrO0uX8us5U6z+Qa9C2CxS5T0qotlzzBPSL8kGF2kpL4Hb7ezPbsboW7fCCS6YKthabVyCa+RdoWb3vAmRLpI7GKyHS5bBKrvNPFOBQ/ReBRtEvgdzOgRGWHCqyrAymeyuFIFS5TcMtMR1djgc+VFtyC+fsErxQhRmr21ggQf/XJB+2rdTgOwVc9rHsEQDotah5NSNUUBjniolvdEME4Stronxa2JieMOLunOI2yeGt9xRFZC9APpZHVKrFf6BBcdK8Jr8D/O4rNzvIdRjUv3IgLzmzYPAqIddP06V5E/4mgpWCT/ZkwYYNYePZ/UuCdFjQdMxNF20qkr4icKp9CTGsxyJVNOQ5oXNXZfZRosFCQCCslycfe+68w2kH02dJgrSstJJLqUmeT+y9EJZBNX+UnAfXrcKSEj/vl/kFP4Cjf2/Rupm7uTfo5lRbsuz5F9I6P2HIkdtWlPfKbFK1iFKZlKzfQMNuZRfzGEc7QerxxJs6di+3pb2ZVzAowHGObZcCLHVAA+HGTS/OFXieVp9Fr0G5Z+U+II44pRPbTOsl9Kgf+SssGjy9SFJ9zWvvEbx/o/H9ZkuGU7AN8pxC7gfan2u0TWV2E9JW08Sq3VmiebfH33WH0+Bi1RIugTgm2PDM+oGgclBSVyiVMMV2cXkDCMbgClxysYXJJtAPziYJYmFOwTPBVQZsbQQdHQVwTCsP9RggnqCt/9UhGSDfQEzwwXcjrWpp2NzrK9T6HqKC6WzP7cNwOyJvuN2YV6qvAljcy98iu/PkiDxkNhBfrXIB3xmsRAPCObY9HfA+1hpnUDlE8PDpPPzMS8G4gd9vQdPjGMt0FLSZcNZQPQUDR37e/7bSV6RL9tcFzUD+3Ky5df//nUh6hNk0fuWglHV8ZpFAk0tKNh/hktUqUTNrsWInoTB5iOYC8saFumwMaDnQ1RLYoqjFeFAPK0BFLXVa4vhAno/b623TPUV1jf4TDnWS/WqzncYMdSv5ofPLdtSpXJtpPtJvP7FDlsFu/mykFOKytC6nX/o06gbnLQcQAESRmYVgOKTHCQJY5jh8aksoS3BpC4dU1IcmaoJChDPfXWRoNF+Uk4pXCgo8ks6IbiBTHYuaubwudpLpOCcpjpbgAJaXIMh4Rid9mR+k88F2Hb8fJObK11IgGWykqMyoG/hlojx5qhXnb0+5XsdP6vpMKbmKymGoHyTSiOXACLGA34YquuQYqdvWSA9fnJJV2zAJEHkzzqZSR4I8cL5tWZoDYm1nc4PuRWpFLDojuJbtReN0Sp5tZrBvgJVEuTv1+FVX5K5uhR3whCrZceeBV0Ug6aw2WvPn0t18dBuqr1yn6mMsYqEbnNTE/8VzGTVbfyZFROatqilksYMIFyLsSQHXTm0NPNXxkDiw+eEhaQWsQ6hWIuQymVfmiasn7JVZggc3pn8btadZHdFhKiLQGIMzSkWCMxw7MBZ8ARSnVz8dlgmmhJn4f1UHtjOW/ohNz+CNgmKw0j61fqiyZVDrXbqMmkDNRiWek0F6kMwkk/CIdQHyBZuE9IhDCQeoDYT1vZYvBffxO4RcjdnuhK2ZULckswDpoghFwKeUsRYPyHFHNkLuJ6WMhuKi8spMSTJT/pZt5YanW3zRWIicsFndPUXscPxolGEtVgwGCxUJRKvAw85hL/gKQDyN6thy7Eigozgo4O0R+LuiBtS4rxrOB2KMP/cSDhomWxO+ZPsalhnpaHzbFLDjQ/vrFnsq0JNXK8Xb6Cf+Zzq+CrtlCPuNUa/bYDbThlWNj0tdKC32MS2WGIeXmMSRdhugb448vgQh7EywHZeQxDNQd/eFSMtzQ1vmBYS5y6fZ2GvgL8Aqcqrz4IFa56ev7xRy1c7bksZfooAAAAZvqqWS3ud12BbDzwr8vnpoeodQUpMZcVRJtk1b79o2zGb2AOv3Dw8DxEKKS5CzV6Hi0/gzZQmlSsJi8rPrQpoRIqMOxQOfCSR+duCuuo5wg0CtZpNgVInIqIlIhBHT1tGprqmOQytWw/7zvaS//EIpM4PYXDu1+qjES2vGlLgGh+LhqfRqgjqfhwyIc44rbYKFa2XXG/SMwfdQcGK8fknC6palW0woTr7rPfk6XEhGs+NjPnw5R8/cB/kBbaxaJx+2mORSiQ0zChIbVcoYagsHaaHyjIpYsnV7ExYibjUUPmn04v6M0t4t2K52VLTYv2zzI+Lp6TsolIVS8zjK7C/Vjh73i2+eiQgdj12o03seFP24VA6TGifgh6DQip6FpvMz/paUrbt39yDAMhx45FVWtFWbnFeKn5UK3rQjxgxQZs+X6IWgGjMeyeIPvhACxNuxNz6ndel/ysy0rR1rCZZd6ZwTZm5sO3LpC9nmBTi8js4mjbrntKROi84bQ3kTPhNz6Wp0RjW/Q2obRs/N+FwBz2vU6Iv+O8+vlZz7lklZhEuhgCXwbhWS5m1yRCgGiC194db+Nb2Q/fc14UCLmjomkC28cK1q7vWBpfojirczCKseHQ5IQN3kXnORzCd7e84Qgvzg+/ZS9rIjBuHf96tM7PpWKbg3mqX5rZ416Ur74rnZroZgEGQ4Z0rn8eNzWNU/kgfp61wxz7QTTaF9MtTNuJmvVIFtGKx5AI0/CDrmQxUtSXiHXVF7rAyGYcX40OG71+QCP6K15IrSxt8Ui1fyKJIKzFqHyaMAj8hrv42evVwF2j5LR+V9dPBcjRHenSe+YXXR+yn5P1cMoCUzoxCZKZ7MN/a5uw9q8d3PG4iGjgDtZxJDPRle4lDDMVSHZIo+Y1Wz14HsARD5fqk99Py37wUl+19PAfaHmIvL+U6oaUasy3GhpOjDiFb39UFWwW5+JH68/ZvljTjBuDHZz3shgzR5VYYijJ4TwfGCux3lmLF8qUAjp8PsMgIe60d6afrstCDJLoTFQcMTrZEjev9G+INt37CXJuJgg/4XBR6lHMU9exxRtUApIKKKdjCpatUAEzAwPzS81arDLrBK5Nw8UIRug7Ao/Uo4+cdzm+H9NQn/+5Qle6UafL/UIWwWkrq5KgfB2IPSZdnJ0kRIhqNKHOB+ZvBLrFnRxr75/HrA80VzBDVwUYwq2lHjvDtX7fNmJS5IMDgj2xg1ZQJq64LD0/8lrfETEfcsrgjsH52ZMYN1Ucs3VboviHevQbeWg4fYOEJBOXfDu1h7nI3cwNmHjV8zN5lbvp/1wsHrCvcVgAAsu36GPODERYFK6zz2/zAeHiXkxebiVzcIDbirKUG1ZvMHXRqfJnO7ZqGZIVdJWcqyyOtguvhJYpqw6Ss/kpahxv5pf8fCBEx287fjxinEWhdQbIA7TV3EJUZJUjjRqYYDCftyz9yjaQLTa0sZiWYvWrk8AdrmyNLSh+AruBabbeZdvc379Je+vOKOLP3Gz2Thj0GkjrRDGwLceMj+3zAbY8oJAuwQgKEnF/p1FLkVVa0WhYB8DFa1L/lLgpuSAsXiAadC2fQBpzUKifg54p3D7r941OxnpCN2JV1iAEuJsVsex4yZfu957xh/ImQyXikYM2vbJHD6JmXy9XHgNY14uj5lNq1S+9ftuVRxDEqVyn8UG6ZwMqBStsBLg/m4z0gTLC2UfxH6d2K9vkPSxKh5MPStbfVEshOXLw54odbhb+Qcsksy+KPHQ4w2uRRldUqoKCtgm86I3sw/blyHJRj0hvN+S5OERLhPonaKgOuRRs8dgw5Hqyo+GyFYco5DRcl2OavOqdXg32tJq2v/hPb003JXqBKJ8//hCbanvnrE+al2NU+lX+Pvc7La3G9Ubv0zP1wbf0ojt8cTn1jEIBH8kTjU6S+PCCFgd5AMQdfI5uBZ/zcIoPpineKG1zg/4CiGVTQKyhZPFe30XB+zQ29IKMG0wwwjkQD0dKkTByIaIT+/Pic7bUhUXaPhQcpLEzv0ccauj2lAkmLOu6XXIxPF1OBTwZ8ifR3cKgyJiLXg0vClHKITXs+BoQnnUA6D6oKXUsmm63W2znWTIKzh7pjLmwJrtdkQbVcefkMyVa+wy0MTfzASNolEfucACdUsOzr4iYiGABktFjk+EiQP/Ja2WAeqVKIKnpQ1aUjojZQsDa1k0Ah2LSP3gz34puBZQU+4msGhRHq5odNYRoGauTuy5S4tz4DAM9O7l3tyA32yYDwvyDuEqHAYv6bs19yuBm2oShWaJJqq/cXLyODD1NSp9Utr6HNCqccBfN/dlVfHt51TccjKcLKI8IFxqFAqXymc6uD3/lrUgTVb8bk220q4KCkplld30PfATMeQhs0EC9BUbl6f3fUpx49WVdrSGf8QmoT0FHnVsK76tWibHJ/t4UJd+40F6HTp7huz58+8aRvxHssSYdli4VK4l5/nLgeJTHO/z1tlE3SCe6ViH9ug+35YngLXCboaqjyOf7JEq1Wqsu4+XCthMzHFH6Ts54nWlpklMr9TqxmKPOq22CAGBOK5ApEyv3FEl75vANGnfViEfZpAcBtwzxKoTYT/80D1vRWqZGVNBkHNc0KP0svhj7gEimoRRuPijKVWxoPB63MOhHt5OrqiV953G5KtANVzckRSrB3CkFmLlonZBsG/uZo6PJY5r09BLAjCxv3ZjGLv9Q6BsIQrO3D2csx++Xx7/PoVoeCyGA3Vq83uydgii4eLdYFLlH9lVDduI2Rz6oljZiicORX5+EOvtCL8+kUDfu+o23oZeb2pZeBr0/Yx3kW1toDpuAnFPMTSEECV76qWZxf7urpBQiUVouTPGD+2mXrYzuS2/YJIs7v4XjJ/fGbmoYgmtoQD7eofbuMpJ6qB31F5P3oW44hwr+hscfz2xKja9ohsoRe+MLV6QsckVGoAQhRrIf/LL74X/QXGJWF/+6rnz3drkSTRWVrGtXjxXIgCzOWNxqgvrP4Zxl3Q3K78j+CNnj4pHOsyJMz2Gp26qf4/fLsFT98wMncmgb8WGN7qVHEKejkVLCcPLrkIBAUJREqi2mGGl8Xwr//HkWfXdUCOZlNpDc5PdPm8suwiWNao3jqa5qF4DgGxNrO5wDtYiEJECPkkqm0zY/OdUJM9/fpatb0V4r1S//5oBXVS/+Hh6wwxFgmolAlgFMo/uBox51b/81ENsAAbAF4TOpXMds5nsm+UIoUFnxIdxKhlxMw3J1xhk6i+a8E9kZfY6d1Zv9rFjM5kGYet2s5NcZMjyPyzHHpmfIALPMcvlSJqazfXwaiFoJ+2WbuYAEMN/iC7l6zWzNxrQj+lhcfrgTtyHx64wBl6v8w2vK22SbWLmoImZxnk0zhHFc0HWg3zEzV8tirNtf3nJpqfjtHHw6RqUNqHZ5WK4Ca7xGRuBSES6pRXK2VdEZkSybz3kn+b9/ZmcANbSysUyPoH29DcI+kVpicnuUG8iBalADTDxT7cy3ADX0A0ZpIBtOdJP0R4AAZO+CqRBtX6QbsIcM7o3CzXF+pZ3iAowB4oVRFlbRPYoLY/VVy+uq/Taj98N8qBq8kj8tazNxruVVFJi/RXAdKWf2KduSULVBnnx8uRaZecumR++tXPDaUz4pIrfwvde1UToc0/TARvDR3ymPO+7cK716FKuYg6HkRoZaopYGuewvbqG0TA9+J2jXRP0uAaQDet93B1lG0seWIuGq3BoalM5AgUhys3DzglURgWcjckbMyoeYwPcTkC6AABmmD+Gzezc3vGwR0+JzGg8isk7Z9YlgKDlIFEUuyYPLRnnOZvNHJe6Le5I24Y749fuQCLyz9QwipY+POplJHgjxwvm1iw9+krD1e73HmPWEiG7uncEZGGIwJPsJJx1jHW71p+zwohQFglUaOKD+YEI3fPS8Qwwpg6bVJiP+0zsDcf4jBBF8JEL4fdTmAAAAAAclHh7jjtV7tn90IgLuUN0TYUSXAj5GEJ9StGIzDFS7modQFpBPMUcJqhsnKS3W71p/u/JBzJ/9u50lPKui7rvafTHs0YL0lMv+klyCb7TWJ/gDNhyip6VutPfKzlXUPRASicfcEXtUBItbwoucq9VheW798MvRYLbjin0Qqnhql9s5q9X2snldtwbTUU7uMBpwSyOsAg+MeKNYhYWWVX4eOdunAn8dxCvXlF7x7NMtGils1+MIcEfPGscN+YFy9z6HCDxEX6r9o6Rr70BAD05mK6GkTH/u6oIgeSZkD4NckJRheuxyv/FaMi9+a82Gfs7USVJwzRRsAW1NKO9TkebPmbu8cSqmuaWwS6WWUWlbRtScdnrwGeUX9DkzSouq2QkCxMhq2mRw8y+FoCeeJOvUxNaNdrOwhi+EFte+8YASONWYHgYXwzU/bTyo/lsexwSM2p3Dx5rCDYb5IW+XlxXnZRIt9cx/VhazZDakZOFiPbRtQhivq0QSskL9UsXu7JgYA3NvxDzwEYiOc6Rg9mqG4fsXyhFHIS0WTLGDkWzTdseiQjCiD2iEwZ9C5UWMO93AKsb4ZFkAv92GpKc1YAKNHdRuOOPVBFFx46AIJk84jUgjcvLbqosB+valc5dv51XD3d/a3WNKSGNSFhK2yfLwhSDyxB38uddESmQnn4gFuVKFXGgN6/7ddGmxqTlECGjYTntDLJisCfXNEWQpxtv6doUgQKCosIBjcf9HPp9dfJcfbAjgTjI8a8INLZlV/zaqqo1nv/55ecpklLwrrDzAvvxwItA2Sadj5MD8qVAdNmf6Mt6ax5ooRs2ySV+nsi0ui+VGpS6/ugp7GCXpnbek7LJFuvLKdx1o0ZD5kuLJEzZysNgGSdijapqSvIeYOLXtOKh9y1c7CcJX4a+toVy+4QdPh6oINLTOc5TBZVyRvDCyigTCxDnLYe5sWapxWIBfss6gGWxHGWPJzgYuofq78JPcEGwoNrYxkPzvR9ZFRn84MZQ7jK6i0TV7UioCDhgfQ4JILzJ1zal9ARhhhiiDcck6M0JqH3uE+k5/SOqzl0kwXnOqavBLJyTpAped6XpGINRecD9HXCU5lyXHBh96V3f8y4CeayJV7Q/1pk+US6YJ8RLFYrzG+TBhgkx0ufxjVP4mw5JrHRWukfoAfDXoDEWQrm+i/VaCG3qBpIsOGm4mWPjzqZSH7NzxpK6kSB8k0ojlT7+LC9XqMBM7JWVPIvbFB0k/7ebwaqqOJrxVZeFMp4KtMbDQywyh0s544FJ2R3BJ5tMoP6Qn4HzHkj2sV0Aq+CeNi4xIf+6fWBqvkZrNr82gWGZzbMEsYEM0xhmAARvOzaecUwb3+sAHP7cmedTKR1LBP+QycPV7vceWYj0Gi/5XbLiQUnE4BDxYI1sggSPlyAghow7CrG7GVVSx/r5/p+Yd6sCVn+Hk0fjPURSZDFQeV/Zvjw3ZMpiEQD7r4QN2sPJR4HFUFg3O2ltArlTQUuctKTadKDLY588g3qh84XxyP4E3yvxfpcVC3RuWEIFaPEeKlIRo+VWmlpYqnng3x3EgQyDOUEJoBskCcte40L5ICekic9Ep89nFQQjXynzHok07xSt4cuy4/IeCh3BySEy1Nv5/uKRsbZf3gB6zpOfpp3z1oxV4Z4ekdRmegkKtKYlbPFJkg8poEX3a91dPQpZKKgMx57C0JLSgvJQdfIDgUMnvrme8bIwvSCzVu0q6NBb4aUQsI6jfALPACdo0fqzWW7YP6H5AYGnoeJTfhReRHa0WP3zE8n4HzKCWncCFSgseBXy2sD2kgxD/6EVgFze5quWRzNvjs59L9TzhkhAMVECgAJaNnDnknKtR+rGQrC9OoIMvSXflCaCSv4kE0KwiwnS3vkjjsNVEuTv1+FVaZzkmYZuFWIJjhwrRmEX+pKaJJh93WxXgSii4E7lkwdaCuO/N5AQU/4cAX1Fj1ZXib91Q6OFqY27Vtjk/LviX2nRnjkNR5TfmYkvONTKwoB0N1qUGBJ8wositj5WyRORjq8nFM2Rh200OKDqmO7UbwnF497l1XRLU/mtUsRjAxkgx0ZZVyJ+IsdHKT+hs2UchM/67vBMLE1viPVTGV+fImj0yTb7xt9Ie2xF1UAfXoqNKBefOiWnc94K+lciFcLTQQ9yRGFqe9j1KBbOzGX151El5dwXa/Lk4E9F7mrsDa/O5THxeUWSHZWCStQEJpUOjITqwkJuFCpzzDgIrKva30gSTdHJN0FjizJDhkqZXawnNKOxiB9tUJjrypeEKOoWkHftJjHtQ7HIW3bOE0esZrE1jX6ek3p0TcvjKCREfxfr9qfVkbiYGrchgkPiDcZFjJ5iqidX9JpWRK9t5UbQv/27YUGfB1/w5WGyPEmsfEVHK+7kXpTyeFGe8euMVFlz3Lg1nnsYNK9vxREn1+9/2RKElloXB34CKYrShCAcv+3R5ByaTJQ4DmzRgo8rbVGMUF655pcIWhinWy7KR4qBDfaitW+H7bSYlt5KVN4QXPOkENOUC+65K0gLC/Bi0cP3hwGDXcxt2Sk67C+njrWGSRW4AoSp9hoK15zA+fEMV59yvFiqlMyuUyaOyhZ3vywhgBtXShwc/j/Pw8X0ijJT3MlR3CbTi9cXiM9VZnwCKzeqoZd0nj8KuJ6zwEtGCX02rrUborGCqjDa3DYWDDTttmXK9ieewVJOiHLRbve7xcXLJ2a5ODmRZdqJCRcBRLNc9AJgeRbPiceWsa885v04cpRaesQONg/F/zZLyTyHQRVNdSOJP9g+FRTsbWp0cOMzIebOPc1HtTbgW+xpoui2hLwDZapTY2LzorBVgmMWU24pGE222ZtGYuJ4Lmd+DJFixJvtApm8hLIAXZrfxrEaYaZSh+JEhLfb42Tb7gWgk7+qxGYiGXTIhGvX3TglrE2Ed8a5jIrya1S5x5/dXHKDf1KpCLY9JGbm3S4NfuCzxfC+6iJEAaZ+PCtn7Qg/o1XI/wvv4jvdAHOPvHZI7f3GixyWPtfCUXJavyHWBWO+W6xrOhaM5yCZuT17LgZ3+MD1QKlan/UqraX0QU0th4RTLLpuueAr8LSLfhKiWZLMb80P2TdJvW2HlgRLoY7kKdHJ2klk0TVCMHLsw6mGl/4g6J/6IntRWSWMUif3cqJD8dekpomdIe0XSmtMsTC1Jp6rlRGNim/3Yn38m/MH2SettxIH2k6AeO2iTIhgmfHTT/1VteTok+f00x2ALIRJGHnhROSJYi44fqSAaWw2v/MGH44tJv5sfzMBEat0pg8gLK7jloZd9mh9S8lmX27Etsg2CI0pYThTfHHpI2e3osyzGb+OtOICuFxEXIWp7tgFu8sd3hu34UsmUkFInvR4/SndBhwsbKKbaGwG5E5YLukEiJOu0M3Bg73Ii/RGIFn8UAxyO6ovW11913SVorUzoEjbO100RBhSNW78wWUtGZuIMl2bQCtL8S/h938iLj0UczN3C5qy33GAIbG00Cr4mHL9v55k0V7V7Zx6uRFSG0hOtz9FH/nZUMlTLBtwGKAPEUM5LHPeJC04DNr/qHmE5wpjeiOBDHQSuF6Ov58j+JEq8DK+P7hT+YdT5w5AFMP98d2Yqi3ZjO5/g5GpA+676SUxL4G4G1YRp8OXkLKMmItZO6ZPeaEd5Ga9tZR4VjYTyXu3bSI6kW7nJokYqRj9uzs6iNG71aZlwF99nf5gMLWtwUjoUtmIdVJ0gPXYGHkjD1ehwGN5M4sCcCrIeF+1xecO9i+FfY196P7KArmSgefi4vyb/cufwFlpnBrk/AWl4aDERkoWd6ARfmaOfoCdcTe5hOfP09FgN40VLKhALGfHKo+ZeJH9lqWMZiCIkwupykj1YAAeI+Wh1B5ovG6JU9GEuXV4UCLmjomkC28bq6BDzwE/zMeC1PWy/gmIu5nSporHKcy9tgF5xEzQZa4PR+wIIzm7yCkevCHomTYrChFHscQBMmBp0VRzdb/wu+smeH1lm99oSQ3cSr2B+rw3KfdEABDrl6vThg/ga4dCZ2L2rjKwSUoVu0wDSiRJQz+WUEK0RDLmwcZC9wp8r1y54Ng3+R0Lp1NFz2xuciW3LPAztYxDy74yhjNZegL19Q1Y+YMreuhshNv2jeXPf/FyoBlmpnQLJJchXKhVRtVfZshOEdOmReURrXWVlJiCT5pWNAOli1OZHMAy3lIMOTOgMorB3crm+mWPAIDt4mZzYrDVReDueSf5SZg1xQDxMlLJyBSto0m/E1U88XGh3C1tAJ0SJrgfUydXoSvIlFecEpeLTSj3Vyu16QLOZXjepj5lLZzBEpOj0GiC8Cm+J895eGHtv2hfc3HOaH1TEXlXJFp0sMNdW9KOmw8kNUxba4rl/9Z/kxf7OLWAOfZwoLDi5CDH9S9i4mtOYDyBQvyNvVM9nWsIWplu4DbfdDZitNkErqdPcmcqCOP2MyuuAr2utr8OjX8V6CiHmT21iWZnEUO0kLNahu+/HImQCvVZ6LRyUZxkkZV80fK2O/k1mjcTYQ4Q1sqs9tmSoMl1r8EBXNr4ZEnDRcx5g2LftwGaJScAh1muMEN8/6S5XTwq3HkF3J5zAzBZJgO3OGObP9W8HjryFyra0PIeeApD5Ep3p1cBmhYKSlc3Woeo7N55hll6zf/+P/CCIeqA5QYdLobRA/sKb+PxwptLjVAL5ycc3oYE11xxAKVbkuDv8mkUDflfoz5JwkpwG6+WbRBEdGXe2bvzDZeIcrGoaxcuczd7kc/KJEtLel0/TfToEGsmxLItHHETDvIHpeKjQJsyLAUCvAwKmyQAHWvCIkhAiJUPo5DbJZNPuP9uiAdF25NM4tnCgGq35EzESeOndHQoi+Xq8il8ZAxYUFaFZsaTwjxrp52HxbWkSJTDHyPzPId230hT0EwYyhtTYGgM9JA3yi6jTswaDdEA05HuZ6vzDM9hLWaJKpMys9TXRgSRZFlLEJCtYrGQdQx20F40mx7DNeKbiE/rQ4POg/dKf1TH1A79fzYTpZIih5wRnn0iHv0vFgn2YbF79tNOocbDXBhVOs1TtuyBPfy3umZ12zHoaYU/GbgwZvvgZ/zRCFGLS2Xn130M0JLDiohLmITS9jVjYztn/7+UXCVSZ2o7qXQIqqg3iEsuPJvKF55F/svLkmG3lp1UGn6LeAn4iqQU459SAe4rBaT/TIfkQFIlMoxfR1Z7CkjOhs+ijnO37RhVGV4mHkZ0q1HVk+XiXsDEVo/DeeAjESrnOPMUA5dE5lvrjUEmC7bN/p5Fw03bHokh4RRiVfMIXKktwvKfvN+yOGnayXDdc4N6AkXANx38viwZus+aSGvaZuKOsKIUpg2CDfY2X+ECE91c7k7t138Dbp1bFGxXxcTGU/T3S3OdV6rspFg8fIr3IEc33DwUe0/c7crMbYUKn3w9vdNEc5L0/NGJM4MKcZxx2hIysK5Q+o2sorndn9Ptl2tLWzkuvLVczMGjz/puvqvrEAiNA5qqk2gg4cj+34tt2+vKDpXrrG2hp1MUyxCwPyJ4OgOzHK1FmtJHUydhv6o/38uxVYbuG2t/pGiG4fPstVY45JF5vPeFYyLOLGN0N+Dko1sJuE98SRjtfHGfE/oHgZZNMhP3qCJLB2ht0PRlwv762GzcJO2OPp4Jjg3NaQGyKEy2fe5rAV4tr6LxDaeyuAzhWn1jUXHsY6nU9K8TKVba8NkZe30ugdWtrE/sJpu2xFebOzo6XNADg8JmNU/MOF6ICBdr1O78+Ciq+2Svwu9EeJ8dsnSjQMXXeGCAgSe43uU7VkCvSL6aY6s8s386LCZHMgCqPlUPiLGiBy9kicHT06usSJdGR7/DkoUZ5cPZp0VUCcNqS97uTzlpxDLRigD7uNeFr2KumC6AnqngCy/aiVzasc70mMN0bLP1DuFltwpfL1XpDujq8YqaZxE2xPA02DFg3lDeZkrklRBMQ4upmMgviUxUu/DkReSoudxJO4i9JeH258tWmEXTjaodezMgkNQd1W7fEd4x3W6AGPy0jY1jRVxu/pS7brOWvEP5e4M21o55xrnKKNiPXe32DMwiF7pC2Uc7s8q/3D9QkNZv/j+IUehNkQ26vLK/fs+lfnVeAwMZoPJPqd5ivFj4zR2fxZk2M8oZ6WvUxh96UPzOvFrYkt75V5iORB5Mc/ldUFeYxWcv+fBkhVdIwhD8/pI2KiH2M+DUxD1LG06znqsc6Z2yRt3yGQ3aSA9Y6CZXv6oRnVb/wInBeqNr4nni0oI2tTMtEJFAs4Syci09Tslyg8+uvA9eLctIqp9KvyGO7B9F13sLwGOJWra2HZnjZjO2vc8dJxoZeGa7Tf+a2jNnoT7wOrJFPPAMCRcipnLeuuLMJPDQOVFAIPX1qKIfFOuFT2cjxKWPluq6OaWhg/zmBQpvipVu3nyBUqAk5+iaV/Ty3GjJ91ZqcNP+yKSGXbh1jwL2Tp/Ebj3Q3N1grBQsk4Nr1zI7feP+wYqvRoujc81U40mD9Fzxx6yBeENWi4kEVqy1i8B1sOGm1QHqttoeWPjzqZSR4I8cC1MetlqRfIzWbX5s8tCAUEEZKSIUNUCaRHVSnLWyk/MMY4mo5z1c+rlXPllQE2R3gDS6+7dI0/X1Tw0YxUSrw0nq/uRlgua1nFL4hXtNrwCIOQ6EZw8Xmrr3hoFpjpbZ6mqF5Jxi+MrPiISaMWbONGVzaY0dlQqFC5TYCEa1cnBU8ZHhdY3klPIu765zP3WMQN33TeY8vpwbVAaNX3LyK8t/01tuEqmdIBVlTGdzgBa24egJB7jJpHYrC6QBtQK/yeIsQSO3hYB6jm9wD//p2T5HZIkAeWDN/xwgAjq+41l672A7Q5Ud1bdtDWiaKxj2Jqsv4tUa6KgkFKPk0kyJMEWE4YGCXpTx3kpOjtg4GvEB3Kjn4Icw8dU5F/hE9aFsLlhL4KgUIGB/9U4E251I0LS0QNx6KmX7EZl51Xldov0Cat3V1FwTkUzbXXHPl8A1QtifJTZeNSsRGMyHOZVXG191pP0M35gO6hb+8enOJW8KNe11l2H/s/sieEa9RqCdEUrQo/jP+2Kr7+wpT/vwfe/QLoZu07eFfPvvmzBfJdnpss7eJlUurUFBN+iMJXfN+TvySRhJYXBlmNXmNL9Lka18cr/uHW59bodO82cAeN1J7i4CIv5rVvFGHdtiL9h5DODtCeUUFy5znhnpb5FIGMRa8/rKQ1lzLnrdy1Lfvbs52YZoGWDcB9QNwjQyjzrG8xcyyLvNKQVGbPGb5vOG67pPSoLGrFMdYcYDNoRmuOSIsfFRl8kqX7sWet5+cUDS0ABkEqZCatj9gaZv9/4fKfTLHpIF5aB8MchgkN7RKjT5CyDcGqGRGCrPYmZfWKbzUS4VcGgs835PEVSeSTliQnRGlf/qEDPUofBQg/OqoGJulOtz8m/q9aG9Dyd5dAYepe9s2laE2UA5jHneu4jibhBj5JSEmZ0ZLHcGp/mXof4xUzC6kQnIeqEIZUeSNQmiF0VEOQ5JaBk9azxi1hcKhNFfqFhg5U75LMaRElLeRb0Z/rsrVA/fFcxaK41rjeVdxEWE4YO5QwZFj8Qftno9zUv9LpacTM023lzXPaU4SKAFIdWFXCDgxHNbKzK4PTB27vVeOKdzy21bKxbEEPr+aKY+bNKj//kh/2E8D1lmow5PKEcLJyH6PnVqqSUzzmDEoh48kahNEIi2MlYpJxTX3G5K9sU66c9LT6c4LnuGi1o1iDS3vJ777TjoNjoMcvzLCfagpVVjQGnC8Vv25yYiAtW1NfkhvHv1Ycs34NAzlr+f9UWgabcXrSv/C4yEigNtaqOR36ZGE80BfvaSRCOopMUPD+E1FDWTBnoP02GbK5aNKrkARNVWm9mFZAVV52HYx46lUQQDbzfKUc49JGbc+hvB843gUY01j32u7CqAoWAf3muC66INTAPpWIhLOtv7DrUvOSU0/9tU+EbRgGQi5o6JozCOo5y/s6Zwt+d8CpN6dxBGcsPehbeZsmjCnSAxlfX825/+UPe2nzVbT61RcCi/BE2PvMdVUrX6hgYrrK1oLXjFXPZ1dzJdaj/Qp0DJBXjkRVzMKix3VVv+CuyWcgYdi1qs/yMXd39cQRt+j3SO27hcf+EjYtSVyW9EJ56BplPqmypgMF7E/HMPyEqPP5n89MEihdVgh5WXuwYXq2uuZqZlBBOdgA0c1Inqn7GjoyfmE7qEfMwge8mJd7sYj661GJJHNgkR0/kSRQh6AAL+J7HdhjQDQIj8/t5JFn5N4FGv6A0P1AufOD7wBwgftjkYEwGEbafCwyTFf3VvYyX6WY/CY8M2dN3hGEdyueToU7zKRBO8HcqVl5FmhOg1wotHHUHBoApBiDFriJ2f8z4Qy01NQODobY+jY/hY0u4s0kXjXahrH/44hH1EtFKpjBMLbOpSY95sjvxxS6d49cPuIWM4+8YqEUYcCS6EUOho/ma6NUsTYsM4fPzfjYVMlODQtfIAfRl/ihXRlSxUm6zTztQSTIAV5eNHCMvdvwdIDHlZZMXCxc78bgaawoqzbgIGcazaxlxTthK80WShnMHTAj54lXjEQWmVvn+d7wxFhknIuG43aMrdp6iuoA3l3DWvuFCT+VfZkWmG4du0qmVMdWhB39iZxSlBxLiHm9Bw884L+PbOwSCpFovgA3P27BJirZwArSkofJqM+sLKM65+1x7FKZwdphfHTGS72vcTD9Vf3OJX3NKULSqUIsqPiD98zAlhdzVGm1b6JBZHIXzSotpDXK9tmh8TBC6yOl8zfdW+rNfK+btf96pf8bTqG555MMbynkuS0FiDkwBjaq/xIS8UMngaI2F6cePN/mHWtZ2kswukMsNUE8juEtRJXN0u6OgtEG1VMZkSDLXa0TOvm44vCjjLeOkOBmLQWT+brLtf76ZWSDhkz6mpKw98XtPYxMKFkSzemoVyvcTFcb+0DpQN5dZAiVhgl+eAJsyjTT2NPSFsH7pJ0iQXPk6317dcx8c2XlRsnLwjqBq7t2GSsc7kk6fWPbVF4/USGEmLk42h9LeF8ZxwMAv7NC8SG13LQAafoufgkvf+Kfscw2XZshS7nUSwBd6nay6ywDWOr+MUgba3aWmWY+2NlSZmRM1XNfs9XN48ot84ko9wzVVfZdHAadjcbUn3K50GSG49I90fibNw12NXbdpEuy8y5W2r4hdgciHGN6sz7RcMUg7e9POlWGTTjDh7SATydDtgtDSOzPv71ACodXjEC8qe/EWK0yDhLa9KWpOX76Usbchxekd+ynCyFuEtDN3f0yj2SBGPfBcRPd1Sl9oKOO43VYOlY065hWscczCbV3IuGj6sWxPzHuBAaOz/bTBXmrjkZSSklG1UxszhCmuhMX7Hk7o+eYcJR7KlFObXPUOUmiJ57/PV95W2xmvo6+rGn/n22SPm4ZpLFnWbe68D/7crt+vjVXCmmuP+s1cAnOzJHHeCYCM53ougQ5iRYaH/8/W4b4SBouijrXiUkAtk3aqNoFRa/VCkKLsZtIj2JFpWgOzVfyg+LAmUsU5qqInWmuJD7l0ScVCMh04M5yK9MDstvKejcMtmCdEZnB5jRoGf/CU7Ucj0r1fzsnYML10W3ZNx4DPRn4BWPb5nfzkHhgrrzYu8RI+foR+ua9A7jr8sFvJqfFps0iUhq5WXPLXcao0XmrEkOSWmw7ScWVtf2yn5N0yjxmkUeP3kkL289FhmmJ8LAQbWSl0pg/hI1ladnfFYky2XwKyhSNOWu92cdWcO85oqjTZrPzJ//AxVu/wwSqQjSn28xx1E3F3faqcuv/mG4xx1SyXmLne0V4bIrztzic18yxWfm9fmdb+QmcIx2ggqD43tin0HUyhHkhC3kUVJu8G731dfYOEzO77uoIsSjUsTYrsAwoUsva/Ae+0e3x0tbhjfDRjHgv2eBl+/b9lAYO/q2xnWWY8rd75rBwZyPY6I4KO7gGA5/mbuSbJMmOZFYQSTIAV5fc8YjL89Vb6DbDyCIw2QQwQO+Tq+AvYr5jHViXg7hWusxdFWluwOk8MO8iQzv+yupPubhOJCWkGLbOxMqDjBrCnoQ9BXTQZV9ow06o/MNiUM/b+qDciwC9MP/2i1nsbc2c68E/DLV5O4HURRsQz2bJSkYReYMqw95vKv++fMoX4mlMXFJ+DNlx0ZhtQQNhZtVNsO+2gMurRJT751cRyW010Pg2BAO/lmWjxpInMzYm1UZJpTGFEFYXwGdK2xMEPgffP6MPSuYwLCIke3jw1ZGomen0hVq7mbnKN5SPDySihASsVCuQqJP6WCQT0q5LowbTDDA78y+jn2RbveOXhpTjZ9twQtI5VRNWAqFENhG3Nlvn+Dk7L5OvBt1eGGIWr7bxTgURV3DmQKKLkfhnflf0/PWuOMDc4EPdvheR+kKLefSI1DMsf+PnQ+AO3Ye9PZqw3+nHrhYX0L6RCvtT03rMVFq/WU8CFeb9kAR/nM20LYqQy4WNsKyi5pwFuVZoH5gLSWlDjcAhw23ROqCWyrhGfbrg5YMG2JBRywSpRLJLhX0Kuh1HE8oYg0JB6U1jr9CNRmfebfEqDheG62j8PW9MgRfq5H1K1Rs/gbMRGFyZywhp5pRhmtb6Lhp1eQLOKpAaMsVTAz8XnIlQBuqMAs0DJyfcUa13DmmLTH5pB28M9CTXuOkHLTMojcRXHpHDE0cHCIBszl8gayQu+aZOd6irmqjoyBTkYCUXvVx3AcxEQOVG9Hy0LRW02k/dDUSeJxZBkNYTvF6stby3MtO2ip+zIR4xQLhn0gjNkLUdvPaAPpCcBP3m9K3l34PnfIv4GkL5LgRCHPgy2BvZjSFH+rzAOwP3TSSv8omKSh/LpImtPfXlWg4NjzuEIL55Y1a6AWh3ReQH/0qMiUxvpqmMJp4KGu+Kfn+sXdeZ0ls3FfcD2BMOtViW25j4NfBbuF1KgEhStzpIbufsVSeupNgXreKmzKacGDOZquJHyKjJ0TR3H0leADQgcubM5ytMiEdPjY54Oz9NDfXCZVT2rqrNCa8FgokqHPWYFcWBDUIJZLmeRbxIIySPaRfJiUoZnaPUMX+DFDV3yZyBrpA5pq7JgNSsGdMvOoDAFcG6MUB50T3XuCPeErdvIFfG6zrr+B0NwwJKmFK+9dN6qycWCrhPWpp9hpdcQgame3CzEr65kdqDyI3Pbq6zaEQ+qzEa9xPy0j66bpiKd1SIznXJo+K2TwDBm2+85eSPkTl0A/cZiJWq3/zCPuZ41TD1202H1Dl/RXbnF2UIvVmtUGI9zpq4A5LaUTsN9RUK5Prcw2VJbRW6NjQiUp4nVp84KnTkLYPVme8FEJZcMtywuu8FAYFSqBRHZkHOm1eflvjUx5oqgzu+BhEAljVHx4Yrl6Ur3owdIsBwmGwEeHaokAtGxDhRj+TqaXlUp6IVNAJzF2V838ohCGa6FYjnw1w7i+fs2Iao4/ajZC6/TdhBC9aeFsUOPwaXttoL+YGyNH+iG38jJHMTLBgwt9jsYXHz3s9qRHFcp5WdZ9t7rIzdG7295iXe+tDmwGVpTg2eAyrpSoQ5U+ukSczx9iDAhcl1gVCtoNi4Tx/S6NZ49sIr68NQnqHmq2G3iR3auO0FnGemBdH6/s6LkB8HgEK1Wte2ehnoILN9trivQ+7b4ZneaueTzdft0tK4DrSnyp6LZYRIi2AFizxkKOVHThkv6t6KYP5L+hTkYGpOJxA3EAvFIEu31J9bbX/0ZzwGMFbuqdl4oQFmm5o/e1JdDOwTq149rMb6+vg020GuUEctTJNDOcJarKFLx+/SyhwTwx4BtcAgIL0Mssg7ygaxY3uHxk1Fvs73G36ertMvjAwf3IUkALboyYuqpJ6wc2NXg2Hcg+aBq0AXAvSqRRfX53ME92HVEgmOwpVF3nS8nt4phDUQeRMvQfMRAsMY81mn4tJeIuNpTMSKQokdEXnD4pdcQPt+jbtmj0XCnmGO/bqP/NZk3A3ODreTBMtpS3D4TkS3tb9PJ66+FgFpZeQJVtj5Lnaen1bniTjHmInFRDPAxikK5UiVnUkwjE6xRKZ8MpoPd8RwvD38VPAlWfgkpwMB6q9wbFNLHp/wNmVMUqk3GahbKAfMy1LZVTuZIeizg/Ns7SAjCsc92H6T92bf2/bjdeXckanfUO7EV8rcKY6gZKgP33cwaI/25n6CkwZghDWm2bTx6PbCZqst3aDpzJKAThbaGahauGKzKykIQ/4xFd2ry/+xJd+j4aaMvtTvXAr2+FJl2MYXj60NZK222Sg5vJv65gxSEpeTj9RN9JtthkJs39iDSpUHu1XGK/ZiJEG1PWMH+bpieQSbyA57vWb9kWRDDn1tNbapO9NEQAcjJiwPl5HMPqcr0awAww9jqFEVCV/0UVF9hD5yXJwy+xm4Yw34B0sQyTQav+nVvyUnIWYf9aNyTG9nUaGsf2n05x6KcipgucPLIkYnfpTeoAx3ThHR51BGHHmQyh1VmhACV1ec8MPdbgN1mxjJ3j5P1IjnZNP1TJ4v7ih93fKVkzU4Q0wut7eoRhStIboh8WJK3EK5dbhZtLSK5yAbtAxQdtcRsI9GSATN45NK5bqPgEpKBtQ+EAw3ly6/ZXGopepYvpbim+3KmZBXn4oSjLPLoFCJwrZVpgN7JfLFVGHA4M4iDP9SUsfutqYgedr1Nvs5DhgWrIHyhf3b7gd/2zjl5a9mUm8z/600IeAJQHLshNp4m5M+3zCstAH9B+7NgvlGgCEtlyLTTXowwCqUTqyzcSJtbYZmrb/lkkyjxl4YynrcwoVqDu3cWrxouIMBvq3lv18E+DS/cS5ymGGqw6QVJ5EmSU6mlD3IRUBmUiJSuVSwPOAR2ULOPP40VwrPkKOcN3vtmIqyWNrJf1EQvVVHu6B5t4ijU75VLVsZLU90DTGGha/hVBVdzaQaVrxztDO/6Brt2F/eMh/JRgSNFGGt+fCapR6pQqkwoT2oLwhsdmZh+YK2X33VGhy8pLaEY4QQFgClm/mjYF5VzGS/QygoL4XOR3w364hBcQjl9TvgGzBk5XYHdppzw7+oFsNecxlRIlCZwOERkf/iBCjJqJnqr1TiKhrdfDQy337M6XvYvZOhB/XK1OkEyqfQ1nMSDrVAgOmvJZBV+dMD67+hVRaHZCwY5Y0iQEd4BRr14afVP15rJh3w0tFCVCnFmJrfU2/qjtvAue/mpBL7Vjmdd4J3BW/vZgAhB6RA/cZK9lWqo7dC3U3ggpZ8XSdgYNaf2CSeIb+YnSRYauazD90cPGG+lbwBy00PFQEJA49r8CG1K7oauNxKy1RbEH3sxWzI2h0ekxaX7EmycuETfz6G9L8zvoG6wmvvJr6vJQXpJ+iA9FK69fl8L4O8rSkw3ZK3MRZMy+XMKhqzApPzbWWHZykxeuodncKJjr1KaC87WTtZ31bfJn6on771kn50G14IJTMa2h5O9Sbc946d+uAlBREDmDVWTDC2cjg5Y7XGkZJ72rUj0jQjgVbtYxq0C5LIRq2WxIKpoYV13mEcdCKOdJWbeHmcFwgr3ykoJBc+NF+aUWl4P8C5VPDpUmM2pvYgdJ0pNdyOv1UU0XHCjoe3PXai7T8+LoSGXUGCnUbQMhFtktNxV9h9UkthZRoSXfpExUQkODPA5uKoufNzbGFZA5aB5TO7MEa/Cg0Atw4o/Lo5ApSLLZd8rZLTnZ1jHkjHPRSG6FQVZGtB6kjrWzSzgdZyP25Jpz94Bx9xEGp9KiW9KmbTdhM+SPKXtlsrruq4XcNmwW8lbdb5Suboa4hDEc6Yhu6AO3IbNjdgUbmDCPBgQ2wzoYlUZMtR0VbibWdzgm+J8kxII0dkuL+g0rq9sTd6yXhAmycb/F3VLgdghQaww5p8exWxLaNx98LA9zJfzdCbI8XBHTuiDRv5LzH8JTJAg+2hhd4DqYlVmJK9dWxarnEUC5c6eJeJq1nLcVoc14M3suT9y+/F4bqWusx+x7a3gpfNjzin7a7K4alhNGXeXB26xYo+29CxaNx/6Zi3R8nzS1HnbFozPhG9sSDpO9JdZtypM11amJJnexZpP7g8aa7pV7VL9pJP4XwuNwYQKIhedkXn7AcLt8zZsffc9hHP51VElV1TNN9efJE2jmP3KLVNafnIunc1yxKkmA2gqGewhtdR4k/QSIlcJIbNuiUyJ8roJ97LbLUhyzvX8LGREsp29aqoL48plbiJfuKn9caTzMcOnxKTc+o1O5gGWqUWwlt5ZEzEqQZfz44VlNLK6Uq+Rms2vzZ9WOWFE+y9DJ6x4BzYg08O+p4TOeBYBiCqWYvxbHZuoP+Z1Qxv1Wg+qOEvgkqos/Oj2JSjBE1cUb8XakIwK5Uk9fw/AZOf55UDNhZY1BURLvJsI+zgUFIhtj0OmQBkY5S/4aSuGknRgDbmClWHus6otVYA6WlqHBtJNZgXnw9Y75XfwDhhL6O2qkY4PxahS6I+BbWrzCDDhwRYThfGPao7NGdTGf2vN9L65Etpr+4iuqSxNyW03YtQAcDHq9xsEFs2wGyFuxIVgxiw422bQX31L4HzXkMUvSAjaNg8TGi3wT2iSKxcUcsHaZoUw5E0jxUHBpCBxEv06+u1J43AQ99U7COng0nO0HM/JTQzGqRXCAGK1jqWtaFExobdBLF4di3CvfGKMgneoZ/lN8kS6Q+/G6JOsWx5cCPqWehDrG9lxlNpSaO2LQsxaOH8C2Z3LBriQkxESU1e1xN0G5IdBESsVcX0xWGDHjctoReYqJzx47ldFkdBW4BQel3lOJ6YeW6RwMQtoWKDg1qWmI49mNLeDQw0wxaUztPz1SXQiG3+/8VvhJ8J4BymyK6wUxUcHsRM8u22oSkgoarIFyTBvrgapNJ8lk6vTV4ELY26cb+RaDeIlQvwDlftdG2YGt/m+E2UjdWuYgu8PmlaE2AOpFrfvqRnObc/oP2AW1qvEG/XqH3DTm44R5IV6HPcqQk7D9IDg2fI8/fcBe5b4jTZ0k2zA3sQbU9Mdf82cjkbGUcil6B9zWfUkZVWU7/HBpiuqr+lJ9w3E1fKllAvMNWJo/2q4ErzBTIA6kVOgax1IMpgi4lI0IGnuSt3g03uikCDj0nkJfqd/1PkpsvGpar05BZLf46oj27lv5jSwPeGUlG0ePYF/vBP0uxlTIrKDj/85iOhVRLPP2ozBZKOIQn4sSHI8d+mt2LbTmwDTZsBs1v41iOojSj/31xcRI8tE+kEH/FXnfLq8KySCVsD9VAFhO1kG+63JhnI99BjND0V1Pf4gKb5J1qApjw0+8uKd2aqVO5JZAfpwdVpeuYj8+SKDzcywSk3Jxubgr/i0h8B6KyayL9ANcQbuxZW7t+3BKIjy3A1FhqzA7F7GCnBXpy3Mm6/PF+0IgkLnABxMjScmgSSudP05zB7vGN/61JWHZyLb5e0iOpF2liBl7p1Ybc+Ym2IiUiHVu9af7vx0drX0P13Okp5V0Xdd7T6Y9mjBXDXUKZf9JLkE32mpA++epGpemh6rVtO6Hog7eJK60hV7JY2aHDT8dUya+6QIIMDsZG0VdCL+mz7S4/lvd5+VC/fnw55sPKHsh3iifsn5jnf822tPvozEZHoGm2/R4zRoRT0nlU1PEzzFAORg3odVs/jTqxjICzcOmeATFYtqW7lEF8z2Y+24Cr02/MilhM4lBHPxr/hDmSc70zdPJSzWm3JuXNOKLgPOmBhpRzQjhz6ri3eWxG76K5XfV9HBkQagmTy9FYbekOyXQsiD34IDe4Ts1PnOSPPucxJqA6XIJvtWmVj0FBCmzvAPoKvaWZqtMECOL9j9TPmek7OV08O9zaTvOSCEjm6XEtjUsofvLHCfIQCLSA67TZ/yDVyeFrrudMIfpM/DoxoAZsIfhVSgAINZFRSSNDgD2LMm1p+iCCiGVTQKhxWhvNrGBD0IX2cGhQ2GrUZksmFNJzvTN08O9yz+cQ5Ai73jXE5SdRXh2cXUq66srhdRzCp8Sogmfh0Y0AM6LFPUIDTKUk3J2qfS7QsOAhywQfHfrVxVGAzD22b/SP05PqfK3a1YWoc5JLr4vewpLRiT6VeY0boWdtpV6zUJiuL6puNNZHz1MhChAJRYueWJ2bZjr/4DVj7PDkYpW/wsINxH9MUPmCZNeFgtGD+X1bEHvS+d6FFmMZr94hHAM8rYeV1X2p/q+5KXk3cAe4pbMRSxNWwzGNc9p5kkrRtWcePhQZqSIyTlfMsfJ1LTZsxlBr4xdyiC+cYsamAYTAFYJ3Yx4EqDnywicT/YF8iBR/BTMI0agUAA" alt="British Columbia Government">
-      <div class="bc-gov-title">
-        <h1>British Columbia <span>Tourism</span> Dashboard</h1>
-        <p>Look West Strategy · Tourism Sector Dashboard · BC Stats &amp; Statistics Canada</p>
+  <main class="main">
+    <section class="section">
+      <div class="section-head">
+        <h2>Sector Definition</h2>
       </div>
-    </div>
-    <div class="bc-gov-header-right">
-      <div class="bc-gov-badge">2024 – 2025 Data</div>
-      <p id="lastRefreshed">Province of British Columbia</p>
-      <button class="refresh-btn" id="refreshBtn" onclick="refreshAllData()">🔄 Refresh Data</button>
-    </div>
-  </div>
-</header>
-
-<div class="bc-tab-bar" role="tablist">
-  <button class="bc-tab-btn active" onclick="switchTab('statcan')" role="tab" aria-selected="true">
-    🛫&nbsp; Visitor Arrivals &amp; Border Crossings
-    <span class="tab-badge statcan-badge">StatCan · 2025</span>
-  </button>
-  <button class="bc-tab-btn" onclick="switchTab('bcstats')" role="tab" aria-selected="false">
-    📊&nbsp; Tourism Sector &amp; Economic Indicators
-    <span class="tab-badge bcstats-badge">BC Stats · 2024</span>
-  </button>
-</div>
-
-<!-- ══ TAB 1: STATISTICS CANADA ══ -->
-<div id="panel-statcan" class="tab-panel active">
-
-  <div class="data-source-banner statcan">
-    <span class="ds-icon">📋</span>
-    <span>
-      <strong>Data Source:</strong> Statistics Canada. Table 24-10-0055-01 &nbsp;—&nbsp;
-      <em>Non-resident visitors entering Canada, by country of residence, mode of transportation, arrival type and traveller type</em>
-      &nbsp;·&nbsp; British Columbia &nbsp;·&nbsp; January – December 2025 &nbsp;·&nbsp;
-      <a href="https://www150.statcan.gc.ca/t1/tbl1/en/dtbl/dtblDnld/downloadDataset?pid=2410005501" target="_blank">statcan.gc.ca · Table 24-10-0055-01</a>
-    </span>
-  </div>
-
-  <div class="main">
-    
-  <!-- KPI STRIP -->
-  <div class="section-label">Key Performance Indicators — Jan – Dec 2025</div>
-  <div class="kpi-grid">
-    <div class="kpi-card" style="--kpi-color:#2ea043">
-      <div class="kpi-icon">👥</div>
-      <div class="kpi-label">Total Visitors (Full Year)</div>
-      <div class="kpi-value">8.36M</div>
-      <div class="kpi-unit">Jan – Dec 2025 · All modes</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:#388bfd">
-      <div class="kpi-icon">🌙</div>
-      <div class="kpi-label">Overnight Tourists</div>
-      <div class="kpi-value">5.03M</div>
-      <div class="kpi-unit">60.2% of all visitors</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:#d29922">
-      <div class="kpi-icon">☀️</div>
-      <div class="kpi-label">Peak Month</div>
-      <div class="kpi-value">1.22M</div>
-      <div class="kpi-unit">July 2025</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:#bc6023">
-      <div class="kpi-icon">✈️</div>
-      <div class="kpi-label">Air Arrivals</div>
-      <div class="kpi-value">2.85M</div>
-      <div class="kpi-unit">34.1% of total · Full year</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:#8957e5">
-      <div class="kpi-icon">🇺🇸</div>
-      <div class="kpi-label">US Visitors</div>
-      <div class="kpi-value">6.51M</div>
-      <div class="kpi-unit">77.9% of all visitors · 2025</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:#f85149">
-      <div class="kpi-icon">🌍</div>
-      <div class="kpi-label">Top Intl Country</div>
-      <div class="kpi-value">#1 AUS</div>
-      <div class="kpi-unit">142K visitors · 2025 full year</div>
-    </div>
-  </div>
-
-  <!-- INSIGHT PILLS -->
-  <div class="insights-row">
-    <div class="insight-pill">
-      <div class="insight-dot" style="background:#2ea043"></div>
-      <div class="insight-text"><strong>Summer surge:</strong> July–August account for 29% of total annual visitors, peaking at 1.22M in July.</div>
-    </div>
-    <div class="insight-pill">
-      <div class="insight-dot" style="background:#388bfd"></div>
-      <div class="insight-text"><strong>Land dominates year-round:</strong> Land crossings (3.86M, 46%) lead all modes; Water (ferry) is highly seasonal — 85% of water arrivals occur May–Sep.</div>
-    </div>
-    <div class="insight-pill">
-      <div class="insight-dot" style="background:#d29922"></div>
-      <div class="insight-text"><strong>Australia leads international:</strong> Australia tops BC's non-US market with 142K visitors in 2025, followed by the UK (141K) and China (133K).</div>
-    </div>
-    <div class="insight-pill">
-      <div class="insight-dot" style="background:#8957e5"></div>
-      <div class="insight-text"><strong>2nd nationally:</strong> BC ranks 2nd among provinces in 2025 with 8.36M visitors for the full year, behind Ontario (13.7M).</div>
-    </div>
-  </div>
-
-  <!-- ROW 1 -->
-  <div class="charts-grid">
-    <div class="card col-8">
-      <div class="card-title">Monthly Visitor Arrivals — British Columbia</div>
-      <div class="card-subtitle">All modes · All arrivals · Visitors traveller type · Jan – Dec 2025</div>
-      <div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>
-    </div>
-    <div class="card col-4">
-      <div class="card-title">Transport Mode Split</div>
-      <div class="card-subtitle">Share of total visitors · Full year 2025</div>
-      <div class="chart-wrap"><canvas id="modeChart"></canvas></div>
-    </div>
-    <div class="card col-7">
-      <div class="card-title">Visitor Composition by Month</div>
-      <div class="card-subtitle">Overnight tourists vs. same-day excursionists · 2025</div>
-      <div class="chart-wrap"><canvas id="travellerChart"></canvas></div>
-    </div>
-    <div class="card col-5">
-      <div class="card-title">Visitor Origin Monthly Breakdown</div>
-      <div class="card-subtitle">US direct · International direct · International via US · 2025</div>
-      <div class="chart-wrap"><canvas id="originChart"></canvas></div>
-    </div>
-  </div>
-
-  <!-- ROW 2 -->
-  <div class="charts-grid">
-    <div class="card col-6">
-      <div class="card-title">Top 15 International Source Countries</div>
-      <div class="card-subtitle">Cumulative visitors · Full year 2025 · Excluding US · Direct arrivals</div>
-      <div class="chart-wrap"><canvas id="countriesChart"></canvas></div>
-    </div>
-    <div class="card col-6">
-      <div class="card-title">Province Comparison — Full Year 2025</div>
-      <div class="card-subtitle">Non-resident visitor arrivals · All modes · Annual totals</div>
-      <div id="provinceChart" style="padding-top:6px;"></div>
-    </div>
-  </div>
-
-  <!-- ROW 3 -->
-  <div class="charts-grid">
-    <div class="card col-6">
-      <div class="card-title">US vs. International Visitors — Monthly Trend</div>
-      <div class="card-subtitle">British Columbia · All modes · Visitors traveller type · 2025</div>
-      <div class="chart-wrap"><canvas id="usIntlChart"></canvas></div>
-    </div>
-    <div class="card col-6">
-      <div class="card-title">Transport Mode — Monthly Profile 2025</div>
-      <div class="card-subtitle">Air · Land · Water (ferry) arrivals by month — BC's seasonal transport pattern</div>
-      <div class="chart-wrap"><canvas id="modeMonthlyChart"></canvas></div>
-    </div>
-  </div>
-
-  </div>
-
-  <div class="main" style="padding-top:0;">
-    <div class="panel-footer">
-      Statistics Canada — Table 24-10-0055-01 &nbsp;|&nbsp; Non-resident visitors entering Canada · British Columbia · January – December 2025 &nbsp;|&nbsp; Dashboard prepared by LW Tourism
-    </div>
-  </div>
-
-</div>
-
-<!-- ══ TAB 2: BC STATS ══ -->
-<div id="panel-bcstats" class="tab-panel">
-
-  <div class="data-source-banner bcstats">
-    <span class="ds-icon">📋</span>
-    <span>
-      <strong>Data Source:</strong> BC Stats — <em>British Columbia Tourism Statistics &amp; Economic Accounts</em> &nbsp;·&nbsp;
-      Ministry of Tourism, Arts, Culture &amp; Sport; Ministry of Finance &nbsp;·&nbsp;
-      Includes MRDT room revenue data, BC Ferries, YVR Airport Authority &nbsp;·&nbsp; Data through 2024 &nbsp;·&nbsp;
-      <a href="https://www2.gov.bc.ca/gov/content/data/statistics/economy/tourism" target="_blank">gov.bc.ca — BC Tourism Statistics</a>
-    </span>
-  </div>
-
-  <nav id="bcstats-subnav">
-    
-  <a href="#overview" class="active">Overview</a>
-  <a href="#economic" class="">Economic Performance</a>
-  <a href="#visitors" class="">Visitor Arrivals</a>
-  <a href="#transport" class="">Transportation</a>
-  <a href="#accommodation" class="">Accommodation</a>
-  <a href="#industry" class="">Industry Structure</a>
-  <a href="#regional" class="">Regional Revenue</a>
-
-  </nav>
-
-  <main>
-    
-
-<!-- ═══════════════════════════  OVERVIEW  ═══════════════════════════ -->
-<section id="overview">
-  <div class="section-header">
-    <div class="section-dot" style="background:var(--accent-blue)"></div>
-    <div>
-      <h2>Overview — 2024 Snapshot</h2>
-      <p>Key performance indicators for British Columbia's tourism sector</p>
-    </div>
-  </div>
-
-  <div class="kpi-grid">
-    <div class="kpi-card" style="--kpi-color:var(--accent-blue)">
-      <div class="kpi-label">Gross Tourism Revenue</div>
-      <div class="kpi-value">$23.0B
-        <span class="kpi-badge badge-up">▲ 4.2%</span>
+      <div class="card sector-def">
+        <div class="sector-def-title">B.C. Tourism Sector Dashboard</div>
+        <div class="sector-def-body">
+          The British Columbia tourism sector encompasses transportation services, accommodation providers, food and beverage services, recreation and entertainment activities, and travel-related services that support domestic and international visitors. Tourism is a major contributor to the B.C. economy, supporting businesses, employment, and regional development across the province.
+          <br><br>
+          Reference: <a href="https://ised-isde.canada.ca/site/canadian-tourism-sector/en/tourism-industries-canada-2020" target="_blank" rel="noopener">SME Profile: Tourism Industries in Canada, 2020</a>.
+        </div>
       </div>
-      <div class="kpi-sub">2024 vs 2023 · Current prices</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--accent-teal)">
-      <div class="kpi-label">Real GDP (2017$)</div>
-      <div class="kpi-value">$7.95B
-        <span class="kpi-badge badge-up">▲ 4.5%</span>
+      <div class="card def-table-wrap">
+        <table class="def-table">
+          <thead>
+            <tr>
+              <th>Subsector</th>
+              <th>NAICS Codes</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody id="subsector-def-body"></tbody>
+        </table>
       </div>
-      <div class="kpi-sub">Chained 2017 dollars · Direct impacts</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--accent-green)">
-      <div class="kpi-label">Employment</div>
-      <div class="kpi-value">113.8K
-        <span class="kpi-badge badge-up">▲ 1.5%</span>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Sector Snapshot</h2>
+        <span class="sh-sub" id="snapshot-meta">Loading dataset...</span>
       </div>
-      <div class="kpi-sub">Tourism sector jobs · 2024 average</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--accent-amber)">
-      <div class="kpi-label">Wages &amp; Salaries</div>
-      <div class="kpi-value">$5.03B
-        <span class="kpi-badge badge-up">▲ 6.4%</span>
+      <div class="row-title">Real GDP by subsector (latest year)</div>
+      <div class="kpi-grid" id="gdp-cards"></div>
+      <div class="source-line">
+        Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610071101" target="_blank" rel="noopener">StatCan 36-10-0711-01</a>
       </div>
-      <div class="kpi-sub">Direct tourism employment income</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--accent-purple)">
-      <div class="kpi-label">Total Room Revenue</div>
-      <div class="kpi-value">$4.75B
-        <span class="kpi-badge badge-up">▲ 2.9%</span>
+      <div class="row-title">Business count by subsector (latest release)</div>
+      <div class="kpi-grid" id="biz-cards"></div>
+      <div class="source-line" id="biz-source"></div>
+
+      <div class="charts-grid">
+        <div class="card chart-card">
+          <div class="chart-title">Real GDP Trend by Subsector</div>
+          <div class="chart-subtitle">Chained (2017) dollars, millions CAD</div>
+          <div class="chart-wrap"><canvas id="chart-gdp-real"></canvas></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">Nominal GDP Trend by Subsector</div>
+          <div class="chart-subtitle">Current dollars, millions CAD (availability currently lags real series)</div>
+          <div class="chart-wrap"><canvas id="chart-gdp-nominal"></canvas></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">Business Count by Subsector</div>
+          <div class="chart-subtitle">Latest release snapshot</div>
+          <div class="chart-wrap"><canvas id="chart-biz-subsector"></canvas></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">Business Size Mix by Subsector</div>
+          <div class="chart-subtitle">Latest release, horizontal stacked composition</div>
+          <div class="chart-wrap"><canvas id="chart-biz-size"></canvas></div>
+        </div>
+        <div class="card chart-card full">
+          <div class="chart-title">Employment Trend in Tourism-related Industries</div>
+          <div class="chart-subtitle">Annual employment, thousands of persons</div>
+          <div class="chart-wrap tall"><canvas id="chart-labour"></canvas></div>
+          <div class="source-line">
+            Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1410002301" target="_blank" rel="noopener">StatCan 14-10-0023-01</a>
+          </div>
+        </div>
       </div>
-      <div class="kpi-sub">MRDT communities · 2024</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--accent-pink)">
-      <div class="kpi-label">Traveller Entries to Canada via BC</div>
-      <div class="kpi-value">8.44M
-        <span class="kpi-badge badge-up">▲ 8.2%</span>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Look West Strategy</h2>
       </div>
-      <div class="kpi-sub">Total entries · 2024 vs 2023</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:#f5a623)">
-      <div class="kpi-label">Hotel Occupancy Rate</div>
-      <div class="kpi-value">68.1%
-        <span class="kpi-badge badge-down">▼ 0.5pp</span>
+      <div class="goals-grid" id="lw-goals"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>COMMITMENTS</h2>
       </div>
-      <div class="kpi-sub">Average across BC · 2024</div>
-    </div>
-    <div class="kpi-card" style="--kpi-color:var(--accent-red)">
-      <div class="kpi-label">Average Daily Room Rate</div>
-      <div class="kpi-value">$241.6
-        <span class="kpi-badge badge-up">▲ 5.6%</span>
+      <div class="table-wrap">
+        <table class="init-table">
+          <thead>
+            <tr>
+              <th>Goal</th>
+              <th>Stream</th>
+              <th>Pillar</th>
+              <th>Theme</th>
+              <th>Timeframe</th>
+            </tr>
+          </thead>
+          <tbody id="commitments-body"></tbody>
+        </table>
       </div>
-      <div class="kpi-sub">Hotel industry average · 2024</div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<!-- ═══════════════════════  ECONOMIC PERFORMANCE  ══════════════════ -->
-<section id="economic">
-  <div class="section-header">
-    <div class="section-dot" style="background:var(--accent-teal)"></div>
-    <div>
-      <h2>Economic Performance</h2>
-      <p>Revenue, GDP, employment and wages — 2010 to 2024</p>
-    </div>
-  </div>
-  <div class="chart-grid-2">
-    <div class="chart-card full">
-      <div class="chart-title">Tourism Revenue &amp; GDP Trends</div>
-      <div class="chart-sub">Annual gross revenue, net revenue, nominal GDP and real GDP (2017$) in $billions</div>
-      <div class="chart-wrap"><canvas id="chartRevGDP" height="475" style="display: block; box-sizing: border-box; height: 475px; width: 1295px;" width="1295"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Tourism Employment</div>
-      <div class="chart-sub">Thousands of workers directly employed in tourism, 2010–2024</div>
-      <div class="chart-wrap"><canvas id="chartEmployment" height="329" width="616" style="display: block; box-sizing: border-box; height: 329px; width: 616px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Wages, Salaries &amp; Consumption Taxes</div>
-      <div class="chart-sub">Direct tourism wages and tax revenues, $billions</div>
-      <div class="chart-wrap"><canvas id="chartWagesTax" height="329" width="616" style="display: block; box-sizing: border-box; height: 329px; width: 616px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Tourism Price Index</div>
-      <div class="chart-sub">Traveller accommodation &amp; restaurant meals CPI (2017 = 100)</div>
-      <div class="chart-wrap"><canvas id="chartCPI" height="329" width="616" style="display: block; box-sizing: border-box; height: 329px; width: 616px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Annual Growth Rates</div>
-      <div class="chart-sub">Year-over-year % change: gross revenue, real GDP, employment</div>
-      <div class="chart-wrap"><canvas id="chartGrowth" height="329" width="616" style="display: block; box-sizing: border-box; height: 329px; width: 616px;"></canvas></div>
-    </div>
-  </div>
-</section>
+    <section class="section">
+      <div class="section-head">
+        <h2>Relevant Announcements</h2>
+      </div>
+      <div class="table-wrap">
+        <table class="init-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Headline; subtitle</th>
+              <th>Source</th>
+              <th>Region</th>
+              <th>Funding</th>
+              <th>Policy/regulation</th>
+              <th>Investment Promotion</th>
+              <th>Infrastructure</th>
+            </tr>
+          </thead>
+          <tbody id="announcements-body"></tbody>
+        </table>
+      </div>
+    </section>
 
-<!-- ═══════════════════════  VISITOR ARRIVALS  ══════════════════════ -->
-<section id="visitors">
-  <div class="section-header">
-    <div class="section-dot" style="background:var(--accent-green)"></div>
-    <div>
-      <h2>Visitor Arrivals</h2>
-      <p>Traveller entries to Canada via BC — total, US, and overseas markets</p>
-    </div>
-  </div>
-  <div class="chart-grid-2">
-    <div class="chart-card full">
-      <div class="chart-title">Total Traveller Entries via BC</div>
-      <div class="chart-sub">Thousands of travellers — seasonally adjusted, annual totals</div>
-      <div class="chart-wrap"><canvas id="chartTravTotal" height="454" width="1297" style="display: block; box-sizing: border-box; height: 454px; width: 1297px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Traveller Mix by Origin</div>
-      <div class="chart-sub">Composition of overseas visitors (Asia, Europe, Other) — 2024</div>
-      <div class="chart-wrap"><canvas id="chartOverseasPie" height="617" width="617" style="display: block; box-sizing: border-box; height: 617px; width: 617px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Overseas Visitor Breakdown</div>
-      <div class="chart-sub">Annual entries: Asia vs Europe vs Other Overseas, 2015–2024</div>
-      <div class="chart-wrap"><canvas id="chartOverseasBar" height="431" width="615" style="display: block; box-sizing: border-box; height: 431px; width: 615px;"></canvas></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════  TRANSPORTATION  ════════════════════════ -->
-<section id="transport">
-  <div class="section-header">
-    <div class="section-dot" style="background:var(--accent-amber)"></div>
-    <div>
-      <h2>Transportation Indicators</h2>
-      <p>Air passenger traffic and BC Ferries volumes, 2010–2024</p>
-    </div>
-  </div>
-  <div class="chart-grid-2">
-    <div class="chart-card">
-      <div class="chart-title">Air Passenger Traffic — Vancouver &amp; Victoria Airports</div>
-      <div class="chart-sub">Seasonally adjusted annual totals, thousands of passengers</div>
-      <div class="chart-wrap"><canvas id="chartAir" height="359" width="615" style="display: block; box-sizing: border-box; height: 359px; width: 615px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">BC Ferries — Vehicle &amp; Passenger Volumes</div>
-      <div class="chart-sub">Annual totals: vehicles and passengers (thousands)</div>
-      <div class="chart-wrap"><canvas id="chartFerry" height="359" width="615" style="display: block; box-sizing: border-box; height: 359px; width: 615px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Vancouver Airport — Domestic vs International Mix</div>
-      <div class="chart-sub">Domestic, trans-border (US) &amp; other international, 2010–2024</div>
-      <div class="chart-wrap"><canvas id="chartYVRMix" height="359" width="615" style="display: block; box-sizing: border-box; height: 359px; width: 615px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">COVID-19 Transport Recovery Index</div>
-      <div class="chart-sub">Traffic volumes indexed to 2019 baseline (2019 = 100)</div>
-      <div class="chart-wrap"><canvas id="chartRecovery" height="359" width="615" style="display: block; box-sizing: border-box; height: 359px; width: 615px;"></canvas></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════  ACCOMMODATION  ════════════════════════ -->
-<section id="accommodation">
-  <div class="section-header">
-    <div class="section-dot" style="background:var(--accent-purple)"></div>
-    <div>
-      <h2>Accommodation &amp; Hotel Industry</h2>
-      <p>Occupancy, room rates, employment and total room revenues</p>
-    </div>
-  </div>
-  <div class="chart-grid-2">
-    <div class="chart-card">
-      <div class="chart-title">Hotel Occupancy Rate &amp; Average Daily Rate</div>
-      <div class="chart-sub">Seasonally adjusted annual averages, 2010–2024</div>
-      <div class="chart-wrap"><canvas id="chartOccRate" height="349" width="615" style="display: block; box-sizing: border-box; height: 349px; width: 615px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Total Room Revenue (Provincial)</div>
-      <div class="chart-sub">Annual room revenues from MRDT communities, $billions</div>
-      <div class="chart-wrap"><canvas id="chartRoomRev" height="349" width="615" style="display: block; box-sizing: border-box; height: 349px; width: 615px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Accommodation &amp; Food Services Employment</div>
-      <div class="chart-sub">Employment in accommodation vs. food &amp; beverage services (000s)</div>
-      <div class="chart-wrap"><canvas id="chartAccomEmp" height="349" width="615" style="display: block; box-sizing: border-box; height: 349px; width: 615px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Food Services Receipts — BC vs Canada</div>
-      <div class="chart-sub">Annual receipts including drinking places ($millions) — indexed, 2010 = 100</div>
-      <div class="chart-wrap"><canvas id="chartFoodIndex" height="349" width="615" style="display: block; box-sizing: border-box; height: 349px; width: 615px;"></canvas></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════  INDUSTRY STRUCTURE  ════════════════════ -->
-<section id="industry">
-  <div class="section-header">
-    <div class="section-dot" style="background:var(--accent-red)"></div>
-    <div>
-      <h2>Industry Structure</h2>
-      <p>Tourism establishment counts by development region and business size, 2014–2024</p>
-    </div>
-  </div>
-  <div class="chart-grid-2">
-    <div class="chart-card">
-      <div class="chart-title">Establishments by Development Region (2024)</div>
-      <div class="chart-sub">Count of tourism businesses by BC development region</div>
-      <div class="chart-wrap"><canvas id="chartEstabRegion" height="390" width="615" style="display: block; box-sizing: border-box; height: 390px; width: 615px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Establishment Count — Regional Trends</div>
-      <div class="chart-sub">Year-over-year change in tourism establishment counts, 2014–2024</div>
-      <div class="chart-wrap"><canvas id="chartEstabTrend" height="390" width="615" style="display: block; box-sizing: border-box; height: 390px; width: 615px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Establishments by Size Category (2024)</div>
-      <div class="chart-sub">Distribution of tourism businesses by number of employees</div>
-      <div class="chart-wrap"><canvas id="chartEstabSize" height="617" width="617" style="display: block; box-sizing: border-box; height: 617px; width: 617px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Employment by Tourism Region (2024 vs 2019)</div>
-      <div class="chart-sub">Establishment employment counts — pre-COVID 2019 vs. latest 2024</div>
-      <div class="chart-wrap"><canvas id="chartEmpRegion" height="390" width="615" style="display: block; box-sizing: border-box; height: 390px; width: 615px;"></canvas></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══════════════════════  REGIONAL REVENUE  ══════════════════════ -->
-<section id="regional">
-  <div class="section-header">
-    <div class="section-dot" style="background:var(--accent-pink)"></div>
-    <div>
-      <h2>Regional Room Revenue</h2>
-      <p>Top community-level room revenues from MRDT data — 2024 annual totals</p>
-    </div>
-  </div>
-  <div class="chart-grid-2">
-    <div class="chart-card full">
-      <div class="chart-title">Top 20 Communities by Room Revenue (2024)</div>
-      <div class="chart-sub">Annual room revenues in $millions · Excludes suppressed communities</div>
-      <div class="chart-wrap"><canvas id="chartTopComm" height="519" width="1297" style="display: block; box-sizing: border-box; height: 519px; width: 1297px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Room Revenue — Major Destination Growth</div>
-      <div class="chart-sub">Select destinations: 2019 (pre-COVID) vs 2022 vs 2024 ($millions)</div>
-      <div class="chart-wrap"><canvas id="chartCommGrowth" height="411" width="616" style="display: block; box-sizing: border-box; height: 411px; width: 616px;"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">Revenue Share by Tourism Region (2024)</div>
-      <div class="chart-sub">Percentage of provincial total room revenue by region</div>
-      <div class="chart-wrap"><canvas id="chartRegionShare" height="617" width="617" style="display: block; box-sizing: border-box; height: 617px; width: 617px;"></canvas></div>
-    </div>
-  </div>
-</section>
-
-
+    <div id="error-box"></div>
   </main>
 
-  <div class="panel-footer" style="max-width:1400px;margin:0 auto;padding:24px 28px;color:#4A5568;font-size:12px;">
-    <strong style="color:#003366;">BC Tourism Sector Dashboard</strong> · BC Stats &amp; Ministry of Finance ·
-    Room revenues calculated from MRDT filings · GDP estimates are direct impacts only · 2022 values use revised I/O model methodology
-  </div>
+  <script>
+    const DATA_PATHS = {
+      goals: '../../../../data/sectors/tourism/tourism_lookwest_goals_mock.csv',
+      commitments: '../../../../data/sectors/tourism/tourism_initiatives_mock.csv',
+      announcements: '../../../../data/sectors/shared/sector_announcements_master_mock.csv'
+    };
 
-</div>
+    const TOURISM_SUBSECTORS = [
+      {
+        subsector_id: 'TRANSPORT',
+        subsector_name: 'Transportation Services',
+        color: '#1565C0',
+        naics_codes: '4811|4812|4821|4831|4832|4851|4852|4853|4854|4855|4859|4871|4872|4879',
+        description: 'Scheduled air transportation; Non-scheduled air transportation; Rail transportation; Deep sea, coastal and Great Lakes water transportation; Inland water transportation; Urban transit systems; Interurban and rural bus transportation; Taxi and limousine service; School and employee bus transportation; Charter bus industry; Other transit and ground passenger transportation; Scenic and sightseeing transportation (land, water and other).'
+      },
+      {
+        subsector_id: 'TRAVEL',
+        subsector_name: 'Travel and Tourism Services',
+        color: '#0F766E',
+        naics_codes: '5615',
+        description: 'Travel arrangement and reservation services.'
+      },
+      {
+        subsector_id: 'RECREATION',
+        subsector_name: 'Recreation and Entertainment',
+        color: '#7C3AED',
+        naics_codes: '51213|7111|7112|7115|7121|7131|7132|7139',
+        description: 'Motion picture and video exhibition; Performing arts companies; Spectator sports; Independent artists, writers and performers; Heritage institutions; Amusement parks and arcades; Gambling industries; Other amusement and recreation industries.'
+      },
+      {
+        subsector_id: 'ACCOMMODATION',
+        subsector_name: 'Accommodation Services',
+        color: '#B45309',
+        naics_codes: '7211|721211|721212|721213|721198',
+        description: 'Traveller accommodation; RV parks and campgrounds; Hunting and fishing camps; Recreational and vacation camps; All other traveller accommodation.'
+      },
+      {
+        subsector_id: 'FOOD',
+        subsector_name: 'Food and Beverage Services',
+        color: '#BE123C',
+        naics_codes: '7224|7225',
+        description: 'Drinking places (alcoholic beverages); Full-service restaurants and limited-service eating places.'
+      }
+    ];
 
-<footer class="bc-gov-footer">
-  <strong>Province of British Columbia &nbsp;·&nbsp; Tourism Dashboard</strong><br>
-  <strong>Tab 1 — Visitor Arrivals:</strong> <a href="https://www150.statcan.gc.ca/t1/tbl1/en/dtbl/dtblDnld/downloadDataset?pid=2410005501" target="_blank">Statistics Canada, Table 24-10-0055-01</a> — Non-resident visitors entering Canada, by country of residence, mode of transportation, arrival type and traveller type · 2025<br>
-  <strong>Tab 2 — Tourism Sector &amp; Economic Indicators:</strong> <a href="https://www2.gov.bc.ca/gov/content/data/statistics/economy/tourism" target="_blank">BC Stats — British Columbia Tourism Statistics &amp; Economic Accounts</a> · BC Stats &amp; Ministry of Finance · through 2024<br>
-  Dashboard prepared by LW Tourism &nbsp;·&nbsp; Province of British Columbia
-</footer>
+    const TOURISM_GDP_API = {
+      endpoint: 'https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action',
+      pid: '3610071101',
+      latestN: 40,
+      checkedLevels: '3D1',
+      selectedMembers: [[10], [1, 2], [142, 143, 144, 147, 149, 160, 211, 228, 232, 233]]
+    };
 
-<script>
-function switchTab(tab) {
-  document.getElementById('panel-statcan').classList.toggle('active', tab === 'statcan');
-  document.getElementById('panel-bcstats').classList.toggle('active', tab === 'bcstats');
-  const btns = document.querySelectorAll('.bc-tab-btn');
-  btns[0].classList.toggle('active', tab === 'statcan');
-  btns[1].classList.toggle('active', tab === 'bcstats');
-  btns[0].setAttribute('aria-selected', tab === 'statcan');
-  btns[1].setAttribute('aria-selected', tab === 'bcstats');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-</script>
+    const TOURISM_GDP_SERIES_MAP = {
+      TRANSPORT: {
+        naicsLabels: [
+          'Air transportation [481]',
+          'Rail transportation [482]',
+          'Water transportation [483]',
+          'Urban transit systems [4851]',
+          'Taxi and limousine service [4853]'
+        ],
+        note: 'Partial coverage of transport tourism codes in this table.'
+      },
+      TRAVEL: {
+        naicsLabels: ['Travel arrangement and reservation services [5615]'],
+        note: 'Direct match.'
+      },
+      RECREATION: {
+        naicsLabels: ['Motion picture and video industries [5121]', 'Amusement, gambling and recreation industries [713]'],
+        note: 'Uses available aggregates for recreation activities.'
+      },
+      ACCOMMODATION: {
+        naicsLabels: ['Accommodation services [721]'],
+        note: 'Direct aggregate match.'
+      },
+      FOOD: {
+        naicsLabels: ['Food services and drinking places [722]'],
+        note: 'Direct aggregate match.'
+      }
+    };
 
-<script>
+    const TOURISM_BUSINESS_API = {
+      endpoint: 'https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action',
+      pid: '3310109501',
+      latestN: 24,
+      checkedLevels: '3D1',
+      selectedMembers: [[11], [1, 2, 3, 4, 5, 6, 7, 8, 9], [300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 316, 317, 318, 373, 1021, 405, 406, 409, 410, 411, 412, 413, 414, 1291, 1292, 1293, 1290, 418, 419]]
+    };
 
-/* ═══════════════════════════════════════════════════════
-   PALETTE & CHART DEFAULTS  (Tab 1 — StatCan)
-═══════════════════════════════════════════════════════ */
-const C = {
-  green:  '#2ea043', blue:   '#388bfd', gold:   '#d29922',
-  cedar:  '#bc6023', purple: '#8957e5', red:    '#f85149',
-  teal:   '#39c5bb', gridLine: 'rgba(48,54,61,.7)', text: '#8b949e',
-};
-Chart.defaults.color = C.text;
-Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-Chart.defaults.borderColor = 'rgba(214,220,228,.8)';
-const gridOpts = { color: C.gridLine, drawBorder: false };
-const ticksOpts = { color: C.text, font: { size: 11 } };
+    const TOURISM_BUSINESS_SUBSECTOR_LABELS = {
+      TRANSPORT: [
+        'Scheduled air transportation [4811]',
+        'Non-scheduled air transportation [4812]',
+        'Rail transportation [4821]',
+        'Deep sea, coastal and Great Lakes water transportation [4831]',
+        'Inland water transportation [4832]',
+        'Urban transit systems [4851]',
+        'Interurban and rural bus transportation [4852]',
+        'Taxi and limousine service [4853]',
+        'School and employee bus transportation [4854]',
+        'Charter bus industry [4855]',
+        'Other transit and ground passenger transportation [4859]',
+        'Scenic and sightseeing transportation, land [4871]',
+        'Scenic and sightseeing transportation, water [4872]',
+        'Scenic and sightseeing transportation, other [4879]'
+      ],
+      TRAVEL: ['Travel arrangement and reservation services [5615]'],
+      RECREATION: [
+        'Motion picture and video exhibition [512130]',
+        'Performing arts companies [7111]',
+        'Spectator sports [7112]',
+        'Independent artists, writers and performers [7115]',
+        'Heritage institutions [7121]',
+        'Amusement parks and arcades [7131]',
+        'Gambling industries [7132]',
+        'Other amusement and recreation industries [7139]'
+      ],
+      ACCOMMODATION: [
+        'Traveller accommodation [7211]',
+        'Recreational vehicle (RV) parks and campgrounds [721211]',
+        'Hunting and fishing camps [721212]',
+        'Recreational (except hunting and fishing) and vacation camps [721213]',
+        'All other traveller accommodation [721198]'
+      ],
+      FOOD: [
+        'Drinking places (alcoholic beverages) [7224]',
+        'Full-service restaurants and limited-service eating places [7225]'
+      ]
+    };
 
-function hexToRgba(hex, a) {
-  const [r,g,b] = hex.match(/\w\w/g).map(x => parseInt(x,16));
-  return `rgba(${r},${g},${b},${a})`;
-}
-function makeGrad(ctx, hex, h) {
-  const g = ctx.createLinearGradient(0, 0, 0, h || 280);
-  g.addColorStop(0, hexToRgba(hex, .32));
-  g.addColorStop(1, hexToRgba(hex, .02));
-  return g;
-}
+    const TOURISM_BUSINESS_SIZE_ORDER = [
+      '1 to 4 employees',
+      '5 to 9 employees',
+      '10 to 19 employees',
+      '20 to 49 employees',
+      '50 to 99 employees',
+      '100 to 199 employees',
+      '200 to 499 employees',
+      '500 plus employees'
+    ];
 
-/* DATA */
-const months    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const totalV    = [436544, 412191, 449622, 494058, 822289, 1046516, 1216782, 1162108, 831140, 518046, 416328, 554206];
-const overnight = [289854, 289173, 310617, 324236, 444236, 590781, 728338, 645645, 448558, 317076, 258141, 382844];
-const sameday   = [146690, 123018, 139005, 169822, 378053, 455735, 488444, 516463, 382582, 200970, 158187, 171362];
-const airV      = [154656, 149669, 158778, 175985, 267699, 369597, 421595, 359034, 277687, 184224, 126172, 205424];
-const landV     = [280894, 258692, 278348, 275234, 305804, 359116, 456100, 452897, 296168, 272659, 279598, 341035];
-const waterV    = [994, 3830, 12496, 42839, 248786, 317803, 339087, 350177, 257285, 61163, 10558, 7757];
-const usArr     = [330926, 321930, 359779, 376220, 627914, 823102, 951424, 929421, 628807, 402219, 338531, 423483];
-const intlArr   = [83459, 71089, 71198, 88468, 119910, 153219, 180234, 142455, 132474, 86765, 62141, 108241];
-const viaUSArr  = [22159, 19172, 18645, 29370, 74465, 70195, 85124, 90232, 69859, 29062, 15656, 22482];
+    const TOURISM_LABOUR_API = {
+      endpoint: 'https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action',
+      pid: '1410002301',
+      latestN: 40,
+      checkedLevels: '5D1',
+      selectedMembers: [[11], [2], [17, 22, 25, 26], [1], [1]]
+    };
 
-/* 1. MONTHLY LINE CHART */
-const mCtx = document.getElementById('monthlyChart').getContext('2d');
-new Chart(mCtx, {
-  type: 'line',
-  data: {
-    labels: months,
-    datasets: [{
-      label: 'Total Visitors',
-      data: totalV,
-      borderColor: C.green,
-      backgroundColor: makeGrad(mCtx, C.green, 220),
-      borderWidth: 2.5, fill: true, tension: .4,
-      pointBackgroundColor: C.green, pointRadius: 4, pointHoverRadius: 7,
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      tooltip: { backgroundColor:'#FFFFFF', borderColor:'#D6DCE4', borderWidth:1, titleColor:'#1A202C', bodyColor:'#4A5568',
-        callbacks: { label: c => ` ${c.parsed.y.toLocaleString()} visitors` } }
-    },
-    scales: {
-      x: { grid: gridOpts, ticks: ticksOpts, border: { display:false } },
-      y: { grid: gridOpts, border: { display:false },
-        ticks: { ...ticksOpts, callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : (v/1e3).toFixed(0)+'K' } }
+    const TOURISM_LABOUR_SERIES = [
+      {
+        series_id: 'LAB_TRANSPORT',
+        series_name: 'Transportation and warehousing',
+        subsector_id: 'TRANSPORT',
+        naics_label: 'Transportation and warehousing [48-49]'
+      },
+      {
+        series_id: 'LAB_TRAVEL_PROXY',
+        series_name: 'Business, building and other support services',
+        subsector_id: 'TRAVEL',
+        naics_label: 'Business, building and other support services [55, 56]'
+      },
+      {
+        series_id: 'LAB_RECREATION',
+        series_name: 'Information, culture and recreation',
+        subsector_id: 'RECREATION',
+        naics_label: 'Information, culture and recreation [51, 71]'
+      },
+      {
+        series_id: 'LAB_ACCOM_FOOD',
+        series_name: 'Accommodation and food services',
+        subsector_id: 'ACCOMMODATION_FOOD',
+        naics_label: 'Accommodation and food services [72]'
+      }
+    ];
+
+    const STATE = {
+      subsectors: TOURISM_SUBSECTORS.slice(),
+      gdp: [],
+      business: [],
+      businessSize: [],
+      labour: [],
+      goals: [],
+      commitments: [],
+      announcements: [],
+      meta: null,
+      charts: []
+    };
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+      const src = String(text || '');
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        const next = src[i + 1];
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            cell += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+        if (ch === ',' && !inQuotes) {
+          row.push(cell);
+          cell = '';
+          continue;
+        }
+        if ((ch === '\n' || ch === '\r') && !inQuotes) {
+          if (ch === '\r' && next === '\n') i += 1;
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = '';
+          continue;
+        }
+        cell += ch;
+      }
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell);
+        rows.push(row);
+      }
+      if (!rows.length) return [];
+      const headers = rows[0].map((h) => String(h || '').trim());
+      return rows.slice(1)
+        .filter((r) => r.some((v) => String(v || '').trim() !== ''))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = String(r[idx] || '').trim(); });
+          return obj;
+        });
     }
-  }
-});
 
-/* 2. TRANSPORT MODE DOUGHNUT */
-new Chart(document.getElementById('modeChart'), {
-  type: 'doughnut',
-  data: {
-    labels: ['Land','Air','Water (Ferry)'],
-    datasets: [{ data: [3856545, 2850520, 1652775],
-      backgroundColor: [C.green, C.blue, C.cedar], borderWidth: 0, hoverOffset: 8 }]
-  },
-  options: {
-    cutout: '68%',
-    plugins: {
-      legend: { position:'bottom', labels:{ padding:16, boxWidth:12, font:{size:12} } },
-      tooltip: { backgroundColor:'#FFFFFF', borderColor:'#D6DCE4', borderWidth:1, titleColor:'#1A202C', bodyColor:'#4A5568',
-        callbacks: { label: c => {
-          const total = c.dataset.data.reduce((a,b)=>a+b,0);
-          return ` ${c.label}: ${c.parsed.toLocaleString()} (${((c.parsed/total)*100).toFixed(1)}%)`;
-        } } }
+    async function loadCsv(path) {
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(path + ' HTTP ' + res.status);
+      return parseCsv(await res.text());
     }
-  }
-});
 
-/* 3. TRAVELLER TYPE STACKED BAR */
-new Chart(document.getElementById('travellerChart'), {
-  type: 'bar',
-  data: {
-    labels: months,
-    datasets: [
-      { label:'Overnight Tourists', data:overnight, backgroundColor:C.blue,
-        borderRadius:{topLeft:4,topRight:4}, stack:'s' },
-      { label:'Same-Day Excursionists', data:sameday, backgroundColor:C.purple,
-        borderRadius:{topLeft:4,topRight:4}, stack:'s' },
-    ]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { position:'bottom', labels:{ padding:16, boxWidth:12, font:{size:12} } },
-      tooltip: { backgroundColor:'#FFFFFF', borderColor:'#D6DCE4', borderWidth:1, titleColor:'#1A202C', bodyColor:'#4A5568',
-        callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}` } }
-    },
-    scales: {
-      x: { stacked:true, grid:{display:false}, ticks:ticksOpts, border:{display:false} },
-      y: { stacked:true, grid:gridOpts, border:{display:false},
-        ticks:{ ...ticksOpts, callback: v => v>=1e6?(v/1e6).toFixed(1)+'M':(v/1e3).toFixed(0)+'K' } }
+    function useLocalStatsCanProxy() {
+      const h = String(location.hostname || '').toLowerCase();
+      const p = String(location.protocol || '').toLowerCase();
+      return h === 'localhost' || h === '127.0.0.1' || h === '' || p === 'file:';
     }
-  }
-});
 
-/* 4. VISITOR ORIGIN STACKED BAR */
-new Chart(document.getElementById('originChart'), {
-  type: 'bar',
-  data: {
-    labels: months,
-    datasets: [
-      { label:'From USA', data:usArr,    backgroundColor:C.blue,   stack:'s', borderRadius:{topLeft:3,topRight:3} },
-      { label:'Intl Direct', data:intlArr, backgroundColor:C.gold, stack:'s', borderRadius:{topLeft:3,topRight:3} },
-      { label:'Intl via USA', data:viaUSArr, backgroundColor:C.cedar, stack:'s', borderRadius:{topLeft:3,topRight:3} },
-    ]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      legend: { position:'bottom', labels:{ padding:12, boxWidth:11, font:{size:11} } },
-      tooltip: { backgroundColor:'#FFFFFF', borderColor:'#D6DCE4', borderWidth:1, titleColor:'#1A202C', bodyColor:'#4A5568',
-        callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}` } }
-    },
-    scales: {
-      x: { stacked:true, grid:{display:false}, ticks:{...ticksOpts,font:{size:10}}, border:{display:false} },
-      y: { stacked:true, grid:gridOpts, border:{display:false},
-        ticks:{...ticksOpts, callback:v=>(v/1e3).toFixed(0)+'K', font:{size:10}} }
+    function proxyApiCandidates(path) {
+      const p = String(path || '');
+      const out = [];
+      try {
+        if (/^https?:/i.test(location.origin || '')) out.push(new URL(p, location.origin).href);
+      } catch (_) {}
+      [8080, 8081, 8090].forEach((port) => {
+        out.push(`http://localhost:${port}${p}`);
+        out.push(`http://127.0.0.1:${port}${p}`);
+      });
+      return Array.from(new Set(out));
     }
-  }
-});
 
-/* 5. TOP COUNTRIES HORIZONTAL BAR */
-const ctryLabels = ['Australia', 'United Kingdom', 'China', 'Mexico', 'Japan', 'Germany', 'Hong Kong', 'India', 'South Korea', 'Philippines', 'Taiwan', 'New Zealand', 'Netherlands', 'France', 'Switzerland'];
-const ctryData   = [141829, 141362, 133483, 103808, 74817, 74170, 65029, 64417, 60425, 54321, 43544, 38756, 22310, 21559, 16641];
-const ctryColors = ctryLabels.map((_,i) => `hsl(${115 + i*14},52%,52%)`);
-new Chart(document.getElementById('countriesChart'), {
-  type: 'bar',
-  data: {
-    labels: ctryLabels,
-    datasets: [{ data:ctryData, backgroundColor:ctryColors, borderRadius:4, borderSkipped:false }]
-  },
-  options: {
-    indexAxis: 'y', responsive: true,
-    plugins: {
-      legend: { display:false },
-      tooltip: { backgroundColor:'#FFFFFF', borderColor:'#D6DCE4', borderWidth:1, titleColor:'#1A202C', bodyColor:'#4A5568',
-        callbacks: { label: c => ` ${c.parsed.x.toLocaleString()} visitors` } }
-    },
-    scales: {
-      x: { grid:gridOpts, border:{display:false},
-        ticks:{...ticksOpts, callback:v=>(v/1e3).toFixed(0)+'K', font:{size:10}} },
-      y: { grid:{display:false}, ticks:{...ticksOpts, font:{size:11}}, border:{display:false} }
-    }
-  }
-});
-
-/* 6. PROVINCE COMPARISON — FULL YEAR 2025 */
-const provinces = [{"name": "Ontario", "value": 13657381, "highlight": false}, {"name": "British Columbia", "value": 8359830, "highlight": true}, {"name": "Quebec", "value": 4014206, "highlight": false}, {"name": "Alberta", "value": 1451300, "highlight": false}, {"name": "New Brunswick", "value": 805328, "highlight": false}, {"name": "Manitoba", "value": 384227, "highlight": false}, {"name": "Nova Scotia", "value": 329566, "highlight": false}, {"name": "Saskatchewan", "value": 111631, "highlight": false}];
-const maxP = provinces[0].value;
-const pContainer = document.getElementById('provinceChart');
-provinces.forEach(p => {
-  const pct  = (p.value / maxP * 100).toFixed(1);
-  const fill = p.highlight
-    ? 'linear-gradient(90deg,#2ea043,#57ab5a)'
-    : 'linear-gradient(90deg,#388bfd,#79c0ff)';
-  const nameStyle = p.highlight ? 'color:#57ab5a;font-weight:700' : '';
-  const valFmt = p.value >= 1e6 ? (p.value/1e6).toFixed(2)+'M' : p.value >= 1000 ? (p.value/1000).toFixed(0)+'K' : p.value;
-  pContainer.innerHTML += `
-    <div class="province-bar-row">
-      <div class="province-name" style="${nameStyle}">${p.name}</div>
-      <div class="province-bar-track">
-        <div class="province-bar-fill" style="width:${pct}%;background:${fill}"></div>
-      </div>
-      <div class="province-val">${valFmt}</div>
-    </div>`;
-});
-
-/* 7. US vs INTERNATIONAL AREA CHART */
-const intlTotal = intlArr.map((v,i) => v + viaUSArr[i]);
-const uiCtx = document.getElementById('usIntlChart').getContext('2d');
-new Chart(uiCtx, {
-  type: 'line',
-  data: {
-    labels: months,
-    datasets: [
-      { label:'US Visitors', data: usArr,
-        borderColor: C.blue, backgroundColor: makeGrad(uiCtx, C.blue, 220),
-        fill:true, tension:.4, borderWidth:2.2,
-        pointRadius:3.5, pointHoverRadius:7, pointBackgroundColor:C.blue },
-      { label:'International Visitors', data: intlTotal,
-        borderColor: C.gold, backgroundColor: makeGrad(uiCtx, C.gold, 220),
-        fill:true, tension:.4, borderWidth:2.2,
-        pointRadius:3.5, pointHoverRadius:7, pointBackgroundColor:C.gold }
-    ]
-  },
-  options: {
-    responsive:true, interaction:{ mode:'index', intersect:false },
-    plugins: {
-      legend: { position:'bottom', labels:{ padding:20, boxWidth:12, font:{size:12} } },
-      tooltip: { backgroundColor:'#FFFFFF', borderColor:'#D6DCE4', borderWidth:1, titleColor:'#1A202C', bodyColor:'#4A5568',
-        callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}` } }
-    },
-    scales: {
-      x: { grid:gridOpts, ticks:ticksOpts, border:{display:false} },
-      y: { grid:gridOpts, border:{display:false},
-        ticks:{ ...ticksOpts, callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':(v/1e3).toFixed(0)+'K' } }
-    }
-  }
-});
-
-/* 8. TRANSPORT MODE MONTHLY LINE — NEW CHART */
-new Chart(document.getElementById('modeMonthlyChart'), {
-  type: 'line',
-  data: {
-    labels: months,
-    datasets: [
-      { label:'Land', data:landV,  borderColor:C.green,  backgroundColor:hexToRgba(C.green,.1),
-        borderWidth:2.2, fill:true, tension:.4, pointRadius:4, pointHoverRadius:7, pointBackgroundColor:C.green },
-      { label:'Air',  data:airV,   borderColor:C.blue,   backgroundColor:hexToRgba(C.blue,.1),
-        borderWidth:2.2, fill:true, tension:.4, pointRadius:4, pointHoverRadius:7, pointBackgroundColor:C.blue },
-      { label:'Water (Ferry)', data:waterV, borderColor:C.cedar, backgroundColor:hexToRgba(C.cedar,.1),
-        borderWidth:2.2, fill:true, tension:.4, pointRadius:4, pointHoverRadius:7, pointBackgroundColor:C.cedar },
-    ]
-  },
-  options: {
-    responsive:true, interaction:{ mode:'index', intersect:false },
-    plugins: {
-      legend: { position:'bottom', labels:{ padding:16, boxWidth:12, font:{size:12} } },
-      tooltip: { backgroundColor:'#FFFFFF', borderColor:'#D6DCE4', borderWidth:1, titleColor:'#1A202C', bodyColor:'#4A5568',
-        callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y.toLocaleString()}` } }
-    },
-    scales: {
-      x: { grid:gridOpts, ticks:ticksOpts, border:{display:false} },
-      y: { grid:gridOpts, border:{display:false},
-        ticks:{ ...ticksOpts, callback:v=>v>=1e6?(v/1e6).toFixed(1)+'M':(v/1e3).toFixed(0)+'K' } }
-    }
-  }
-});
-
-</script>
-
-<script>
-// ─────────────────────────────────────────────────────────────────────
-// SHARED CONFIG & HELPERS
-// ─────────────────────────────────────────────────────────────────────
-Chart.defaults.color = '#4A5568';
-Chart.defaults.borderColor = '#E2E8F0';
-Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
-Chart.defaults.font.size = 11;
-
-const YEARS = [2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
-const YEARS_S = YEARS.map(String);
-
-const COL = {
-  blue:   '#4e9af1', teal: '#2ec4b6', green: '#52d68a',
-  amber:  '#f5a623', red:  '#e05c6b', purple:'#a47cf3',
-  pink:   '#f472b6', sky: '#7dd3fc', orange: '#fb923c',
-};
-
-const covidPlugin = {
-  id:'covidBand',
-  beforeDraw(chart){
-    const {ctx,chartArea,scales} = chart;
-    if(!scales.x) return;
-    const x0 = scales.x.getPixelForValue(2020);
-    const x1 = scales.x.getPixelForValue(2021);
-    if(!x0||!x1) return;
-    ctx.save();
-    ctx.fillStyle='rgba(197,48,48,0.06)';
-    ctx.fillRect(x0, chartArea.top, x1-x0, chartArea.bottom-chartArea.top);
-    ctx.restore();
-  }
-};
-
-function mkChart(id, config){
-  const ctx = document.getElementById(id);
-  if(!ctx) return;
-  return new Chart(ctx, config);
-}
-
-function lineDS(label, data, color, opts={}){
-  return { label, data, borderColor: color, backgroundColor: color+'22',
-    borderWidth: 2, pointRadius: 3, pointHoverRadius: 5, tension: .35, fill: false, ...opts };
-}
-
-const baseLineOpts = {
-  responsive: true, maintainAspectRatio: true,
-  interaction: { mode:'index', intersect:false },
-  plugins: { legend:{ position:'bottom', labels:{boxWidth:10,padding:14}}, covidBand:{} },
-  scales: {
-    x:{ grid:{color:'#E2E8F0'} },
-    y:{ grid:{color:'#E2E8F0'}, ticks:{callback:v=>v} }
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────
-// DATA
-// ─────────────────────────────────────────────────────────────────────
-const data = {
-  grossRev: [13.495,13.909,14.203,14.908,15.676,16.861,18.487,19.593,20.982,21.296,10.427,14.629,16.990,22.064,23.000],
-  netRev:   [12.189,12.538,12.809,13.448,14.133,15.254,16.733,17.762,18.931,19.244, 9.339,13.017,15.357,19.979,20.859],
-  nomGDP:   [ 4.983, 5.096, 5.286, 5.451, 5.692, 6.493, 7.248, 7.662, 8.262, 8.585, 4.107, 5.757, 6.838, 8.921, 9.384],
-  realGDP:  [ 5.150, 5.266, 5.281, 5.378, 6.352, 6.881, 7.416, 7.662, 8.154, 8.307, 3.883, 5.422, 6.102, 7.613, 7.954],
-  employ:   [91.99, 92.63, 99.20,102.61,107.62,123.57,132.91,137.46,138.69,137.14, 62.29, 85.02, 90.39,112.03,113.76],
-  wages:    [ 3.330, 3.419, 3.531, 3.655, 3.702, 4.080, 4.336, 4.601, 4.891, 5.086, 2.484, 3.479, 3.594, 4.725, 5.027],
-  taxes:    [ 1.306, 1.371, 1.394, 1.460, 1.543, 1.608, 1.755, 1.831, 2.051, 2.052, 1.088, 1.612, 1.633, 2.086, 2.142],
-  cpiAccom: [84.69, 81.52, 83.52, 85.96, 89.53, 97.47,101.96,106.23,106.94,104.43, 83.39, 88.29,112.49,127.67,127.47],
-  cpiRest:  [123.24,129.50,132.23,128.84,129.33,132.28,135.72,139.15,143.83,148.43,152.40,155.91,164.48,174.32,180.28],
-  // Transport
-  yvr:      [16778.8,17032.8,17596.9,17971.9,19358.2,20316.0,22284.5,24166.1,25936.9,26379.9,7300.3,7086.6,19013.1,24937.3,26205.8],
-  yvrDom:   [ 8305.9, 8285.3, 8425.5, 8634.9, 8997.1, 9310.5,10176.4,11064.8,11920.2,12232.0,3419.3,2831.9, 8337.6,11218.4,11846.2],
-  yvrTrans: [ 4074.3, 4000.4, 3855.2, 3814.4, 3964.5, 4106.4, 4602.8, 5145.1, 5615.5, 5685.3,1200.5, 1524.9, 4481.4, 6096.1, 6570.3],
-  yvrIntl:  [ 3652.2, 3607.7, 3599.9, 3240.5, 3775.3, 3964.5, 5005.7, 7060.0, 8401.2, 8462.6,1810.3, 2729.8, 6194.2, 7623.3, 7789.3],
-  yyj:      [ 1514.3, 1499.8, 1506.2, 1557.0, 1650.9, 1710.8, 1856.4, 1934.9, 2048.6, 1924.4, 574.9, 673.7, 1490.0, 1742.3, 1872.0],
-  ferriesV: [ 8165.0, 7891.0, 7735.0, 7709.3, 7617.4, 7960.1, 8334.4, 8637.9, 8864.7, 8980.1,6845.8, 8074.4, 9264.7, 9529.4, 9736.0],
-  ferriesP: [20960.0,20250.0,19861.0,19845.0,19647.0,20443.0,21196.4,21855.0,22251.6,22325.3,13972.3,16712.1,21086.7,22476.7,22815.3],
-  // Hotel
-  occRate:  [60.24,59.78,59.46,60.92,63.77,65.95,68.14,70.02,70.68,70.75,39.37,49.43,67.48,68.62,68.12],
-  roomRate: [136.77,128.56,129.37,132.27,138.77,150.09,159.57,169.66,185.08,189.37,138.22,153.28,207.72,228.83,241.58],
-  roomRevB: [1.494,1.439,1.458,1.537,1.681,1.947,2.229,2.470,2.816,3.234,1.485,2.125,3.833,4.615,4.752],
-  accomEmp: [33853,33436,34010,35431,36323,36078,37685,39157,41074,40387,26732,28130,34196,36936,36900],
-  foodEmp:  [151328,152552,156413,164635,170277,177921,185038,192960,197074,197037,143783,156956,181975,187894,185386],
-  foodBC:   [null,null,null,null,null,null,null,null,null,null,null,null,null,null,null], // placeholder
-  // Food services receipts indexed to 2010 = 100 (source: Food Services & Drinking Places sheet)
-  foodIdxBC:[100.0,97.8,99.7,105.4,114.0,122.8,134.1,143.2,151.1,158.5,119.5,144.6,176.0,194.2,200.3],
-  foodIdxCA:[100.0,103.0,108.1,112.9,118.9,125.7,133.8,140.9,147.6,154.2,111.3,131.5,165.9,185.8,192.1],
-  // Travellers (2015-2024 mapped to indices 5-14)
-  travYrs:  [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024],
-  travTot:  [6928.4,7673.5,7951.0,8308.0,8608.7,1332.2,1007.0,5182.7,7795.1,8436.0],
-  travUSA:  [5234.7,5732.8,5850.8,6092.4,6317.9,1018.3, 797.1,4124.4,6116.5,6644.8],
-  travOvs:  [1693.7,1940.7,2100.3,2215.6,2290.8, 313.9, 210.0,1058.3,1678.6,1791.1],
-  travAsia: [ 831.8, 939.3,1014.2,1072.0,1101.9, 160.0,  96.3, 334.7, 668.2, 768.4],
-  travEur:  [ 487.4, 549.8, 577.2, 616.5, 639.6,  60.8,  71.7, 404.5, 479.7, 513.0],
-  travOth:  [ 374.5, 451.6, 508.9, 527.1, 549.3,  93.1,  42.0, 319.1, 530.7, 509.7],
-  // Establishments by region (2014-2024 -> 11 years)
-  estYrs:   [2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024],
-  estMain:  [9751,9864,9867,9887,10013,10140,10152,9841,10066,9971,10102],
-  estVI:    [2777,2858,2890,2885,2866,2898,2855,2751,2769,2786,2812],
-  estThOk:  [2048,2137,2192,2160,2186,2237,2194,2125,2142,2124,2096],
-  estKoot:  [ 727, 716, 722, 728, 727, 747, 744, 705, 709, 721, 718],
-  estCarib: [ 549, 537, 555, 563, 568, 570, 547, 524, 525, 537, 552],
-  estNC:    [ 455, 451, 431, 431, 424, 427, 406, 367, 380, 391, 375],
-  estNE:    [ 263, 263, 267, 263, 255, 261, 257, 255, 248, 253, 258],
-};
-
-// Growth rates (year-over-year)
-const growthRev  = YEARS.map((y,i)=>i===0?null:((data.grossRev[i]-data.grossRev[i-1])/data.grossRev[i-1]*100).toFixed(1));
-const growthGDP  = YEARS.map((y,i)=>i===0?null:((data.realGDP[i]-data.realGDP[i-1])/data.realGDP[i-1]*100).toFixed(1));
-const growthEmp  = YEARS.map((y,i)=>i===0?null:((data.employ[i]-data.employ[i-1])/data.employ[i-1]*100).toFixed(1));
-
-// ─────────────────────────────────────────────────────────────────────
-// SECTION 1: ECONOMIC
-// ─────────────────────────────────────────────────────────────────────
-mkChart('chartRevGDP', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      lineDS('Gross Revenue ($B)', data.grossRev, COL.blue, {fill:false}),
-      lineDS('Net Revenue ($B)',   data.netRev,   COL.teal, {fill:false, borderDash:[4,3]}),
-      lineDS('Nominal GDP ($B)',   data.nomGDP,   COL.amber,{fill:false}),
-      lineDS('Real GDP 2017$ ($B)',data.realGDP,  COL.green,{fill:false, borderDash:[4,3]}),
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, title:{display:true,text:'$ Billions'}, ticks:{callback:v=>'$'+v+'B'}}
-    },
-    plugins:{...baseLineOpts.plugins, covidBand:{}}
-  },
-  plugins:[covidPlugin]
-});
-
-mkChart('chartEmployment', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[lineDS('Employment (000s)', data.employ, COL.green, {fill:true, backgroundColor:COL.green+'18'})]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v+'K'}, min:50}
-    },
-    plugins:{...baseLineOpts.plugins}
-  },
-  plugins:[covidPlugin]
-});
-
-mkChart('chartWagesTax', {
-  type:'bar',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      { label:'Wages & Salaries ($B)', data:data.wages, backgroundColor:COL.teal+'cc', borderRadius:3 },
-      { label:'Consumption Taxes ($B)', data:data.taxes, backgroundColor:COL.amber+'cc', borderRadius:3 },
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}, stacked:false},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>'$'+v+'B'}}
-    }
-  },
-  plugins:[covidPlugin]
-});
-
-mkChart('chartCPI', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      lineDS('Traveller Accommodation', data.cpiAccom, COL.purple),
-      lineDS('Restaurant Meals',        data.cpiRest,  COL.pink),
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, title:{display:true,text:'CPI Index (2017=100)'}}
-    }
-  },
-  plugins:[covidPlugin]
-});
-
-mkChart('chartGrowth', {
-  type:'bar',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      { label:'Gross Revenue % chg', data:growthRev, backgroundColor: growthRev.map(v=>v>=0?COL.blue+'bb':COL.red+'bb'), borderRadius:3 },
-      { label:'Real GDP % chg',      data:growthGDP, backgroundColor: growthGDP.map(v=>v>=0?COL.green+'bb':COL.red+'bb'), borderRadius:3 },
-      { label:'Employment % chg',    data:growthEmp, backgroundColor: growthEmp.map(v=>v>=0?COL.amber+'bb':COL.red+'bb'), borderRadius:3 },
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v+'%'}}
-    }
-  },
-  plugins:[covidPlugin]
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// SECTION 2: VISITOR ARRIVALS
-// ─────────────────────────────────────────────────────────────────────
-mkChart('chartTravTotal', {
-  type:'line',
-  data:{
-    labels: data.travYrs.map(String),
-    datasets:[
-      lineDS('Total', data.travTot, COL.blue, {fill:true, backgroundColor:COL.blue+'15'}),
-      lineDS('USA',   data.travUSA, COL.teal, {fill:false}),
-      lineDS('Overseas', data.travOvs, COL.amber, {fill:false}),
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v.toLocaleString()+'K'}, title:{display:true,text:'Thousands of Travellers'}}
-    },
-    plugins:{
-      ...baseLineOpts.plugins,
-      annotation:{
-        annotations:{
-          covid:{type:'box', xMin:'2020', xMax:'2021', backgroundColor:'rgba(224,92,107,0.08)', borderColor:'transparent'}
+    async function fetchProxyWithFallback(path, options) {
+      let lastErr = null;
+      const tried = [];
+      for (const url of proxyApiCandidates(path)) {
+        try {
+          tried.push(url);
+          return await fetch(url, options);
+        } catch (err) {
+          lastErr = err;
         }
       }
+      if (lastErr) {
+        throw new Error(
+          `Failed to reach local proxy (${path}). Tried: ${tried.join(', ')}. Last error: ${lastErr && lastErr.message ? lastErr.message : String(lastErr)}`
+        );
+      }
+      return fetch(path, options);
     }
-  }
-});
 
-mkChart('chartOverseasPie', {
-  type:'doughnut',
-  data:{
-    labels:['Asia','Europe','Other Overseas'],
-    datasets:[{
-      data:[768.4, 513.0, 509.7],
-      backgroundColor:[COL.teal, COL.purple, COL.amber],
-      borderColor: '#FFFFFF', borderWidth:3, hoverOffset:6
-    }]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true,
-    cutout:'60%',
-    plugins:{
-      legend:{position:'bottom', labels:{boxWidth:10,padding:14}},
-      tooltip:{callbacks:{label:ctx=>{const v=ctx.raw; const t=ctx.dataset.data.reduce((a,b)=>a+b,0); return ctx.label+': '+v.toFixed(1)+'K ('+((v/t)*100).toFixed(1)+'%)'}}}
+    function buildStatsCanCsvUrl(apiCfg) {
+      const params = new URLSearchParams({
+        pid: apiCfg.pid,
+        latestN: String(apiCfg.latestN),
+        startDate: '',
+        endDate: '',
+        csvLocale: 'en',
+        selectedMembers: JSON.stringify(apiCfg.selectedMembers),
+        checkedLevels: apiCfg.checkedLevels
+      });
+      return `${apiCfg.endpoint}?${params.toString()}`;
     }
-  }
-});
 
-mkChart('chartOverseasBar', {
-  type:'bar',
-  data:{
-    labels: data.travYrs.map(String),
-    datasets:[
-      {label:'Asia',           data:data.travAsia, backgroundColor:COL.teal+'cc',   borderRadius:3, stack:'s'},
-      {label:'Europe',         data:data.travEur,  backgroundColor:COL.purple+'cc', borderRadius:3, stack:'s'},
-      {label:'Other Overseas', data:data.travOth,  backgroundColor:COL.amber+'cc',  borderRadius:3, stack:'s'},
-    ]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true,
-    interaction:{mode:'index', intersect:false},
-    scales:{
-      x:{grid:{color:'#E2E8F0'}, stacked:true},
-      y:{grid:{color:'#E2E8F0'}, stacked:true, ticks:{callback:v=>v+'K'}, title:{display:true,text:'Thousands'}}
-    },
-    plugins:{legend:{position:'bottom', labels:{boxWidth:10,padding:14}}}
-  }
-});
+    async function fetchStatsCanCsvText(apiCfg, label) {
+      const reqBody = {
+        pid: apiCfg.pid,
+        latestN: apiCfg.latestN,
+        selectedMembers: apiCfg.selectedMembers,
+        checkedLevels: apiCfg.checkedLevels,
+        startDate: '',
+        endDate: ''
+      };
 
-// ─────────────────────────────────────────────────────────────────────
-// SECTION 3: TRANSPORT
-// ─────────────────────────────────────────────────────────────────────
-mkChart('chartAir', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      lineDS('Vancouver (YVR)', data.yvr.map(v=>v/1000), COL.blue),
-      lineDS('Victoria (YYJ)',  data.yyj.map(v=>v/1000), COL.teal),
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v.toFixed(1)+'M'}, title:{display:true,text:'Millions of Passengers'}}
+      if (useLocalStatsCanProxy()) {
+        try {
+          const proxyRes = await fetchProxyWithFallback('/api/statcan-csv', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'text/csv,text/plain,*/*' },
+            body: JSON.stringify(reqBody)
+          });
+          if (proxyRes.ok) {
+            const txt = await proxyRes.text();
+            if (txt && txt.indexOf('REF_DATE') !== -1) return txt;
+          } else {
+            let detail = '';
+            try {
+              const j = await proxyRes.json();
+              detail = [j.error, j.details].filter(Boolean).join(' | ');
+            } catch (_) {}
+            throw new Error(`${label} proxy error (HTTP ${proxyRes.status})${detail ? ': ' + detail : ''}`);
+          }
+        } catch (err) {
+          console.warn(`${label} proxy unavailable, trying direct fetch.`, err);
+        }
+      }
+
+      const directRes = await fetch(buildStatsCanCsvUrl(apiCfg), {
+        method: 'POST',
+        headers: { 'Accept': 'text/csv,text/plain,*/*' }
+      });
+      if (!directRes.ok) throw new Error(`${label} HTTP ${directRes.status}`);
+      const directTxt = await directRes.text();
+      if (!directTxt || directTxt.indexOf('REF_DATE') === -1) {
+        throw new Error(`${label} returned an unexpected CSV payload.`);
+      }
+      return directTxt;
     }
-  },
-  plugins:[covidPlugin]
-});
 
-mkChart('chartFerry', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      lineDS('Passengers (000s)', data.ferriesP, COL.green),
-      lineDS('Vehicles (000s)',    data.ferriesV, COL.amber, {borderDash:[4,3]}),
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v.toLocaleString()+'K'}, title:{display:true,text:'Thousands'}}
-    },
-    plugins:{...baseLineOpts.plugins}
-  },
-  plugins:[covidPlugin]
-});
-
-mkChart('chartYVRMix', {
-  type:'bar',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      {label:'Domestic',        data:data.yvrDom.map(v=>v/1000),   backgroundColor:COL.blue+'bb',  borderRadius:2, stack:'s'},
-      {label:'Trans-border US', data:data.yvrTrans.map(v=>v/1000), backgroundColor:COL.teal+'bb',  borderRadius:2, stack:'s'},
-      {label:'Other Intl.',     data:data.yvrIntl.map(v=>v/1000),  backgroundColor:COL.purple+'bb',borderRadius:2, stack:'s'},
-    ]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true,
-    interaction:{mode:'index', intersect:false},
-    scales:{
-      x:{grid:{color:'#E2E8F0'}, stacked:true},
-      y:{grid:{color:'#E2E8F0'}, stacked:true, ticks:{callback:v=>v.toFixed(1)+'M'}, title:{display:true,text:'Millions'}}
-    },
-    plugins:{legend:{position:'bottom', labels:{boxWidth:10,padding:14}}}
-  },
-  plugins:[covidPlugin]
-});
-
-// Recovery index (2019 = 100)
-const base19YVR  = data.yvr[9],  base19YYJ = data.yyj[9], base19FP = data.ferriesP[9], base19Trav = data.travTot[4];
-mkChart('chartRecovery', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      lineDS('YVR Air',      data.yvr.map(v=>(v/base19YVR*100).toFixed(1)),      COL.blue),
-      lineDS('YYJ Air',      data.yyj.map(v=>(v/base19YYJ*100).toFixed(1)),      COL.teal),
-      lineDS('BC Ferries',   data.ferriesP.map(v=>(v/base19FP*100).toFixed(1)),  COL.green),
-      { label:'Baseline (2019=100)', data:YEARS.map(()=>100), borderColor:COL.amber, borderDash:[6,4], borderWidth:1.5, pointRadius:0, tension:0 },
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v+'%'}, title:{display:true,text:'Index (2019 = 100)'}}
+    async function fetchTourismGdpCsvText() {
+      return fetchStatsCanCsvText(TOURISM_GDP_API, 'StatCan GDP API (36-10-0711-01)');
     }
-  },
-  plugins:[covidPlugin]
-});
 
-// ─────────────────────────────────────────────────────────────────────
-// SECTION 4: ACCOMMODATION
-// ─────────────────────────────────────────────────────────────────────
-mkChart('chartOccRate', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      { ...lineDS('Occupancy Rate (%)', data.occRate, COL.teal), yAxisID:'y' },
-      { ...lineDS('Avg Daily Rate ($)', data.roomRate, COL.amber), yAxisID:'y1' },
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y: {grid:{color:'#E2E8F0'}, position:'left',  ticks:{callback:v=>v+'%'},  title:{display:true,text:'Occupancy (%)'}},
-      y1:{grid:{display:false},   position:'right', ticks:{callback:v=>'$'+v}, title:{display:true,text:'ADR ($)'}}
-    }
-  },
-  plugins:[covidPlugin]
-});
+    function buildTourismGdpSeries(rowsRaw) {
+      const subById = {};
+      TOURISM_SUBSECTORS.forEach((s) => { subById[s.subsector_id] = s; });
 
-mkChart('chartRoomRev', {
-  type:'bar',
-  data:{
-    labels: YEARS_S,
-    datasets:[{
-      label:'Room Revenue ($B)',
-      data: data.roomRevB,
-      backgroundColor: data.roomRevB.map((_,i)=>i===9? COL.red+'cc':COL.purple+'cc'),
-      borderRadius:4
-    }]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true,
-    interaction:{mode:'index',intersect:false},
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>'$'+v.toFixed(1)+'B'}}
-    },
-    plugins:{legend:{display:false}}
-  },
-  plugins:[covidPlugin]
-});
+      const rows = (rowsRaw || []).filter((r) => {
+        const geo = String(r.GEO || '').trim();
+        const price = String(r.Prices || '').trim();
+        const year = Number(r.REF_DATE);
+        const value = Number(String(r.VALUE || '').replace(/,/g, '').trim());
+        return geo === 'British Columbia' &&
+          (price === 'Current dollars' || price === 'Chained (2017) dollars') &&
+          Number.isFinite(year) &&
+          Number.isFinite(value);
+      });
 
-mkChart('chartAccomEmp', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      lineDS('Accommodation (000s)',     data.accomEmp.map(v=>v/1000), COL.purple),
-      lineDS('Food & Beverage (000s)',   data.foodEmp.map(v=>v/1000),  COL.pink),
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v+'K'}, title:{display:true,text:'Thousands of Workers'}}
-    }
-  },
-  plugins:[covidPlugin]
-});
-
-mkChart('chartFoodIndex', {
-  type:'line',
-  data:{
-    labels: YEARS_S,
-    datasets:[
-      lineDS('BC Food Services (Index)', data.foodIdxBC, COL.teal),
-      lineDS('Canada Food Services (Index)', data.foodIdxCA, COL.amber, {borderDash:[4,3]}),
-    ]
-  },
-  options:{
-    ...baseLineOpts,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v}, title:{display:true,text:'Index (2010 = 100)'}}
-    }
-  },
-  plugins:[covidPlugin]
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// SECTION 5: ESTABLISHMENTS
-// ─────────────────────────────────────────────────────────────────────
-const estLabels = ['Mainland/SW','VI & Coast','Thompson/Okanagan','Kootenay','Cariboo','North Coast/Nechako','Northeast'];
-const est2024   = [10102, 2812, 2096, 718, 552, 375, 258];
-const estColors = [COL.blue, COL.teal, COL.green, COL.amber, COL.purple, COL.pink, COL.orange];
-
-mkChart('chartEstabRegion', {
-  type:'bar',
-  data:{
-    labels: estLabels,
-    datasets:[{
-      label:'Establishments (2024)',
-      data: est2024,
-      backgroundColor: estColors.map(c=>c+'cc'),
-      borderRadius:5
-    }]
-  },
-  options:{
-    indexAxis:'y',
-    responsive:true, maintainAspectRatio:true,
-    scales:{
-      x:{grid:{color:'#E2E8F0'}, title:{display:true,text:'Number of Establishments'}},
-      y:{grid:{display:false}}
-    },
-    plugins:{legend:{display:false}}
-  }
-});
-
-mkChart('chartEstabTrend', {
-  type:'line',
-  data:{
-    labels: data.estYrs.map(String),
-    datasets:[
-      lineDS('Mainland/SW (÷5)',    data.estMain.map(v=>v/5),  COL.blue),
-      lineDS('VI & Coast',          data.estVI,                 COL.teal),
-      lineDS('Thompson/Okanagan',   data.estThOk,               COL.green),
-      lineDS('Kootenay',            data.estKoot,               COL.amber),
-      lineDS('Cariboo',             data.estCarib,              COL.purple),
-    ]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true,
-    interaction:{mode:'index',intersect:false},
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, ticks:{callback:v=>v.toLocaleString()}}
-    },
-    plugins:{legend:{position:'bottom', labels:{boxWidth:10,padding:12}}}
-  }
-});
-
-mkChart('chartEstabSize', {
-  type:'doughnut',
-  data:{
-    labels:['1–4 emp','5–9 emp','10–19 emp','20–49 emp','50–199 emp','200+ emp'],
-    datasets:[{
-      data:[4497,3937,3792,3303,1277,119],
-      backgroundColor:[COL.blue,COL.teal,COL.green,COL.amber,COL.purple,COL.pink].map(c=>c+'dd'),
-      borderColor:'#FFFFFF', borderWidth:3, hoverOffset:6
-    }]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true, cutout:'55%',
-    plugins:{
-      legend:{position:'bottom', labels:{boxWidth:10,padding:12}},
-      tooltip:{callbacks:{
-        label:ctx=>{const t=ctx.dataset.data.reduce((a,b)=>a+b,0); return ctx.label+': '+ctx.raw.toLocaleString()+' ('+((ctx.raw/t)*100).toFixed(1)+'%)'}
-      }}
-    }
-  }
-});
-
-// Employment by tourism region: 2019 vs 2024
-const empRegions = ['Vancouver, Coast\n& Mountains','The Islands','Thompson\nOkanagan','Northern BC','BC Rockies','Cariboo\nCountry'];
-const emp2019 = [10198, 2800, 2237, 984, 789, 272];
-const emp2024 = [10154, 2730, 2103, 938, 748, 240];
-mkChart('chartEmpRegion', {
-  type:'bar',
-  data:{
-    labels: empRegions,
-    datasets:[
-      {label:'2019 (Pre-COVID)', data:emp2019, backgroundColor:COL.teal+'88', borderRadius:3},
-      {label:'2024',             data:emp2024, backgroundColor:COL.blue+'cc', borderRadius:3},
-    ]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true,
-    interaction:{mode:'index',intersect:false},
-    scales:{
-      x:{grid:{color:'#E2E8F0'}},
-      y:{grid:{color:'#E2E8F0'}, title:{display:true,text:'Number of Establishments'}}
-    },
-    plugins:{legend:{position:'bottom', labels:{boxWidth:10,padding:12}}}
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// SECTION 6: REGIONAL ROOM REVENUE
-// ─────────────────────────────────────────────────────────────────────
-const commNames = [
-  'Vancouver','Whistler','Richmond','Victoria','Kelowna',
-  'Central/N. Island','Burnaby','Surrey','N. Vancouver','Vernon/Silver Star',
-  'Kamloops','Penticton','Saanich/Oak Bay/Langford','Ucluelet',
-  'Parksville','East Kootenay','Revelstoke','Cowichan Valley',
-  'Tofino','Abbotsford/Chilliwack'
-];
-const commRev2024 = [1468.3,534.9,336.0,307.2,168.3,133.5,95.9,98.7,77.0,62.0,96.5,53.0,57.9,43.9,45.8,114.0,74.7,38.8,112.4,65.5];
-// Sort descending
-const commIdx = commRev2024.map((_,i)=>i).sort((a,b)=>commRev2024[b]-commRev2024[a]);
-const commLabelsSorted = commIdx.map(i=>commNames[i]);
-const commRevSorted    = commIdx.map(i=>commRev2024[i]);
-const commBgColors     = commRevSorted.map(v=>v>=400?COL.blue+'cc':v>=100?COL.teal+'cc':v>=50?COL.green+'bb':COL.amber+'99');
-
-mkChart('chartTopComm', {
-  type:'bar',
-  data:{
-    labels: commLabelsSorted,
-    datasets:[{
-      label:'Room Revenue ($M)',
-      data: commRevSorted,
-      backgroundColor: commBgColors,
-      borderRadius:4
-    }]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true,
-    indexAxis:'y',
-    scales:{
-      x:{grid:{color:'#E2E8F0'}, title:{display:true,text:'Room Revenue ($millions)'}},
-      y:{grid:{display:false}, ticks:{font:{size:10}}}
-    },
-    plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString()+'M'}}}
-  }
-});
-
-// Growth comparison: 2019 vs 2022 vs 2024 for key destinations
-const selComm  = ['Vancouver','Whistler','Victoria','Tofino','Kelowna','Revelstoke','Richmond','Campbell River'];
-const rev2019  = [1165.7, 474.0, 253.2,  72.6,  91.7,  38.3, 214.0,  18.1];
-const rev2022  = [1007.8, 377.6, 183.3,  97.9, 114.6,  52.7, 210.9,  22.1];
-const rev2024  = [1468.3, 534.9, 307.2, 112.4, 168.3,  74.7, 336.0,  22.3];
-
-mkChart('chartCommGrowth', {
-  type:'bar',
-  data:{
-    labels: selComm,
-    datasets:[
-      {label:'2019', data:rev2019, backgroundColor:COL.teal+'77', borderRadius:3},
-      {label:'2022', data:rev2022, backgroundColor:COL.purple+'88', borderRadius:3},
-      {label:'2024', data:rev2024, backgroundColor:COL.blue+'cc', borderRadius:3},
-    ]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true,
-    interaction:{mode:'index',intersect:false},
-    scales:{
-      x:{grid:{color:'#E2E8F0'}, ticks:{font:{size:10}}},
-      y:{grid:{color:'#E2E8F0'}, title:{display:true,text:'$millions'}, ticks:{callback:v=>'$'+v}}
-    },
-    plugins:{legend:{position:'bottom', labels:{boxWidth:10,padding:12}}}
-  }
-});
-
-// Region share pie
-mkChart('chartRegionShare', {
-  type:'doughnut',
-  data:{
-    labels:['Vancouver,Coast & Mtns','The Islands','Thompson/Okanagan','BC Rockies','Northern BC','Cariboo'],
-    datasets:[{
-      // Sum of 2024 revenues per region (approximate from data)
-      data:[2822, 785, 536, 332, 134, 51],
-      backgroundColor:[COL.blue,COL.teal,COL.green,COL.amber,COL.purple,COL.pink].map(c=>c+'dd'),
-      borderColor:'#FFFFFF', borderWidth:3, hoverOffset:6
-    }]
-  },
-  options:{
-    responsive:true, maintainAspectRatio:true, cutout:'55%',
-    plugins:{
-      legend:{position:'bottom', labels:{boxWidth:10,padding:10, font:{size:10}}},
-      tooltip:{callbacks:{
-        label:ctx=>{const t=ctx.dataset.data.reduce((a,b)=>a+b,0); return ctx.label+': $'+ctx.raw.toLocaleString()+'M ('+((ctx.raw/t)*100).toFixed(1)+'%)'}
-      }}
-    }
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────
-// NAV HIGHLIGHT ON SCROLL
-// ─────────────────────────────────────────────────────────────────────
-const navLinks = document.querySelectorAll('#bcstats-subnav a');
-const sections = document.querySelectorAll('#panel-bcstats section[id]');
-const io = new IntersectionObserver(entries=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
-      navLinks.forEach(a=>a.classList.remove('active'));
-      const link = document.querySelector('#bcstats-subnav a[href="#'+e.target.id+'"]');
-      if(link) link.classList.add('active');
-    }
-  });
-},{threshold:0.35});
-sections.forEach(s=>io.observe(s));
-</script>
-
-<!-- ── REFRESH TOAST ─────────────────────────────────────────────────── -->
-<div id="refreshToast" class="refresh-toast" role="status" aria-live="polite"></div>
-
-<!-- ── LIVE DATA REFRESH SYSTEM ─────────────────────────────────────── -->
-<script>
-(function() {
-'use strict';
-
-/* ══════════════════════════════════════════════════════════
-   CONFIG
-══════════════════════════════════════════════════════════ */
-var CFG = {
-  proxy1:     'https://corsproxy.io/?url=',
-  proxy2:     'https://api.allorigins.win/raw?url=',
-  bcStatsCSV: 'https://catalogue.data.gov.bc.ca/dataset/13068032-2835-4e30-b698-92ac4636b455/resource/ea6909e7-37e0-44d3-9032-6a3f162aaaa9/download/tourism_annual_indicators-tables.csv',
-  scWDS:      'https://www150.statcan.gc.ca/t1/wds/rest/',
-  scPID:      2410005501,
-};
-
-/* ══════════════════════════════════════════════════════════
-   TOAST
-══════════════════════════════════════════════════════════ */
-var _toastTimer;
-function showToast(html, type, duration) {
-  duration = duration || 6000;
-  var el = document.getElementById('refreshToast');
-  el.className = 'refresh-toast rt-show rt-' + type;
-  el.innerHTML = html;
-  clearTimeout(_toastTimer);
-  if (duration > 0) {
-    _toastTimer = setTimeout(function() { el.classList.remove('rt-show'); }, duration);
-  }
-}
-
-/* ══════════════════════════════════════════════════════════
-   FETCH WITH PROXY FALLBACK
-══════════════════════════════════════════════════════════ */
-async function proxyFetch(url, opts) {
-  opts = opts || {};
-  var proxies = [CFG.proxy1 + encodeURIComponent(url), CFG.proxy2 + encodeURIComponent(url)];
-  var lastErr;
-  for (var i = 0; i < proxies.length; i++) {
-    try {
-      var controller = new AbortController();
-      var tid = setTimeout(function() { controller.abort(); }, 18000);
-      var resp = await fetch(proxies[i], Object.assign({}, opts, { signal: controller.signal }));
-      clearTimeout(tid);
-      if (resp.ok) return resp;
-      lastErr = new Error('HTTP ' + resp.status + ' from proxy ' + (i+1));
-    } catch(e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr || new Error('All proxies failed for: ' + url);
-}
-
-/* ══════════════════════════════════════════════════════════
-   BC STATS — ANNUAL CSV FETCH & PARSE
-══════════════════════════════════════════════════════════ */
-function parseBCStatsAnnualCSV(csvText) {
-  var parsed = Papa.parse(csvText, { skipEmptyLines: true });
-  var rows = parsed.data;
-
-  // Find header row containing year columns
-  var yearCols = {}, headerIdx = -1;
-  for (var i = 0; i < Math.min(8, rows.length); i++) {
-    var hits = rows[i].reduce(function(acc, cell, j) {
-      var s = String(cell || '').trim().replace(/\*+$/, '');
-      if (/^20\d\d$/.test(s)) acc.push([parseInt(s), j]);
-      return acc;
-    }, []);
-    if (hits.length >= 5) {
-      hits.forEach(function(h) { yearCols[h[0]] = h[1]; });
-      headerIdx = i;
-      break;
-    }
-  }
-  if (headerIdx < 0) throw new Error('BC Stats: could not locate year columns in CSV');
-
-  var foundYears = Object.keys(yearCols).map(Number).sort(function(a,b){return a-b;});
-
-  // Indicator row patterns → data object keys
-  var IND = [
-    { re: /gross tourism revenue/i,           key: 'grossRev',  scale: 1/1000 },
-    { re: /net tourism revenue/i,             key: 'netRev',    scale: 1/1000 },
-    { re: /gdp at basic/i,                    key: 'nomGDP',    scale: 1/1000 },
-    { re: /real gdp/i,                        key: 'realGDP',   scale: 1/1000 },
-    { re: /tourism employment/i,              key: 'employ',    scale: 1 },
-    { re: /wages.*salaries|employee wages/i,  key: 'wages',     scale: 1/1000 },
-    { re: /government taxes/i,               key: 'taxes',     scale: 1/1000 },
-    { re: /cpi.*accommodation/i,              key: 'cpiAccom',  scale: 1 },
-    { re: /cpi.*(food|restaurant|drinking)/i, key: 'cpiRest',   scale: 1 },
-    { re: /occupancy rate/i,                  key: 'occRate',   scale: 1 },
-    { re: /average daily rate|adr/i,          key: 'roomRate',  scale: 1 },
-    { re: /room revenue.*billion|\$.*billion.*room/i, key: 'roomRevB', scale: 1 },
-  ];
-
-  var updates = {};
-  for (var r = headerIdx + 1; r < rows.length; r++) {
-    var row = rows[r];
-    var label = String(row[0] || '').trim();
-    if (!label || /^\s*%/.test(label) || /^\s*note/i.test(label)) continue;
-
-    for (var k = 0; k < IND.length; k++) {
-      var ind = IND[k];
-      if (ind.re.test(label)) {
-        updates[ind.key] = foundYears.map(function(yr) {
-          var j = yearCols[yr];
-          if (j === undefined) return null;
-          var raw = String(row[j] || '').replace(/[,$\s]/g, '');
-          var v = parseFloat(raw);
-          return isNaN(v) ? null : (ind.scale !== 1 ? v * ind.scale : v);
+      const out = [];
+      Object.keys(TOURISM_GDP_SERIES_MAP).forEach((subsectorId) => {
+        const cfg = TOURISM_GDP_SERIES_MAP[subsectorId];
+        const labelSet = new Set(cfg.naicsLabels);
+        const grouped = new Map();
+        rows.forEach((r) => {
+          const label = String(r['North American Industry Classification System (NAICS)'] || '').trim();
+          if (!labelSet.has(label)) return;
+          const price = String(r.Prices || '').trim();
+          const year = Number(r.REF_DATE);
+          const value = Number(String(r.VALUE || '').replace(/,/g, '').trim());
+          const key = `${price}|${year}`;
+          if (!grouped.has(key)) grouped.set(key, { sum: 0, labels: new Set() });
+          const bucket = grouped.get(key);
+          bucket.sum += value;
+          bucket.labels.add(label);
         });
-        break;
+
+        grouped.forEach((bucket, key) => {
+          const parts = key.split('|');
+          const priceType = parts[0];
+          const year = Number(parts[1]);
+          const sub = subById[subsectorId];
+          out.push({
+            year,
+            price_type: priceType,
+            subsector_id: subsectorId,
+            subsector_name: sub ? sub.subsector_name : subsectorId,
+            value_millions: Math.round(bucket.sum * 10) / 10,
+            naics_series_used: Array.from(bucket.labels).sort().join(' | '),
+            source_table: 'StatCan 36-10-0711-01',
+            note: cfg.note
+          });
+        });
+      });
+
+      return out.sort((a, b) =>
+        Number(a.year) - Number(b.year) ||
+        String(a.price_type).localeCompare(String(b.price_type)) ||
+        String(a.subsector_id).localeCompare(String(b.subsector_id))
+      );
+    }
+
+    async function loadTourismGdpFromApi() {
+      const csvText = await fetchTourismGdpCsvText();
+      const rows = parseCsv(csvText);
+      return buildTourismGdpSeries(rows);
+    }
+
+    function buildTourismBusinessSnapshots(rowsRaw) {
+      const subById = {};
+      TOURISM_SUBSECTORS.forEach((s) => { subById[s.subsector_id] = s; });
+
+      const allIndustryLabels = new Set();
+      Object.values(TOURISM_BUSINESS_SUBSECTOR_LABELS).forEach((labels) => {
+        labels.forEach((label) => allIndustryLabels.add(label));
+      });
+
+      const rows = (rowsRaw || [])
+        .map((r) => ({
+          ref_date: String(r.REF_DATE || '').trim(),
+          geo: String(r.GEO || '').trim(),
+          employment_size: String(r['Employment size'] || '').trim(),
+          naics_label: String(r['North American Industry Classification System (NAICS)'] || '').trim(),
+          value: Number(String(r.VALUE || '').replace(/,/g, '').trim())
+        }))
+        .filter((r) =>
+          r.geo === 'British Columbia' &&
+          r.ref_date &&
+          r.employment_size &&
+          allIndustryLabels.has(r.naics_label) &&
+          Number.isFinite(r.value)
+        );
+
+      const refDates = Array.from(new Set(rows.map((r) => r.ref_date))).sort((a, b) => String(a).localeCompare(String(b)));
+      const latestRefDate = refDates.length ? refDates[refDates.length - 1] : null;
+
+      const business = [];
+      const businessSize = [];
+      Object.keys(TOURISM_BUSINESS_SUBSECTOR_LABELS).forEach((subsectorId) => {
+        const labels = new Set(TOURISM_BUSINESS_SUBSECTOR_LABELS[subsectorId]);
+        const sub = subById[subsectorId];
+
+        const sumFor = (sizeLabel) => rows.reduce((acc, row) => {
+          if (row.ref_date !== latestRefDate) return acc;
+          if (row.employment_size !== sizeLabel) return acc;
+          if (!labels.has(row.naics_label)) return acc;
+          return acc + row.value;
+        }, 0);
+
+        business.push({
+          ref_date: latestRefDate || '',
+          subsector_id: subsectorId,
+          subsector_name: sub ? sub.subsector_name : subsectorId,
+          business_count: Math.round(sumFor('Total, with employees')),
+          source_table: 'StatCan 33-10-1095-01'
+        });
+
+        TOURISM_BUSINESS_SIZE_ORDER.forEach((sizeLabel) => {
+          businessSize.push({
+            ref_date: latestRefDate || '',
+            subsector_id: subsectorId,
+            subsector_name: sub ? sub.subsector_name : subsectorId,
+            employment_size: sizeLabel,
+            business_count: Math.round(sumFor(sizeLabel)),
+            source_table: 'StatCan 33-10-1095-01'
+          });
+        });
+      });
+
+      return { business, businessSize, latestRefDate };
+    }
+
+    async function loadTourismBusinessFromApi() {
+      const csvText = await fetchStatsCanCsvText(TOURISM_BUSINESS_API, 'StatCan Business API (33-10-1095-01)');
+      const rows = parseCsv(csvText);
+      return buildTourismBusinessSnapshots(rows);
+    }
+
+    function buildTourismLabourSeries(rowsRaw) {
+      const byNaics = {};
+      TOURISM_LABOUR_SERIES.forEach((s) => { byNaics[s.naics_label] = s; });
+      return (rowsRaw || [])
+        .map((r) => {
+          const naicsLabel = String(r['North American Industry Classification System (NAICS)'] || '').trim();
+          const cfg = byNaics[naicsLabel];
+          if (!cfg) return null;
+          return {
+            year: Number(r.REF_DATE),
+            series_id: cfg.series_id,
+            series_name: cfg.series_name,
+            subsector_id: cfg.subsector_id,
+            value_thousands: Number(String(r.VALUE || '').replace(/,/g, '').trim()),
+            unit: 'thousands of persons',
+            source_table: 'StatCan 14-10-0023-01'
+          };
+        })
+        .filter((r) => r && Number.isFinite(r.year) && Number.isFinite(r.value_thousands))
+        .sort((a, b) => a.year - b.year || String(a.series_id).localeCompare(String(b.series_id)));
+    }
+
+    async function loadTourismLabourFromApi() {
+      const csvText = await fetchStatsCanCsvText(TOURISM_LABOUR_API, 'StatCan Labour API (14-10-0023-01)');
+      const rows = parseCsv(csvText);
+      return buildTourismLabourSeries(rows);
+    }
+
+    function toNum(v) {
+      const n = Number(String(v || '').replace(/,/g, ''));
+      return Number.isFinite(n) ? n : null;
+    }
+    function fmtInt(v) {
+      const n = toNum(v);
+      return n === null ? '--' : Math.round(n).toLocaleString('en-CA');
+    }
+    function fmtBilFromMillions(v) {
+      const n = toNum(v);
+      return n === null ? '--' : (n / 1000).toFixed(1);
+    }
+    function subsectorMap() {
+      const map = {};
+      STATE.subsectors.forEach((s) => { map[s.subsector_id] = s; });
+      return map;
+    }
+    function destroyCharts() {
+      STATE.charts.forEach((c) => { try { c.destroy(); } catch (_) {} });
+      STATE.charts = [];
+    }
+
+    function renderSectorDefinition() {
+      const body = document.getElementById('subsector-def-body');
+      body.innerHTML = STATE.subsectors.map((s) => `
+        <tr>
+          <td><strong>${s.subsector_name}</strong></td>
+          <td><code>${s.naics_codes}</code></td>
+          <td>${s.description}</td>
+        </tr>`).join('');
+    }
+
+    function renderKpis() {
+      const gdpCards = document.getElementById('gdp-cards');
+      const bizCards = document.getElementById('biz-cards');
+      const metaEl = document.getElementById('snapshot-meta');
+      const bizSource = document.getElementById('biz-source');
+      const realRows = STATE.gdp.filter((r) => r.price_type === 'Chained (2017) dollars');
+      const nominalRows = STATE.gdp.filter((r) => r.price_type === 'Current dollars');
+      const latestReal = realRows.length ? Math.max(...realRows.map((r) => Number(r.year))) : null;
+      const latestNominal = nominalRows.length ? Math.max(...nominalRows.map((r) => Number(r.year))) : null;
+      gdpCards.innerHTML = STATE.subsectors.map((s) => {
+        const row = latestReal === null ? null : realRows.find((r) => r.subsector_id === s.subsector_id && Number(r.year) === latestReal);
+        const v = row ? fmtBilFromMillions(row.value_millions) : '--';
+        return `<div class="card kpi-card" style="--card-color:${s.color};">
+          <div class="kpi-label">${s.subsector_id} - ${s.subsector_name}</div>
+          <div class="kpi-value">${v}</div>
+          <div class="kpi-unit">Billion CAD (real)${latestReal !== null ? `, ${latestReal}` : ''}</div>
+          <div class="kpi-source">Source: StatCan 36-10-0711-01</div>
+        </div>`;
+      }).join('');
+      bizCards.innerHTML = STATE.subsectors.map((s) => {
+        const row = STATE.business.find((r) => r.subsector_id === s.subsector_id);
+        const v = row ? fmtInt(row.business_count) : '--';
+        return `<div class="card kpi-card" style="--card-color:${s.color};">
+          <div class="kpi-label">${s.subsector_id} - ${s.subsector_name}</div>
+          <div class="kpi-value">${v}</div>
+          <div class="kpi-unit">Businesses with employees</div>
+          <div class="kpi-source">Source: StatCan 33-10-1095-01</div>
+        </div>`;
+      }).join('');
+      const bizRefDate = (STATE.meta && STATE.meta.business_counts_ref_date) ||
+        (STATE.business[0] && STATE.business[0].ref_date) ||
+        '--';
+      if (metaEl) {
+        metaEl.textContent = `Real GDP latest: ${latestReal !== null ? latestReal : '--'} | Nominal GDP latest: ${latestNominal !== null ? latestNominal : '--'} | Business count snapshot: ${bizRefDate}`;
+      }
+      if (bizSource) {
+        bizSource.innerHTML = `Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3310109501" target="_blank" rel="noopener">StatCan 33-10-1095-01</a> | Snapshot date: ${bizRefDate}`;
       }
     }
-  }
 
-  if (Object.keys(updates).length === 0)
-    throw new Error('BC Stats: no indicator rows matched in CSV');
+    function renderCharts() {
+      destroyCharts();
+      const subMap = subsectorMap();
+      const order = STATE.subsectors.map((s) => s.subsector_id);
 
-  return { updates: updates, foundYears: foundYears };
-}
+      function buildSeries(priceType) {
+        const rows = STATE.gdp.filter((r) => r.price_type === priceType);
+        const years = Array.from(new Set(rows.map((r) => Number(r.year)))).sort((a, b) => a - b);
+        const datasets = order.map((sid) => {
+          const s = subMap[sid];
+          return {
+            label: sid,
+            data: years.map((y) => {
+              const row = rows.find((r) => r.subsector_id === sid && Number(r.year) === y);
+              return row ? toNum(row.value_millions) : null;
+            }),
+            borderColor: s.color,
+            backgroundColor: s.color,
+            tension: 0.25,
+            fill: false,
+            pointRadius: 2
+          };
+        });
+        return { years, datasets };
+      }
 
-function applyBCStatsUpdates(result) {
-  var updates   = result.updates;
-  var foundYrs  = result.foundYears;
-  var curMaxYr  = Math.max.apply(null, YEARS);
-  var newMaxYr  = Math.max.apply(null, foundYrs);
+      const real = buildSeries('Chained (2017) dollars');
+      const nominal = buildSeries('Current dollars');
+      const gdpTooltip = {
+        callbacks: {
+          title: (items) => 'Year: ' + items[0].label,
+          label: (ctx) => {
+            const sid = ctx.dataset.label;
+            const s = subMap[sid];
+            return `${sid} - ${s.subsector_name}: ${Number(ctx.parsed.y || 0).toLocaleString('en-CA')} million CAD`;
+          }
+        }
+      };
 
-  // Extend YEARS / YEARS_S if a new annual period was published
-  if (newMaxYr > curMaxYr) {
-    for (var y = curMaxYr + 1; y <= newMaxYr; y++) {
-      YEARS.push(y);
-      YEARS_S.push(String(y));
-    }
-  }
+      STATE.charts.push(new Chart(document.getElementById('chart-gdp-real'), {
+        type: 'line',
+        data: { labels: real.years, datasets: real.datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' }, tooltip: gdpTooltip },
+          scales: { y: { title: { display: true, text: 'Millions CAD (real)' } }, x: { title: { display: true, text: 'Year' } } }
+        }
+      }));
 
-  // Mutate data arrays in-place (const arrays can be spliced)
-  var count = 0;
-  Object.keys(updates).forEach(function(key) {
-    if (data[key]) {
-      var vals = updates[key];
-      data[key].splice(0, data[key].length);
-      vals.forEach(function(v) { data[key].push(v); });
-      count++;
-    }
-  });
+      STATE.charts.push(new Chart(document.getElementById('chart-gdp-nominal'), {
+        type: 'line',
+        data: { labels: nominal.years, datasets: nominal.datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' }, tooltip: gdpTooltip },
+          scales: { y: { title: { display: true, text: 'Millions CAD (current)' } }, x: { title: { display: true, text: 'Year' } } }
+        }
+      }));
 
-  // Recompute growth rates and push directly to the growthChart datasets
-  function growth(arr) {
-    return YEARS.map(function(y, i) {
-      if (i === 0 || arr[i-1] == null || arr[i] == null) return null;
-      return ((arr[i] - arr[i-1]) / arr[i-1] * 100).toFixed(1);
-    });
-  }
+      const bizBars = STATE.business.slice().sort((a, b) => order.indexOf(a.subsector_id) - order.indexOf(b.subsector_id));
+      STATE.charts.push(new Chart(document.getElementById('chart-biz-subsector'), {
+        type: 'bar',
+        data: {
+          labels: bizBars.map((r) => r.subsector_id),
+          datasets: [{ label: 'Businesses with employees', data: bizBars.map((r) => toNum(r.business_count)), backgroundColor: bizBars.map((r) => subMap[r.subsector_id].color) }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const sid = ctx.label;
+                  return `${sid} - ${subMap[sid].subsector_name}: ${Number(ctx.parsed.y || 0).toLocaleString('en-CA')}`;
+                }
+              }
+            }
+          },
+          scales: { y: { title: { display: true, text: 'Business count' } }, x: { title: { display: true, text: 'Subsector code' } } }
+        }
+      }));
 
-  var gChart = Chart.getChart(document.getElementById('chartGrowth'));
-  if (gChart) {
-    gChart.data.labels = YEARS_S.slice();
-    if (data.grossRev) gChart.data.datasets[0].data = growth(data.grossRev);
-    if (data.realGDP)  gChart.data.datasets[1].data = growth(data.realGDP);
-    if (data.employ)   gChart.data.datasets[2].data = growth(data.employ);
-    gChart.update();
-  }
-
-  // Update all other Tab 2 charts
-  var t2ids = ['chartRevGDP','chartEmployment','chartWagesTax','chartCPI',
-               'chartTravTotal','chartOverseasPie','chartOverseasBar',
-               'chartAir','chartFerry','chartYVRMix','chartRecovery',
-               'chartOccRate','chartRoomRev','chartAccomEmp','chartFoodIndex',
-               'chartEstabRegion','chartEstabTrend','chartEstabSize',
-               'chartEmpRegion','chartTopComm','chartCommGrowth','chartRegionShare'];
-  t2ids.forEach(function(id) {
-    if (id === 'chartGrowth') return;
-    var ch = Chart.getChart(document.getElementById(id));
-    if (!ch) return;
-    if (newMaxYr > curMaxYr) ch.data.labels = YEARS_S.slice();
-    ch.update();
-  });
-
-  // Update Tab 2 KPI cards
-  var kpis = document.querySelectorAll('#panel-bcstats .kpi-value');
-  var last  = YEARS.length - 1;
-  var fmt2  = function(v, d) { return v != null ? v.toFixed(d != null ? d : 1) : '—'; };
-  if (kpis[0] && data.grossRev) kpis[0].textContent = '$' + fmt2(data.grossRev[last]) + 'B';
-  if (kpis[1] && data.realGDP)  kpis[1].textContent = '$' + fmt2(data.realGDP[last], 2) + 'B';
-  if (kpis[2] && data.employ)   kpis[2].textContent = fmt2(data.employ[last], 1) + 'K';
-  if (kpis[3] && data.roomRevB) kpis[3].textContent = '$' + fmt2(data.roomRevB[last], 2) + 'B';
-
-  return count;
-}
-
-/* ══════════════════════════════════════════════════════════
-   STATISTICS CANADA — WDS API FETCH
-══════════════════════════════════════════════════════════ */
-async function fetchStatCanData() {
-  var WDS = CFG.scWDS;
-  var PID = CFG.scPID;
-
-  // Step 1 – Get table metadata to discover dimension member IDs
-  var metaResp = await proxyFetch(WDS + 'getCubeMetadata/' + PID);
-  var metaJson = await metaResp.json();
-  var meta = Array.isArray(metaJson) ? (metaJson[0] && metaJson[0].object) : metaJson.object;
-  if (!meta || !meta.dimension) throw new Error('StatCan: metadata not returned or malformed');
-
-  var dims = meta.dimension;
-
-  function findDim(pattern) {
-    return dims.find(function(d) { return pattern.test(d.dimensionNameEn); });
-  }
-  function memberId(dim, patterns) {
-    for (var pi = 0; pi < patterns.length; pi++) {
-      var p = patterns[pi];
-      var m = dim.member.find(function(mb) {
-        return mb.memberNameEn.toLowerCase().indexOf(p.toLowerCase()) !== -1;
+      const sizeOrder = TOURISM_BUSINESS_SIZE_ORDER.slice();
+      const sizeColors = ['#94A3B8','#60A5FA','#34D399','#FBBF24','#F97316','#A78BFA','#F472B6','#EF4444'];
+      const groupedSize = {};
+      STATE.businessSize.forEach((r) => {
+        if (!groupedSize[r.subsector_id]) groupedSize[r.subsector_id] = {};
+        groupedSize[r.subsector_id][r.employment_size] = toNum(r.business_count) || 0;
       });
-      if (m) return m.memberId;
+      STATE.charts.push(new Chart(document.getElementById('chart-biz-size'), {
+        type: 'bar',
+        data: {
+          labels: order,
+          datasets: sizeOrder.map((sz, idx) => ({
+            label: sz,
+            data: order.map((sid) => (groupedSize[sid] && groupedSize[sid][sz]) ? groupedSize[sid][sz] : 0),
+            backgroundColor: sizeColors[idx]
+          }))
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const sid = items[0].label;
+                  return `${sid} - ${subMap[sid].subsector_name}`;
+                },
+                label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.x || 0).toLocaleString('en-CA')}`
+              }
+            }
+          },
+          scales: { x: { stacked: true, title: { display: true, text: 'Business count' } }, y: { stacked: true, title: { display: true, text: 'Subsector code' } } }
+        }
+      }));
+
+      const labourRows = STATE.labour.filter((r) => Number(r.year) >= 2014);
+      const labourYears = Array.from(new Set(labourRows.map((r) => Number(r.year)))).sort((a, b) => a - b);
+      const labourSeries = [
+        { id: 'LAB_TRANSPORT', color: subMap.TRANSPORT.color },
+        { id: 'LAB_TRAVEL_PROXY', color: subMap.TRAVEL.color },
+        { id: 'LAB_RECREATION', color: subMap.RECREATION.color },
+        { id: 'LAB_ACCOM_FOOD', color: '#8B5CF6' }
+      ];
+      STATE.charts.push(new Chart(document.getElementById('chart-labour'), {
+        type: 'line',
+        data: {
+          labels: labourYears,
+          datasets: labourSeries.map((s) => {
+            const first = labourRows.find((r) => r.series_id === s.id);
+            return {
+              label: first ? first.series_name : s.id,
+              borderColor: s.color,
+              backgroundColor: s.color,
+              tension: 0.25,
+              pointRadius: 2,
+              data: labourYears.map((y) => {
+                const row = labourRows.find((r) => r.series_id === s.id && Number(r.year) === y);
+                return row ? toNum(row.value_thousands) : null;
+              })
+            };
+          })
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y || 0).toLocaleString('en-CA')} thousand` } }
+          },
+          scales: { y: { title: { display: true, text: 'Thousands of persons' } }, x: { title: { display: true, text: 'Year' } } }
+        }
+      }));
     }
-    throw new Error('StatCan dim "' + dim.dimensionNameEn + '": no match for [' + patterns.join(', ') + ']');
-  }
 
-  var geoDim  = findDim(/geograph/i);
-  var ctrDim  = findDim(/country/i);
-  var modDim  = findDim(/mode/i);
-  var arrDim  = findDim(/arrival/i);
-  var trvDim  = findDim(/traveller/i);
-  if (!geoDim||!ctrDim||!modDim||!arrDim||!trvDim)
-    throw new Error('StatCan: one or more expected dimensions not found in metadata');
-
-  var bcId     = memberId(geoDim,  ['British Columbia']);
-  var allCtrId = memberId(ctrDim,  ['Non-resident visitors entering Canada']);
-  var allModId = memberId(modDim,  ['All modes']);
-  var allArrId = memberId(arrDim,  ['All arrivals']);
-  var visId    = memberId(trvDim,  ['Visitors']);
-  var ovnId    = memberId(trvDim,  ['Tourists (overnight)', 'Tourists']);
-  var sdId     = memberId(trvDim,  ['Excursionists']);
-  var airId    = memberId(modDim,  ['Air']);
-  var landId   = memberId(modDim,  ['Land']);
-  var watId    = memberId(modDim,  ['Water']);
-  var usaId    = memberId(ctrDim,  ['United States of America residents']);
-  var intlId   = memberId(ctrDim,  ['Residents of countries other than the United States']);
-  var dirId    = memberId(arrDim,  ['From another country direct']);
-  var viaId    = memberId(arrDim,  ['From another country via the United States', 'via the United States']);
-
-  function c() { return Array.from(arguments).join('.'); }
-
-  var queries = [
-    { k:'totalV',   coord: c(bcId,allCtrId,allModId,allArrId,visId) },
-    { k:'overnight',coord: c(bcId,allCtrId,allModId,allArrId,ovnId) },
-    { k:'sameday',  coord: c(bcId,allCtrId,allModId,allArrId,sdId)  },
-    { k:'airV',     coord: c(bcId,allCtrId,airId,   allArrId,visId) },
-    { k:'landV',    coord: c(bcId,allCtrId,landId,  allArrId,visId) },
-    { k:'waterV',   coord: c(bcId,allCtrId,watId,   allArrId,visId) },
-    { k:'usArr',    coord: c(bcId,usaId,   allModId,allArrId,visId) },
-    { k:'intlArr',  coord: c(bcId,intlId,  allModId,dirId,   visId) },
-    { k:'viaUSArr', coord: c(bcId,intlId,  allModId,viaId,   visId) },
-  ];
-
-  // Step 2 – Resolve each coordinate to a vector ID (parallel GET requests)
-  var vectorIds = await Promise.all(queries.map(async function(q) {
-    var r  = await proxyFetch(WDS + 'getSeriesInfoFromCubePidCoord/' + PID + '/' + q.coord);
-    var j  = await r.json();
-    var ob = Array.isArray(j) ? (j[0] && j[0].object) : j.object;
-    if (!ob || !ob.vectorId) throw new Error('StatCan: no vectorId for coord ' + q.coord);
-    return ob.vectorId;
-  }));
-
-  // Step 3 – Fetch last 12 periods for each vector (parallel)
-  var seriesData = await Promise.all(vectorIds.map(async function(vid) {
-    var r = await proxyFetch(WDS + 'getDataFromVectorAndLatestNPeriods/' + vid + '/12');
-    var j = await r.json();
-    var ob = Array.isArray(j) ? (j[0] && j[0].object) : j.object;
-    return ob;
-  }));
-
-  // Step 4 – Apply to global arrays
-  var G = { totalV:totalV, overnight:overnight, sameday:sameday,
-            airV:airV, landV:landV, waterV:waterV,
-            usArr:usArr, intlArr:intlArr, viaUSArr:viaUSArr };
-  var updCount = 0;
-
-  seriesData.forEach(function(ob, i) {
-    if (!ob || !ob.vectorDataPoint) return;
-    var pts = ob.vectorDataPoint.slice().sort(function(a,b) {
-      return a.refPer < b.refPer ? -1 : a.refPer > b.refPer ? 1 : 0;
-    });
-    var vals = pts.map(function(p) {
-      return typeof p.value === 'number' ? p.value : (parseInt(p.value) || 0);
-    });
-    var key = queries[i].k;
-    var arr = G[key];
-    if (arr && vals.length) {
-      arr.splice(0, arr.length);
-      vals.forEach(function(v) { arr.push(v); });
-      updCount++;
+    function renderLookWest() {
+      const goalsWrap = document.getElementById('lw-goals');
+      const goals = STATE.goals;
+      goalsWrap.innerHTML = goals.map((g) => `
+        <div class="card goal-card">
+          <div class="goal-top">
+            <span class="goal-dot ${g.rag_status}"></span>
+            <div class="goal-name">${g.goal_name}</div>
+          </div>
+          <div class="goal-meta">${g.pillar} | ${g.related_subsectors}</div>
+          <div class="goal-track"><div class="goal-fill ${g.rag_status}" style="width:${Math.max(0, Math.min(100, toNum(g.progress_pct) || 0))}%"></div></div>
+          <div class="goal-foot"><span>${g.current_year}: ${g.current_value} ${g.unit}</span><span>${g.progress_pct}%</span></div>
+        </div>`).join('');
     }
-  });
 
-  // Rebuild intlTotal in-place
-  var newIT = intlArr.map(function(v,i) { return v + viaUSArr[i]; });
-  intlTotal.splice(0, intlTotal.length);
-  newIT.forEach(function(v) { intlTotal.push(v); });
+    function renderActionPlanCommitments() {
+      const body = document.getElementById('commitments-body');
+      if (!STATE.commitments.length) {
+        body.innerHTML = '<tr><td colspan="5">No commitments data available.</td></tr>';
+        return;
+      }
+      body.innerHTML = STATE.commitments.map((r) => `
+        <tr>
+          <td><strong>${r.goal || ''}</strong></td>
+          <td>${r.stream || ''}</td>
+          <td>${r.pillar || ''}</td>
+          <td>${r.theme || ''}</td>
+          <td>${r.timeframe || ''}</td>
+        </tr>`).join('');
+    }
 
-  // Update modeChart doughnut with new annual totals
-  var mc = Chart.getChart(document.getElementById('modeChart'));
-  if (mc) {
-    var sum = function(a) { return a.reduce(function(s,v){return s+v;}, 0); };
-    mc.data.datasets[0].data = [sum(landV), sum(airV), sum(waterV)];
-    mc.update();
-  }
+    function pickField(row, keys) {
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(row, key)) return String(row[key] || '').trim();
+      }
+      return '';
+    }
 
-  // Update remaining Tab 1 charts
-  ['monthlyChart','travellerChart','originChart','usIntlChart','modeMonthlyChart'].forEach(function(id) {
-    var ch = Chart.getChart(document.getElementById(id));
-    if (ch) ch.update();
-  });
+    function yesTick(value) {
+      const v = String(value || '').trim().toLowerCase();
+      if (['yes', 'y', 'true', '1'].includes(v)) {
+        return '<span style="color:var(--rag-green);font-weight:700;">&#10003;</span>';
+      }
+      return '';
+    }
 
-  // Update Tab 1 KPI cards
-  var kpis1 = document.querySelectorAll('#panel-statcan .kpi-value');
-  var sum1  = function(a) { return a.reduce(function(s,v){return s+v;},0); };
-  var fmt1  = function(n) { return n>=1e6?(n/1e6).toFixed(2)+'M':(n/1e3).toFixed(0)+'K'; };
-  if (kpis1[0]) kpis1[0].textContent = fmt1(sum1(totalV));
-  if (kpis1[1]) kpis1[1].textContent = fmt1(sum1(overnight));
-  if (kpis1[2]) kpis1[2].textContent = fmt1(Math.max.apply(null, totalV));
-  if (kpis1[3]) kpis1[3].textContent = fmt1(sum1(airV));
-  if (kpis1[4]) kpis1[4].textContent = fmt1(sum1(usArr));
+    function containsTourism(value) {
+      return /\btourism\b/i.test(String(value || ''));
+    }
 
-  return updCount;
-}
+    function renderRelevantAnnouncements() {
+      const body = document.getElementById('announcements-body');
+      const rows = STATE.announcements
+        .filter((r) => containsTourism(pickField(r, ['Primary Sector'])) || containsTourism(pickField(r, ['Secondary Sectors'])))
+        .sort((a, b) => {
+          const da = Date.parse(pickField(a, ['Date']));
+          const db = Date.parse(pickField(b, ['Date']));
+          if (Number.isFinite(da) && Number.isFinite(db)) return db - da;
+          if (Number.isFinite(da)) return -1;
+          if (Number.isFinite(db)) return 1;
+          return pickField(b, ['Date']).localeCompare(pickField(a, ['Date']));
+        });
 
-/* ══════════════════════════════════════════════════════════
-   MAIN REFRESH ENTRY POINT
-══════════════════════════════════════════════════════════ */
-window.refreshAllData = async function() {
-  var btn = document.getElementById('refreshBtn');
-  if (btn.disabled) return;
-  btn.disabled  = true;
-  btn.innerHTML = '<span class="rspin">⟳</span> Refreshing…';
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="8">No tourism-relevant announcements found in shared dataset.</td></tr>';
+        return;
+      }
 
-  showToast('🔄 Contacting BC Stats and Statistics Canada…', 'loading', -1);
+      body.innerHTML = rows.map((r) => {
+        const date = pickField(r, ['Date']);
+        const headline = pickField(r, ['Headline']);
+        const subtitle = pickField(r, ['Subtitle']);
+        const source = pickField(r, ['Source']);
+        const url = pickField(r, ['URL']);
+        const region = pickField(r, ['Region']);
+        const funding = yesTick(pickField(r, ['Funding/Investment?']));
+        const policy = yesTick(pickField(r, ['Policy/Regulation?']));
+        const investmentPromotion = yesTick(pickField(r, ['Investment Promotion?']));
+        const infrastructure = yesTick(pickField(r, ['Infrastructure?']));
+        const sourceCell = /^https?:\/\//i.test(url)
+          ? `<a href="${url}" target="_blank" rel="noopener">${source || 'Link'}</a>`
+          : (source || '--');
+        const headlineCell = subtitle
+          ? `<strong>${headline || '--'}</strong><br><span style="color:var(--color-text-subtle);font-size:11px;">${subtitle}</span>`
+          : `<strong>${headline || '--'}</strong>`;
 
-  var t0 = Date.now();
-  var results = await Promise.allSettled([
-    (async function() {
-      var resp = await proxyFetch(CFG.bcStatsCSV);
-      var text = await resp.text();
-      var parsed = parseBCStatsAnnualCSV(text);
-      return applyBCStatsUpdates(parsed);
-    })(),
-    fetchStatCanData()
-  ]);
+        return `<tr>
+          <td>${date || '--'}</td>
+          <td>${headlineCell}</td>
+          <td>${sourceCell}</td>
+          <td>${region || '--'}</td>
+          <td>${funding}</td>
+          <td>${policy}</td>
+          <td>${investmentPromotion}</td>
+          <td>${infrastructure}</td>
+        </tr>`;
+      }).join('');
+    }
 
-  btn.disabled  = false;
-  btn.innerHTML = '🔄 Refresh Data';
+    function showError(message) {
+      document.getElementById('error-box').innerHTML = `<div class="error">${message}</div>`;
+    }
 
-  var elapsed  = ((Date.now() - t0) / 1000).toFixed(1);
-  var bcRes    = results[0];
-  var scRes    = results[1];
-  var bcOK     = bcRes.status === 'fulfilled';
-  var scOK     = scRes.status === 'fulfilled';
-  var now      = new Date().toLocaleString('en-CA', {dateStyle:'medium', timeStyle:'short'});
-  var lastEl   = document.getElementById('lastRefreshed');
+    async function init() {
+      const warnings = [];
+      const [goalsRes, commitmentsRes, announcementsRes] = await Promise.allSettled([
+        loadCsv(DATA_PATHS.goals),
+        loadCsv(DATA_PATHS.commitments),
+        loadCsv(DATA_PATHS.announcements)
+      ]);
 
-  if (bcOK && scOK) {
-    showToast('✅ Both sources updated in ' + elapsed + 's — BC Stats: ' + bcRes.value + ' indicators · StatCan: ' + scRes.value + ' series', 'success');
-    if (lastEl) lastEl.textContent = 'Updated ' + now;
-  } else if (bcOK) {
-    var msg = (scRes.reason && scRes.reason.message) || 'unknown error';
-    showToast('⚠️ BC Stats updated (' + bcRes.value + ' indicators). StatCan unavailable: ' + msg, 'warn', 9000);
-    if (lastEl) lastEl.textContent = 'Updated (BC Stats only) ' + now;
-  } else if (scOK) {
-    var msg2 = (bcRes.reason && bcRes.reason.message) || 'unknown error';
-    showToast('⚠️ StatCan updated (' + scRes.value + ' series). BC Stats unavailable: ' + msg2, 'warn', 9000);
-    if (lastEl) lastEl.textContent = 'Updated (StatCan only) ' + now;
-  } else {
-    var e1 = (bcRes.reason && bcRes.reason.message) || 'failed';
-    var e2 = (scRes.reason && scRes.reason.message) || 'failed';
-    showToast('❌ Refresh failed — existing data retained.<br><small>BC Stats: ' + e1 + '<br>StatCan: ' + e2 + '</small>', 'error', 12000);
-  }
-};
+      if (goalsRes.status === 'fulfilled') {
+        STATE.goals = goalsRes.value;
+      } else {
+        console.error(goalsRes.reason);
+        STATE.goals = [];
+        warnings.push('Look West goals mock file could not be loaded.');
+      }
 
-})(); // end IIFE
-</script>
+      if (commitmentsRes.status === 'fulfilled') {
+        STATE.commitments = commitmentsRes.value;
+      } else {
+        console.error(commitmentsRes.reason);
+        STATE.commitments = [];
+        warnings.push('Tourism commitments mock file could not be loaded.');
+      }
 
+      if (announcementsRes.status === 'fulfilled') {
+        STATE.announcements = announcementsRes.value;
+      } else {
+        console.error(announcementsRes.reason);
+        STATE.announcements = [];
+        warnings.push('Shared announcements dataset could not be loaded.');
+      }
+
+      const [gdpRes, businessRes, labourRes] = await Promise.allSettled([
+        loadTourismGdpFromApi(),
+        loadTourismBusinessFromApi(),
+        loadTourismLabourFromApi()
+      ]);
+
+      if (gdpRes.status === 'fulfilled') {
+        STATE.gdp = gdpRes.value;
+      } else {
+        console.error(gdpRes.reason);
+        STATE.gdp = [];
+        warnings.push('GDP API currently unavailable.');
+      }
+
+      if (businessRes.status === 'fulfilled') {
+        STATE.business = businessRes.value.business;
+        STATE.businessSize = businessRes.value.businessSize;
+        STATE.meta = { business_counts_ref_date: businessRes.value.latestRefDate || '' };
+      } else {
+        console.error(businessRes.reason);
+        STATE.business = [];
+        STATE.businessSize = [];
+        STATE.meta = { business_counts_ref_date: '' };
+        warnings.push('Business count API currently unavailable.');
+      }
+
+      if (labourRes.status === 'fulfilled') {
+        STATE.labour = labourRes.value;
+      } else {
+        console.error(labourRes.reason);
+        STATE.labour = [];
+        warnings.push('Labour API currently unavailable.');
+      }
+
+      renderSectorDefinition();
+      renderKpis();
+      renderCharts();
+      renderLookWest();
+      renderActionPlanCommitments();
+      renderRelevantAnnouncements();
+
+      if (warnings.length) {
+        showError('Some live data could not be loaded. ' + warnings.join(' '));
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html>

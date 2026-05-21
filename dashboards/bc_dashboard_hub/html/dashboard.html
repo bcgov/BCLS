@@ -462,7 +462,7 @@ body {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   background: #fff;
-  overflow: hidden;
+  overflow: auto;
 }
 .dashboard-iframe-wrap { margin-top: 8px; }
 .dashboard-iframe {
@@ -588,6 +588,10 @@ body {
       B.C. Economy Snapshot
     </button>
 
+    <button class="nav-btn" data-section="outlook" onclick="navigate('outlook')">
+      B.C. Economy Outlook
+    </button>
+
     <button class="nav-btn" data-section="trade" onclick="navigate('trade')">
       B.C. Trade Analysis
     </button>
@@ -635,7 +639,15 @@ body {
     </div>
   </section>
 
-  <!-- ════════════════════  LOOK WEST STRATEGY  ════════════════════ -->
+  <!-- ════════════════════  BC ECONOMY OUTLOOK  ════════════════════ -->
+  <section class="section-panel" id="panel-outlook">
+    <div class="section-wrap">
+      <div class="dashboard-iframe-wrap">
+        <iframe class="dashboard-iframe" src="../../bc_economy_outlook/html/dashboard.html" title="BC Economy Outlook Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
+      </div>
+    </div>
+  </section>
+
   <section class="section-panel" id="panel-trade">
     <div class="section-wrap">
       <div class="dashboard-iframe-wrap">
@@ -685,7 +697,7 @@ body {
   <section class="section-panel" id="panel-projects">
     <div class="section-wrap">
       <div class="dashboard-iframe-wrap">
-        <iframe class="dashboard-iframe" src="../../projects/html/dashboard.html" title="Projects Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
+        <iframe class="dashboard-iframe" src="../../projects/html/dashboard.html?v=20260521-3" title="Projects Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
       </div>
     </div>
   </section>
@@ -790,6 +802,7 @@ function getVisibleSectors() {
 /* Section metadata */
 const SECTIONS = {
   macro:          { label: 'Macro Economy',      color: '#1565C0' },
+  outlook:        { label: 'B.C. Economy Outlook', color: '#0F4C81' },
   trade:          { label: 'B.C. Trade Analysis', color: '#00695C' },
   strategy:       { label: 'Look West Strategy', color: '#00796B' },
   sectors:        { label: 'Sectors',            color: '#4527A0' },
@@ -801,6 +814,37 @@ const SECTIONS = {
    APP STATE
 ══════════════════════════════════════════════════════════════════════════ */
 const APP = { section: 'macro', sector: null, data: {} };
+
+function normalizeSectionId(raw) {
+  const s = String(raw || '').trim().toLowerCase().replace(/_/g, '-');
+  if (s === 'sector') return 'sector-detail';
+  if (s === 'sectordetail') return 'sector-detail';
+  return s || 'macro';
+}
+
+function updateRouteQuery(section, sectorId) {
+  try {
+    const url = new URL(window.location.href);
+    const cleanSection = normalizeSectionId(section);
+
+    if (cleanSection && cleanSection !== 'macro') url.searchParams.set('section', cleanSection);
+    else url.searchParams.delete('section');
+
+    if (cleanSection === 'sector-detail' && sectorId) url.searchParams.set('sector', sectorId);
+    else url.searchParams.delete('sector');
+
+    url.searchParams.delete('standalone');
+    const next = url.pathname + (url.search || '') + (url.hash || '');
+    window.history.replaceState({}, '', next);
+  } catch (_) {}
+}
+
+function getInitialRoute() {
+  const params = new URLSearchParams(window.location.search || '');
+  const section = normalizeSectionId(params.get('section'));
+  const sector = String(params.get('sector') || '').trim();
+  return { section, sector };
+}
 
 function fitEmbeddedFrameHeight(frame) {
   try {
@@ -827,18 +871,30 @@ function onEmbeddedFrameLoad(frame) {
   setTimeout(() => fitEmbeddedFrameHeight(frame), 120);
   setTimeout(() => fitEmbeddedFrameHeight(frame), 600);
   setTimeout(() => fitEmbeddedFrameHeight(frame), 1500);
+  setTimeout(() => fitEmbeddedFrameHeight(frame), 3000);
+  setTimeout(() => fitEmbeddedFrameHeight(frame), 6000);
 }
 
 function fitVisibleFrames() {
   document.querySelectorAll('.section-panel.active iframe').forEach(f => fitEmbeddedFrameHeight(f));
 }
 
+let __frameFitLoop = null;
+function ensureFrameFitLoop() {
+  if (__frameFitLoop) return;
+  __frameFitLoop = setInterval(() => {
+    try { fitVisibleFrames(); } catch (_) {}
+  }, 1000);
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════════════════════ */
 function navigate(section, sectorId) {
+  section = normalizeSectionId(section);
   APP.section = section;
   APP.sector  = sectorId || null;
+  updateRouteQuery(section, sectorId);
 
   /* -- accent color -- */
   const meta = SECTIONS[section] || SECTIONS.macro;
@@ -972,7 +1028,7 @@ function renderSectorDetail(sectorId) {
 function renderSectorEmbed(s) {
   return `
     <div class="sector-iframe-wrap">
-      <iframe class="sector-iframe" src="${s.dashboard}" title="${s.name} Dashboard" onload="onSectorFrameLoad(this)" scrolling="no"></iframe>
+      <iframe class="sector-iframe" src="${s.dashboard}" title="${s.name} Dashboard" onload="onSectorFrameLoad(this)" scrolling="auto"></iframe>
     </div>
   `;
 }
@@ -1507,6 +1563,20 @@ function init() {
   /* Avoid inner iframe scrollbars where possible by auto-fitting iframe height. */
   setTimeout(fitVisibleFrames, 120);
   window.addEventListener('resize', fitVisibleFrames);
+  ensureFrameFitLoop();
+
+  /* Route deep-linking: open requested hub tab/sector from query params. */
+  const route = getInitialRoute();
+  if (route.section === 'sector-detail') {
+    const visibleSectors = getVisibleSectors();
+    const exists = visibleSectors.some(s => s.id === route.sector);
+    if (exists) navigate('sector-detail', route.sector);
+    else navigate('sectors');
+  } else if (SECTIONS[route.section]) {
+    navigate(route.section);
+  } else {
+    navigate('macro');
+  }
 
   /* Child dashboards are embedded by iframe, so no extra parent-side data boot is required. */
 }

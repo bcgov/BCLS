@@ -1,0 +1,10 @@
+# Generated runtime/package outputs (rebuild via scripts/sync_runtime_targets.ps1)
+dist/BCLS_Dashboard_App/
+dist/*.zip
+
+# Generated SPFx static asset mirror (rebuild via scripts/sync_runtime_targets.ps1)
+spfx/bcls-dashboard-spfx/sharepoint/assets/BCLS-Dashboard/
+
+# Python cache artifacts
+**/__pycache__/
+*.pyc

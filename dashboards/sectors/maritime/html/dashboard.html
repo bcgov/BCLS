@@ -1,8 +1,22 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+  /* BCLS_EMBED_ONLY_REDIRECT */
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../../bc_dashboard_hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'sector-detail');
+      target.searchParams.set('sector', 'maritime');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
   <title>Maritime Dashboard</title>
   <style>
     :root {
@@ -55,3 +69,7 @@
   </div>
 </body>
 </html>
+
+
+
+

@@ -14,13 +14,17 @@ This project is an SPFx no-framework web part that hosts a self-contained duplic
 
    `npm install`
 
-2. Build and package:
+2. Sync generated SPFx static assets from canonical source:
+
+   `powershell -ExecutionPolicy Bypass -File ../../scripts/sync_runtime_targets.ps1 -SkipDist`
+
+3. Build and package:
 
    `gulp bundle --ship`
 
    `gulp package-solution --ship`
 
-3. Upload the generated package:
+4. Upload the generated package:
 
    `sharepoint/solution/bcls-dashboard-spfx.sppkg`
 
