@@ -81,6 +81,9 @@
       display: grid;
       gap: 14px;
     }
+    .main > * {
+      min-width: 0;
+    }
 
     .card {
       background: var(--card);
@@ -164,6 +167,12 @@
       background: #fff;
     }
     .toolbar input { min-width: 280px; }
+    .toolbar #project-filter[multiple] {
+      min-width: 300px;
+      height: 96px;
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
     .toolbar .count { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 600; }
     .toolbar .btn-plain {
       border: 1px solid var(--border);
@@ -180,7 +189,10 @@
     .visual-grid {
       display: grid;
       gap: 14px;
-      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.26fr);
+    }
+    .visual-grid > * {
+      min-width: 0;
     }
     @media (max-width: 1100px) {
       .visual-grid { grid-template-columns: 1fr; }
@@ -225,8 +237,13 @@
     }
 
     .chart-wrap {
-      padding: 12px 14px 16px;
+      padding: 12px 14px 16px 14px;
       height: 500px;
+    }
+    .chart-wrap canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
     }
 
     .table-wrap { overflow: auto; }
@@ -318,12 +335,12 @@
       <div class="section-head">
         <div>
           <div class="section-title">Filters</div>
-          <div class="section-sub">Select a project to view matching tracker rows and map focus</div>
+          <div class="section-sub">Select one or more projects to view matching tracker rows and map focus</div>
         </div>
       </div>
       <div class="toolbar">
         <label>Project</label>
-        <select id="project-filter"></select>
+        <select id="project-filter" multiple size="5" title="Use Ctrl/Cmd to select multiple projects"></select>
         <label>Region</label>
         <select id="region-filter"></select>
         <label>Status</label>
@@ -344,13 +361,8 @@
           </div>
         </div>
         <div class="map-wrap">
-          <div class="map-frame" id="map-frame">
-            <svg id="bc-map" viewBox="0 0 680 460" preserveAspectRatio="xMidYMid meet">
-              <path id="bc-boundary" class="bc-boundary"></path>
-              <g id="project-points"></g>
-              <g id="project-labels"></g>
-            </svg>
-            <div class="map-tooltip" id="map-tooltip"></div>
+          <div class="map-frame">
+            <div id="bc-map-plotly" class="plotly-map"></div>
           </div>
         </div>
         <div class="legend-row" id="map-legend"></div>
@@ -408,7 +420,6 @@
         <table>
           <thead>
             <tr>
-              <th>Announcement ID</th>
               <th>Project ID</th>
               <th>Ministry</th>
               <th>Announcement Type</th>
@@ -454,17 +465,10 @@
       'Thompson Okanagan': { lat: 50.20, lon: -119.35 }
     };
 
-    const MAP_DIM = {
-      width: 680,
-      height: 460,
-      padding: 18
-    };
-
     const STATE = {
       projects: [],
       tracker: [],
       boundaryRings: [],
-      mapProjector: null,
       filteredProjects: [],
       filteredTracker: [],
       chart: null,
@@ -622,37 +626,6 @@
       return out;
     }
 
-    function buildProjector(rings) {
-      const points = [];
-      rings.forEach((ring) => ring.forEach((pt) => {
-        if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) points.push(pt);
-      }));
-      if (!points.length) {
-        return (lon, lat) => ({ x: MAP_DIM.width / 2, y: MAP_DIM.height / 2 });
-      }
-
-      const lons = points.map((p) => p[0]);
-      const lats = points.map((p) => p[1]);
-      const minLon = Math.min(...lons);
-      const maxLon = Math.max(...lons);
-      const minLat = Math.min(...lats);
-      const maxLat = Math.max(...lats);
-      const innerWidth = MAP_DIM.width - MAP_DIM.padding * 2;
-      const innerHeight = MAP_DIM.height - MAP_DIM.padding * 2;
-      const lonSpan = Math.max(0.0001, maxLon - minLon);
-      const latSpan = Math.max(0.0001, maxLat - minLat);
-      const scale = Math.min(innerWidth / lonSpan, innerHeight / latSpan);
-      const usedWidth = lonSpan * scale;
-      const usedHeight = latSpan * scale;
-      const offsetX = MAP_DIM.padding + (innerWidth - usedWidth) / 2;
-      const offsetY = MAP_DIM.padding + (innerHeight - usedHeight) / 2;
-
-      return (lon, lat) => ({
-        x: offsetX + (lon - minLon) * scale,
-        y: offsetY + (maxLat - lat) * scale
-      });
-    }
-
     function normalizeProject(row) {
       const id = normalizeText(row['Project-ID'] || row['Project ID']);
       return {
@@ -705,15 +678,55 @@
       STATE.boundaryRings = extractBoundaryRings(bcBoundary)
         .filter((ring) => Array.isArray(ring) && ring.length > 3)
         .map((ring) => simplifyRing(ring, 4));
-      STATE.mapProjector = buildProjector(STATE.boundaryRings);
       STATE.loadedAt = new Date();
+    }
+
+    function getSelectedProjectValues() {
+      const projectSelect = document.getElementById('project-filter');
+      if (!projectSelect) return [];
+      return [...projectSelect.selectedOptions].map((o) => o.value).filter(Boolean);
+    }
+
+    function getSelectedProjectIds() {
+      const selectedValues = getSelectedProjectValues();
+      if (!selectedValues.length || selectedValues.includes('ALL')) return [];
+      return selectedValues.filter((v) => v !== 'ALL');
+    }
+
+    function normalizeProjectSelection() {
+      const projectSelect = document.getElementById('project-filter');
+      if (!projectSelect) return;
+      const allOption = [...projectSelect.options].find((o) => o.value === 'ALL');
+      const selectedIds = [...projectSelect.selectedOptions]
+        .map((o) => o.value)
+        .filter((v) => v !== 'ALL');
+      if (selectedIds.length) {
+        if (allOption) allOption.selected = false;
+      } else if (allOption) {
+        allOption.selected = true;
+      }
+    }
+
+    function setProjectSelection(projectIds) {
+      const projectSelect = document.getElementById('project-filter');
+      if (!projectSelect) return;
+      const ids = new Set((projectIds || []).filter(Boolean));
+      const useAll = ids.size === 0;
+      [...projectSelect.options].forEach((o) => {
+        if (o.value === 'ALL') {
+          o.selected = useAll;
+        } else {
+          o.selected = ids.has(o.value);
+        }
+      });
+      normalizeProjectSelection();
     }
 
     function buildFilterOptions() {
       const projectSelect = document.getElementById('project-filter');
       const regionSelect = document.getElementById('region-filter');
       const statusSelect = document.getElementById('status-filter');
-      const prevProject = projectSelect.value;
+      const prevProjectIds = getSelectedProjectIds();
       const prevRegion = regionSelect.value;
       const prevStatus = statusSelect.value;
 
@@ -730,14 +743,17 @@
       regionSelect.innerHTML = regionOptions.join('');
       statusSelect.innerHTML = statusOptions.join('');
 
-      if ([...projectSelect.options].some((o) => o.value === prevProject)) projectSelect.value = prevProject;
+      const validPrevProjectIds = prevProjectIds.filter((id) =>
+        STATE.projects.some((p) => p.id === id)
+      );
+      setProjectSelection(validPrevProjectIds);
       if ([...regionSelect.options].some((o) => o.value === prevRegion)) regionSelect.value = prevRegion;
       if ([...statusSelect.options].some((o) => o.value === prevStatus)) statusSelect.value = prevStatus;
     }
 
     function activeFilters() {
       return {
-        project: document.getElementById('project-filter').value || 'ALL',
+        projectIds: getSelectedProjectIds(),
         region: document.getElementById('region-filter').value || 'ALL',
         status: document.getElementById('status-filter').value || 'ALL',
         search: normalizeText(document.getElementById('tracker-search').value).toLowerCase()
@@ -746,8 +762,9 @@
 
     function applyFilters() {
       const f = activeFilters();
+      const selectedProjectIds = new Set(f.projectIds);
       const filteredProjects = STATE.projects.filter((p) => {
-        if (f.project !== 'ALL' && p.id !== f.project) return false;
+        if (selectedProjectIds.size && !selectedProjectIds.has(p.id)) return false;
         if (f.region !== 'ALL' && p.region !== f.region) return false;
         if (f.status !== 'ALL' && p.status !== f.status) return false;
         return true;
@@ -779,7 +796,6 @@
       const projects = STATE.filteredProjects;
       const tracker = STATE.filteredTracker;
 
-      const totalCommitment = sum(projects, 'totalCommitment');
       const jobsCreatedProjects = sum(projects, 'jobsCreated');
       const jobsProtectedProjects = sum(projects, 'jobsProtected');
       const investmentAttracted = sum(tracker, 'investmentAttracted');
@@ -789,9 +805,7 @@
 
       const cards = [
         { label: 'Projects in View', value: formatNumber(projects.length), note: 'Filtered portfolio count' },
-        { label: 'Total Commitment', value: formatMoneyM(totalCommitment), note: 'From major projects portfolio' },
         { label: 'Jobs Created / Protected', value: `${formatNumber(jobsCreatedProjects)} / ${formatNumber(jobsProtectedProjects)}`, note: 'Portfolio-level job outlook' },
-        { label: 'Tracker Updates', value: formatNumber(tracker.length), note: 'Announcement-level rows in scope' },
         { label: 'Investment Attracted', value: formatMoneyM(investmentAttracted), note: 'Sum of tracker investment values' },
         { label: 'GDP Contribution', value: formatMoneyM(gdpContribution), note: 'Sum of tracker GDP contributions' },
         { label: 'Gov Revenue Contribution', value: formatMoneyM(govRevenue), note: 'Sum of tracker government revenue' },
@@ -835,12 +849,11 @@
       const rows = STATE.filteredTracker;
       const tbody = document.getElementById('tracker-body');
       if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="12" class="small">No tracker rows match the current project/filter selection.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="small">No tracker rows match the current project/filter selection.</td></tr>';
         return;
       }
       tbody.innerHTML = rows.map((r) => `
         <tr>
-          <td class="nowrap">${esc(r.announcementId)}</td>
           <td class="nowrap"><strong>${esc(r.projectId)}</strong></td>
           <td>${esc(r.ministry || '-')}</td>
           <td>${esc(r.announcementType || '-')}</td>
@@ -856,115 +869,219 @@
       `).join('');
     }
 
+    function getBoundaryExtent() {
+      const pts = [];
+      (STATE.boundaryRings || []).forEach((ring) => {
+        (ring || []).forEach((pt) => {
+          if (Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1])) pts.push(pt);
+        });
+      });
+      if (!pts.length) {
+        const coords = Object.values(REGION_COORDS);
+        return {
+          minLon: Math.min(...coords.map((c) => c.lon)),
+          maxLon: Math.max(...coords.map((c) => c.lon)),
+          minLat: Math.min(...coords.map((c) => c.lat)),
+          maxLat: Math.max(...coords.map((c) => c.lat))
+        };
+      }
+      return {
+        minLon: Math.min(...pts.map((p) => p[0])),
+        maxLon: Math.max(...pts.map((p) => p[0])),
+        minLat: Math.min(...pts.map((p) => p[1])),
+        maxLat: Math.max(...pts.map((p) => p[1]))
+      };
+    }
+
+    function estimateMapZoom(ext) {
+      const lonSpan = Math.max(0.12, (ext.maxLon - ext.minLon) * 1.08);
+      const latSpan = Math.max(0.12, (ext.maxLat - ext.minLat) * 1.08);
+      const zoomLon = Math.log2(360 / lonSpan);
+      const zoomLat = Math.log2(170 / latSpan);
+      return Math.max(3.1, Math.min(7.4, Math.min(zoomLon, zoomLat)));
+    }
+
     function renderMap() {
-      const boundary = document.getElementById('bc-boundary');
-      const pointsGroup = document.getElementById('project-points');
-      const labelsGroup = document.getElementById('project-labels');
-      const tooltip = document.getElementById('map-tooltip');
-      const mapFrame = document.getElementById('map-frame');
-      const selectedProjectId = document.getElementById('project-filter').value;
-      const projector = STATE.mapProjector || (() => ({ x: MAP_DIM.width / 2, y: MAP_DIM.height / 2 }));
+      const mapEl = document.getElementById('bc-map-plotly');
+      const legendEl = document.getElementById('map-legend');
+      if (!mapEl || !legendEl) return;
+      if (typeof Plotly === 'undefined') {
+        showError('Map rendering library is not available.');
+        return;
+      }
 
-      const boundaryPath = (STATE.boundaryRings || []).map((ring) => {
-        const pts = (ring || []).filter((pt) => Array.isArray(pt) && Number.isFinite(pt[0]) && Number.isFinite(pt[1]));
-        if (pts.length < 3) return '';
-        return pts.map((pt, idx) => {
-          const p = projector(pt[0], pt[1]);
-          return `${idx === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
-        }).join(' ') + ' Z';
-      }).join(' ');
-      boundary.setAttribute('d', boundaryPath);
-
-      const activeIds = new Set(STATE.filteredProjects.map((p) => p.id));
+      const selectedProjectIds = new Set(getSelectedProjectIds());
+      const visibleProjects = STATE.filteredProjects;
       const groupedByRegion = {};
-      STATE.projects.forEach((p) => {
+      visibleProjects.forEach((p) => {
         const key = p.region || 'Unknown';
         if (!groupedByRegion[key]) groupedByRegion[key] = [];
         groupedByRegion[key].push(p);
       });
 
-      const circles = [];
-      const labels = [];
+      const geoPoints = [];
       Object.keys(groupedByRegion).forEach((region) => {
         const ll = REGION_COORDS[region];
         if (!ll) return;
-        const center = projector(ll.lon, ll.lat);
         groupedByRegion[region].forEach((p, idx) => {
-          const offsetX = (idx % 3) * 13 - 13;
-          const offsetY = Math.floor(idx / 3) * 13 - 6;
-          const x = center.x + offsetX;
-          const y = center.y + offsetY;
-          const color = STATUS_COLORS[p.status] || '#6a7f93';
-          const dimmed = activeIds.size && !activeIds.has(p.id);
-          const selected = selectedProjectId !== 'ALL' && p.id === selectedProjectId;
-          const radius = selected ? 8.8 : 7;
-          circles.push(`
-            <circle
-              class="project-point ${dimmed ? 'dimmed' : ''} ${selected ? 'selected' : ''}"
-              data-project-id="${esc(p.id)}"
-              cx="${x.toFixed(1)}"
-              cy="${y.toFixed(1)}"
-              r="${radius}"
-              fill="${color}"></circle>
-          `);
-          labels.push(`<text class="map-label" x="${(x + 10).toFixed(1)}" y="${(y + 3).toFixed(1)}">${esc(p.id)}</text>`);
+          const lonOffset = (idx % 3) * 0.13 - 0.13;
+          const latOffset = Math.floor(idx / 3) * 0.09 - 0.045;
+          geoPoints.push({
+            id: p.id,
+            name: p.name,
+            region: p.region,
+            status: p.status,
+            commitment: p.totalCommitment,
+            lon: ll.lon + lonOffset,
+            lat: ll.lat + latOffset
+          });
         });
       });
 
-      pointsGroup.innerHTML = circles.join('');
-      labelsGroup.innerHTML = labels.join('');
+      const traces = [];
+      if ((STATE.boundaryRings || []).length) {
+        const ringLon = [];
+        const ringLat = [];
+        STATE.boundaryRings.forEach((ring) => {
+          (ring || []).forEach((pt) => {
+            if (!Array.isArray(pt) || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) return;
+            ringLon.push(pt[0]);
+            ringLat.push(pt[1]);
+          });
+          ringLon.push(null);
+          ringLat.push(null);
+        });
+        traces.push({
+          type: 'scattermapbox',
+          mode: 'lines',
+          lon: ringLon,
+          lat: ringLat,
+          line: { color: '#2e5f91', width: 2.1 },
+          hoverinfo: 'skip',
+          showlegend: false
+        });
+      }
 
-      pointsGroup.querySelectorAll('.project-point').forEach((node) => {
-        node.addEventListener('mouseenter', () => {
-          const id = node.getAttribute('data-project-id');
-          const p = STATE.projects.find((x) => x.id === id);
-          if (!p) return;
-          tooltip.innerHTML = `
-            <div><strong>${esc(p.id)} - ${esc(p.name)}</strong></div>
-            <div>Region: ${esc(p.region || '-')}</div>
-            <div>Status: ${esc(p.status || '-')}</div>
-            <div>Total Commitment: ${formatMoneyM(p.totalCommitment)}</div>
-          `;
-          tooltip.classList.add('show');
+      const statusKeys = [...new Set(geoPoints.map((p) => p.status).filter(Boolean))].sort();
+      statusKeys.forEach((status) => {
+        const rows = geoPoints.filter((p) => p.status === status);
+        if (!rows.length) return;
+        traces.push({
+          type: 'scattermapbox',
+          mode: 'markers+text',
+          name: `${status} (${rows.length})`,
+          lon: rows.map((r) => r.lon),
+          lat: rows.map((r) => r.lat),
+          text: rows.map((r) => r.id),
+          textposition: 'top right',
+          textfont: { size: 10.5, color: '#1f3d63' },
+          customdata: rows.map((r) => [r.id, r.name, r.region || '-', r.status || '-', r.commitment]),
+          marker: {
+            size: rows.map((r) => (selectedProjectIds.size && selectedProjectIds.has(r.id) ? 14 : 10)),
+            color: STATUS_COLORS[status] || '#6a7f93',
+            line: { color: '#ffffff', width: 1.6 },
+            opacity: 0.92
+          },
+          hovertemplate:
+            '<b>%{customdata[0]} - %{customdata[1]}</b><br>' +
+            'Region: %{customdata[2]}<br>' +
+            'Status: %{customdata[3]}<br>' +
+            'Total Commitment: $%{customdata[4]:,.0f}M<extra></extra>'
         });
-        node.addEventListener('mousemove', (event) => {
-          const rect = mapFrame.getBoundingClientRect();
-          const left = Math.min(rect.width - 270, Math.max(10, event.clientX - rect.left + 12));
-          const top = Math.min(rect.height - 80, Math.max(10, event.clientY - rect.top + 12));
-          tooltip.style.transform = `translate(${left}px, ${top}px)`;
-        });
-        node.addEventListener('mouseleave', () => {
-          tooltip.classList.remove('show');
-          tooltip.style.transform = 'translate(-999px, -999px)';
-        });
-        node.addEventListener('click', () => {
-          const id = node.getAttribute('data-project-id');
-          const projectSelect = document.getElementById('project-filter');
-          projectSelect.value = id;
+      });
+
+      const ext = getBoundaryExtent();
+      const center = {
+        lon: (ext.minLon + ext.maxLon) / 2,
+        lat: (ext.minLat + ext.maxLat) / 2
+      };
+      const zoom = estimateMapZoom(ext);
+      const layout = {
+        margin: { l: 2, r: 2, t: 2, b: 2 },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        uirevision: 'projects-map',
+        dragmode: 'zoom',
+        legend: {
+          orientation: 'h',
+          x: 0,
+          y: 0,
+          xanchor: 'left',
+          yanchor: 'top',
+          bgcolor: 'rgba(255,255,255,0.88)',
+          bordercolor: '#d7e0ea',
+          borderwidth: 1,
+          font: { size: 11, color: '#4d6480' }
+        },
+        mapbox: {
+          style: 'white-bg',
+          center,
+          zoom,
+          bearing: 0,
+          pitch: 0,
+          layers: [
+            {
+              sourcetype: 'raster',
+              source: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'],
+              below: 'traces',
+              opacity: 0.95
+            },
+            {
+              sourcetype: 'raster',
+              source: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}'],
+              below: 'traces',
+              opacity: 0.22
+            }
+          ]
+        }
+      };
+
+      const config = {
+        responsive: true,
+        scrollZoom: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToAdd: ['zoomInMapbox', 'zoomOutMapbox', 'resetViewMapbox'],
+        modeBarButtonsToRemove: ['toImage']
+      };
+
+      Plotly.react(mapEl, traces, layout, config).then(() => {
+        if (typeof mapEl.removeAllListeners === 'function') {
+          mapEl.removeAllListeners('plotly_click');
+          mapEl.removeAllListeners('plotly_doubleclick');
+        }
+        mapEl.on('plotly_click', (evt) => {
+          const pt = evt && evt.points && evt.points[0];
+          const projectId = pt && pt.customdata && pt.customdata[0];
+          if (!projectId) return;
+          const current = new Set(getSelectedProjectIds());
+          if (current.has(projectId)) current.delete(projectId);
+          else current.add(projectId);
+          setProjectSelection([...current]);
           applyFilters();
           renderAll();
         });
+        mapEl.on('plotly_doubleclick', () => {
+          if (!getSelectedProjectIds().length) return;
+          setProjectSelection([]);
+          applyFilters();
+          renderAll();
+        });
+      }).catch((err) => {
+        showError('Could not render map: ' + (err && err.message ? err.message : err));
       });
 
-      const resetFilterFromMap = () => {
-        const projectSelect = document.getElementById('project-filter');
-        if (projectSelect.value === 'ALL') return;
-        projectSelect.value = 'ALL';
-        applyFilters();
-        renderAll();
-      };
-      boundary.onclick = resetFilterFromMap;
-
-      const counts = {};
-      STATE.projects.forEach((p) => {
-        counts[p.status] = (counts[p.status] || 0) + 1;
+      const statusCounts = {};
+      visibleProjects.forEach((p) => {
+        statusCounts[p.status] = (statusCounts[p.status] || 0) + 1;
       });
-      document.getElementById('map-legend').innerHTML = Object.keys(counts).sort().map((status) => `
+      const legendItems = Object.keys(statusCounts).sort().map((status) => `
         <span class="legend-item">
           <span class="legend-dot" style="background:${STATUS_COLORS[status] || '#6a7f93'}"></span>
-          ${esc(status)} (${formatNumber(counts[status])})
+          ${esc(status)} (${formatNumber(statusCounts[status])})
         </span>
       `).join('');
+      legendEl.innerHTML = legendItems + '<span class="legend-item">Wheel or +/-: zoom | Drag: pan | Click point: toggle project | Double-click: clear project selection</span>';
     }
 
     function renderChart() {
@@ -989,7 +1106,9 @@
       const investmentData = projectIds.map((id) => Math.round(agg[id].investment));
       const gdpData = projectIds.map((id) => Math.round(agg[id].gdp));
       const rawMax = Math.max(...investmentData, ...gdpData, 1);
-      const axisMax = Math.max(100, Math.ceil((rawMax * 1.2) / 5) * 5);
+      const tickStep = rawMax <= 120 ? 10 : rawMax <= 300 ? 25 : 50;
+      const roundedMax = Math.ceil(rawMax / tickStep) * tickStep;
+      const axisMax = Math.max(tickStep * 2, roundedMax === rawMax ? roundedMax + tickStep : roundedMax);
 
       if (!labels.length) {
         const ctx = canvas.getContext('2d');
@@ -1026,6 +1145,10 @@
           responsive: true,
           maintainAspectRatio: false,
           indexAxis: 'y',
+          layout: {
+            autoPadding: true,
+            padding: { left: 6, right: 16, top: 4, bottom: 0 }
+          },
           plugins: {
             legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
             tooltip: {
@@ -1043,9 +1166,17 @@
             x: {
               min: 0,
               max: axisMax,
-              grace: '10%',
+              offset: true,
+              grace: 0,
+              bounds: 'ticks',
               grid: { color: '#edf1f5' },
-              ticks: { callback: (v) => '$' + v + 'M', font: { size: 11 } }
+              ticks: {
+                stepSize: tickStep,
+                callback: (v) => '$' + v + 'M',
+                font: { size: 11 },
+                padding: 6,
+                includeBounds: true
+              }
             },
             y: { grid: { display: false }, ticks: { font: { size: 10 } } }
           }
@@ -1109,6 +1240,7 @@
 
     function bindFilters() {
       document.getElementById('project-filter').addEventListener('change', () => {
+        normalizeProjectSelection();
         applyFilters();
         renderAll();
       });
@@ -1125,7 +1257,7 @@
         renderAll();
       });
       document.getElementById('btn-reset').addEventListener('click', () => {
-        document.getElementById('project-filter').value = 'ALL';
+        setProjectSelection([]);
         document.getElementById('region-filter').value = 'ALL';
         document.getElementById('status-filter').value = 'ALL';
         document.getElementById('tracker-search').value = '';

@@ -8,3 +8,6 @@ spfx/bcls-dashboard-spfx/sharepoint/assets/BCLS-Dashboard/
 # Python cache artifacts
 **/__pycache__/
 *.pyc
+
+# Local datasets (kept local, not transferred in git)
+/data/
