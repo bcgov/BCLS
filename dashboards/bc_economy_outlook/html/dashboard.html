@@ -245,8 +245,8 @@
 
 <script>
 const DATA_PATHS = {
-  annual: '../../../data/bc_economy_outlook/annual_forecast.csv',
-  quarterly: '../../../data/bc_economy_outlook/quarterly_conditions_2025.csv',
+  annual: '../../../data/ourlook_annual_forecast.csv',
+  quarterly: '../../../data/ourlook_quarterly_conditions_2025.csv',
   meta: '../../../data/bc_economy_outlook/outlook_metadata.json'
 };
 
@@ -358,8 +358,8 @@ function render(annualRows, quarterlyRows, meta) {
         <h2>Dataset Notes</h2>
         <div class="sub">Manual update workflow</div>
         <ul class="bullets">
-          <li>Update annual values in <code>annual_forecast.csv</code> from the same report tables each quarter.</li>
-          <li>Update short-term momentum values in <code>quarterly_conditions_2025.csv</code> from Table 2.1.</li>
+          <li>Update annual values in <code>ourlook_annual_forecast.csv</code> from the same report tables each quarter.</li>
+          <li>Update short-term momentum values in <code>ourlook_quarterly_conditions_2025.csv</code> from Table 2.1.</li>
           <li>Update report metadata and summary bullets in <code>outlook_metadata.json</code>.</li>
         </ul>
         <div class="note">This page is intentionally data-file driven so future report updates can be done without changing dashboard code.</div>
@@ -521,8 +521,8 @@ async function boot() {
   const root = document.getElementById('content-root');
   try {
     const [annualText, quarterlyText, meta] = await Promise.all([
-      fetch(DATA_PATHS.annual).then(r => { if (!r.ok) throw new Error(`annual_forecast.csv HTTP ${r.status}`); return r.text(); }),
-      fetch(DATA_PATHS.quarterly).then(r => { if (!r.ok) throw new Error(`quarterly_conditions_2025.csv HTTP ${r.status}`); return r.text(); }),
+      fetch(DATA_PATHS.annual).then(r => { if (!r.ok) throw new Error(`ourlook_annual_forecast.csv HTTP ${r.status}`); return r.text(); }),
+      fetch(DATA_PATHS.quarterly).then(r => { if (!r.ok) throw new Error(`ourlook_quarterly_conditions_2025.csv HTTP ${r.status}`); return r.text(); }),
       fetch(DATA_PATHS.meta).then(r => { if (!r.ok) throw new Error(`outlook_metadata.json HTTP ${r.status}`); return r.json(); })
     ]);
 

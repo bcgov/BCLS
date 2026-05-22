@@ -459,7 +459,7 @@
 <div class="server-overlay" id="server-overlay">
   <div class="server-box">
     <h2>ðŸ“¡ Server not detected</h2>
-    <p>This dashboard uses Excel-only mode and must be opened over local HTTP.</p>
+    <p>This dashboard uses local API proxies and must be opened over local HTTP.</p>
     <p><strong>Start the server:</strong></p>
     <code>cd /path/to/BCLS/scripts &amp;&amp; python serve.py</code>
     <p>Then open:<br>
@@ -596,14 +596,26 @@ const STATE = {
   hasMockData: false,
 };
 
-const LS_TREND_FILES = {
-  gdp: 'LS GDP.csv',
-  business: 'LS Business Count.csv',
+const LS_GDP_API = {
+  endpoint: 'https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action',
+  pid: '3610071101',
+  latestN: 40,
+  checkedLevels: '3D1',
+  selectedMembers: [[10], [1, 2], [91, 115]],
+};
+
+const LS_BUSINESS_API = {
+  endpoint: 'https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action',
+  pid: '3310109501',
+  latestN: 24,
+  checkedLevels: '3D1',
+  selectedMembers: [[11], [1, 2, 3, 4, 5, 6, 7, 8, 9], [193, 245, 391, 847, 871]],
 };
 
 const LS_SUPPLEMENTAL_FILES = {
-  commitments: '../../../../data/sectors/life_sciences/life_sciences_commitments_mock.csv',
-  announcements: '../../../../data/sectors/shared/sector_announcements_master_mock.csv',
+  goals: '../../../../data/life_sciences_lookwest_goals_mock.csv',
+  commitments: '../../../../data/Action%20Plans%20Commitments.csv',
+  announcements: '../../../../data/LW%20Announcements.csv',
 };
 
 const LS_SUBSECTOR_IMAGE_GROUPS = [
@@ -903,24 +915,108 @@ function buildDisplayPanels() {
   }
 }
 
-const DEFAULT_EXCEL_URLS = [
-  '/api/excel-file?key=life_sciences_main',
-];
-const EXCEL_MAP_STATUS_URL = '/api/excel-map-status';
-
-async function loadCSV(relPath) {
-  const url = CONFIG.data_root + '/' + relPath;
+async function loadCsvFromPath(path) {
+  const url = new URL(path, window.location.href).toString();
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${url}`);
   const result = Papa.parse(await resp.text(), { header:true, skipEmptyLines:true, dynamicTyping:false });
   return result.data;
 }
 
-async function loadCsvFromPath(path) {
-  const resp = await fetch(path);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status} for ${path}`);
-  const result = Papa.parse(await resp.text(), { header:true, skipEmptyLines:true, dynamicTyping:false });
-  return result.data;
+function useLocalStatsCanProxy() {
+  const h = String(location.hostname || '').toLowerCase();
+  const p = String(location.protocol || '').toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h === '' || p === 'file:';
+}
+
+function proxyApiCandidates(path) {
+  const p = String(path || '');
+  const out = [];
+  try {
+    if (/^https?:/i.test(location.origin || '')) out.push(new URL(p, location.origin).href);
+  } catch (_) {}
+  [8080, 8081, 8090].forEach((port) => {
+    out.push(`http://localhost:${port}${p}`);
+    out.push(`http://127.0.0.1:${port}${p}`);
+  });
+  return Array.from(new Set(out));
+}
+
+async function fetchProxyWithFallback(path, options) {
+  let lastErr = null;
+  const tried = [];
+  for (const url of proxyApiCandidates(path)) {
+    try {
+      tried.push(url);
+      return await fetch(url, options);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  if (lastErr) {
+    throw new Error(
+      `Failed to reach local proxy (${path}). Tried: ${tried.join(', ')}. Last error: ${lastErr && lastErr.message ? lastErr.message : String(lastErr)}`
+    );
+  }
+  return fetch(path, options);
+}
+
+function buildStatsCanCsvUrl(apiCfg) {
+  const params = new URLSearchParams({
+    pid: apiCfg.pid,
+    latestN: String(apiCfg.latestN),
+    startDate: '',
+    endDate: '',
+    csvLocale: 'en',
+    selectedMembers: JSON.stringify(apiCfg.selectedMembers),
+    checkedLevels: apiCfg.checkedLevels,
+  });
+  return `${apiCfg.endpoint}?${params.toString()}`;
+}
+
+async function fetchStatsCanCsvText(apiCfg, label) {
+  const reqBody = {
+    pid: apiCfg.pid,
+    latestN: apiCfg.latestN,
+    selectedMembers: apiCfg.selectedMembers,
+    checkedLevels: apiCfg.checkedLevels,
+    startDate: '',
+    endDate: '',
+  };
+
+  if (useLocalStatsCanProxy()) {
+    try {
+      const proxyRes = await fetchProxyWithFallback('/api/statcan-csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/csv,text/plain,*/*' },
+        body: JSON.stringify(reqBody),
+      });
+      if (proxyRes.ok) {
+        const txt = await proxyRes.text();
+        if (txt && txt.indexOf('REF_DATE') !== -1) return txt;
+      } else {
+        let detail = '';
+        try {
+          const j = await proxyRes.json();
+          detail = [j.error, j.details].filter(Boolean).join(' | ');
+        } catch (_) {}
+        throw new Error(`${label} proxy error (HTTP ${proxyRes.status})${detail ? ': ' + detail : ''}`);
+      }
+    } catch (err) {
+      console.warn(`${label} proxy unavailable, trying direct fetch.`, err);
+    }
+  }
+
+  const directRes = await fetch(buildStatsCanCsvUrl(apiCfg), {
+    method: 'POST',
+    headers: { 'Accept': 'text/csv,text/plain,*/*' },
+  });
+  if (!directRes.ok) throw new Error(`${label} HTTP ${directRes.status}`);
+  const txt = await directRes.text();
+  if (!txt || txt.indexOf('REF_DATE') === -1) {
+    throw new Error(`${label} returned an unexpected CSV payload.`);
+  }
+  return txt;
 }
 
 function lsToNumber(v) {
@@ -1112,18 +1208,28 @@ function lsBuildSectorTrendModel(gdpRowsRaw, bizRowsRaw) {
 }
 
 async function loadSectorTrendCsvData() {
-  const [gdpRows, bizRows] = await Promise.all([
-    loadCSV(LS_TREND_FILES.gdp),
-    loadCSV(LS_TREND_FILES.business),
+  const [gdpCsvText, bizCsvText] = await Promise.all([
+    fetchStatsCanCsvText(LS_GDP_API, 'StatCan GDP API (36-10-0711-01)'),
+    fetchStatsCanCsvText(LS_BUSINESS_API, 'StatCan Business API (33-10-1095-01)'),
   ]);
+  const gdpRows = Papa.parse(gdpCsvText, { header:true, skipEmptyLines:true, dynamicTyping:false }).data;
+  const bizRows = Papa.parse(bizCsvText, { header:true, skipEmptyLines:true, dynamicTyping:false }).data;
   STATE.data.lsSectorTrends = lsBuildSectorTrendModel(gdpRows, bizRows);
 }
 
 async function loadLifeSciencesSupplementalData() {
-  const [commitmentsRes, announcementsRes] = await Promise.allSettled([
+  const [goalsRes, commitmentsRes, announcementsRes] = await Promise.allSettled([
+    loadCsvFromPath(LS_SUPPLEMENTAL_FILES.goals),
     loadCsvFromPath(LS_SUPPLEMENTAL_FILES.commitments),
     loadCsvFromPath(LS_SUPPLEMENTAL_FILES.announcements),
   ]);
+
+  if (goalsRes.status === 'fulfilled') {
+    STATE.data.lwGoals = goalsRes.value;
+  } else {
+    console.warn('Life sciences goals file load failed:', goalsRes.reason);
+    STATE.data.lwGoals = [];
+  }
 
   if (commitmentsRes.status === 'fulfilled') {
     STATE.data.lsCommitments = commitmentsRes.value;
@@ -1149,42 +1255,42 @@ async function loadWorkbookFromUrl(url) {
 }
 
 async function loadAllData() {
-  try {
-    const st = await fetch(EXCEL_MAP_STATUS_URL, { cache:'no-store' });
-    if (st.ok) {
-      const js = await st.json();
-      const miss = (js.missingRequired||[]).filter(x => x.key === 'life_sciences_main');
-      if (miss.length) {
-        const m = miss[0];
-        throw new Error(`Data not connected. Missing mapped file: ${m.key}. Edit mapping workbook: ${js.mapPath || 'DATA_FILE_MAP.xlsx'}`);
-      }
-    }
-  } catch (_) {}
-  // Excel-only strict mode: always load from workbook files in this folder.
-  const attempts = [];
-  for (const url of DEFAULT_EXCEL_URLS) {
-    try {
-      const data = await loadWorkbookFromUrl(url);
-      if (Object.keys(data).length) {
-        Object.assign(STATE.data, data);
-        STATE.hasMockData = (STATE.data.officialMetrics||[]).some(r=>String(r.source_tier||'').toLowerCase().includes('mock'));
-        applyLifeSciencesSubsectorImageMap();
-        applyDashboardConfig();
-        try {
-          await loadSectorTrendCsvData();
-        } catch (e) {
-          console.warn('Sector trends CSV load failed:', e);
-          STATE.data.lsSectorTrends = null;
-        }
-        await loadLifeSciencesSupplementalData();
-        return;
-      }
-      attempts.push(`${url}: empty workbook`);
-    } catch (e) {
-      attempts.push(`${url}: ${e.message||e}`);
-    }
-  }
-  throw new Error('Excel-only mode: unable to load dashboard workbook. ' + attempts.join(' | '));
+  Object.assign(STATE.data, {
+    sectorDef: [{
+      id: 'DEF-001',
+      body_text: 'The B.C. life sciences sector includes biopharmaceutical manufacturing, medical devices and equipment, and research, testing and medical laboratories. It contributes to provincial productivity, innovation, health outcomes, and export capacity through high-value activities across the province.',
+      caveat: '',
+    }],
+    subsectors: [{
+      record_type: 'sector',
+      sector_id: 'life_sciences',
+      subsector_id: 'ALL',
+      subsector_name: 'BC Life Sciences',
+      show_as_tab: 'TRUE',
+      tab_order: 0,
+      dashboard_color: '#003366',
+      has_reliable_data: 'TRUE',
+      data_availability_note: '',
+    }],
+    whatsNew: [],
+    chartCatalog: [],
+    chartSheets: {},
+    chartSheetsByName: {},
+    lwGoals: [],
+    lwInitiatives: [],
+    lsCommitments: [],
+    sharedAnnouncements: [],
+  });
+  STATE.hasMockData = false;
+  applyLifeSciencesSubsectorImageMap();
+  applyDashboardConfig();
+  await Promise.all([
+    loadSectorTrendCsvData().catch((e) => {
+      console.warn('Sector trends API load failed:', e);
+      STATE.data.lsSectorTrends = null;
+    }),
+    loadLifeSciencesSupplementalData(),
+  ]);
 }
 
 function applyDashboardConfig() {
@@ -1555,7 +1661,7 @@ function renderSectorKPIs() {
 
   const model = STATE.data.lsSectorTrends;
   if (!model || !model.gdp || !model.business) {
-    grid.innerHTML = `<div class="no-kpi-notice">Sector Snapshot data unavailable. Confirm LS CSV files exist in the data folder.</div>`;
+    grid.innerHTML = `<div class="no-kpi-notice">Sector Snapshot data unavailable. Live API data could not be loaded.</div>`;
     return;
   }
 
@@ -2183,14 +2289,18 @@ function toTick(value) {
 }
 
 function isLifeSciencesSectorTag(value) {
-  return /\blife[\s_-]*sciences?\b/i.test(String(value || ''));
+  return /\blife[\s_-]*sciences?\b|biotech|pharma|medical/i.test(String(value || ''));
 }
 
 function renderCommitmentsTable() {
   const tbody = document.getElementById('commitments-tbody-GLOBAL');
   if (!tbody) return;
 
-  let rows = (STATE.data.lsCommitments || []).slice();
+  let rows = (STATE.data.lsCommitments || []).filter((r) =>
+    isLifeSciencesSectorTag(pickField(r, ['Sector'])) ||
+    isLifeSciencesSectorTag(pickField(r, ['Goal'])) ||
+    isLifeSciencesSectorTag(pickField(r, ['Theme']))
+  );
   if (!rows.length) {
     rows = (STATE.data.lwInitiatives || []).map((r) => ({
       Goal: r.initiative_name || '',

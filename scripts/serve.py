@@ -59,6 +59,7 @@ EXCEL_MAP_REQUIRED = [
 ]
 EXCEL_FILE_FALLBACKS = {
     "life_sciences_main": [
+        os.path.join(ROOT, "dashboards", "sectors", "life_sciences", "data", "Life_Sciences_light.xlsx"),
         os.path.join(ROOT, "data", "sectors", "life_sciences", "Life_Sciences_light.xlsx"),
     ],
     "look_west_media": [
@@ -247,12 +248,12 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
             file_path = row.get("path", "")
             sheet_spec = str(row.get("sheet", "") or "").strip()
             used_fallback = False
+            fallback = next((fp for fp in EXCEL_FILE_FALLBACKS.get(key, []) if os.path.exists(fp)), "")
             if not file_path:
-                fallback = next((fp for fp in EXCEL_FILE_FALLBACKS.get(key, []) if os.path.exists(fp)), "")
                 if fallback:
                     file_path = fallback
                     used_fallback = True
-                    print(f"[INFO] Using mock fallback for key '{key}': {file_path}")
+                    print(f"[INFO] Using fallback for key '{key}': {file_path}")
                 else:
                     self._send_json(404, {"error": f"No path configured for key: {key}", "mapPath": EXCEL_MAP_PATH})
                     return
@@ -271,8 +272,13 @@ class UTF8RequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             if not os.path.exists(file_path):
-                self._send_json(404, {"error": f"Configured path not found for key: {key}", "path": file_path, "mapPath": EXCEL_MAP_PATH})
-                return
+                if fallback:
+                    file_path = fallback
+                    used_fallback = True
+                    print(f"[WARN] Configured path missing for key '{key}', using fallback: {file_path}")
+                else:
+                    self._send_json(404, {"error": f"Configured path not found for key: {key}", "path": file_path, "mapPath": EXCEL_MAP_PATH})
+                    return
             if sheet_spec:
                 if load_workbook is None or Workbook is None:
                     self._send_json(500, {"error": "openpyxl is required for sheet filtering", "key": key})

@@ -400,9 +400,9 @@
 
   <script>
     const DATA_PATHS = {
-      goals: '../../../../data/sectors/tourism/tourism_lookwest_goals_mock.csv',
-      commitments: '../../../../data/sectors/tourism/tourism_initiatives_mock.csv',
-      announcements: '../../../../data/sectors/shared/sector_announcements_master_mock.csv'
+      goals: '../../../../data/tourism_lookwest_goals_mock.csv',
+      commitments: '../../../../data/Action%20Plans%20Commitments.csv',
+      announcements: '../../../../data/LW%20Announcements.csv'
     };
 
     const TOURISM_SUBSECTORS = [
@@ -637,8 +637,9 @@
     }
 
     async function loadCsv(path) {
-      const res = await fetch(path);
-      if (!res.ok) throw new Error(path + ' HTTP ' + res.status);
+      const url = new URL(path, window.location.href).toString();
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(url + ' HTTP ' + res.status);
       return parseCsv(await res.text());
     }
 
@@ -1155,17 +1156,19 @@
 
     function renderActionPlanCommitments() {
       const body = document.getElementById('commitments-body');
-      if (!STATE.commitments.length) {
+      const rows = STATE.commitments
+        .filter((r) => containsTourism(pickField(r, ['Sector'])));
+      if (!rows.length) {
         body.innerHTML = '<tr><td colspan="5">No commitments data available.</td></tr>';
         return;
       }
-      body.innerHTML = STATE.commitments.map((r) => `
+      body.innerHTML = rows.map((r) => `
         <tr>
-          <td><strong>${r.goal || ''}</strong></td>
-          <td>${r.stream || ''}</td>
-          <td>${r.pillar || ''}</td>
-          <td>${r.theme || ''}</td>
-          <td>${r.timeframe || ''}</td>
+          <td><strong>${pickField(r, ['Goal', 'goal']) || ''}</strong></td>
+          <td>${pickField(r, ['Stream', 'stream']) || ''}</td>
+          <td>${pickField(r, ['Pillar', 'pillar']) || ''}</td>
+          <td>${pickField(r, ['Theme', 'theme']) || ''}</td>
+          <td>${pickField(r, ['Timeframe', 'timeframe']) || ''}</td>
         </tr>`).join('');
     }
 
@@ -1254,7 +1257,7 @@
       } else {
         console.error(goalsRes.reason);
         STATE.goals = [];
-        warnings.push('Look West goals mock file could not be loaded.');
+        warnings.push('Look West goals dataset could not be loaded.');
       }
 
       if (commitmentsRes.status === 'fulfilled') {
@@ -1262,7 +1265,7 @@
       } else {
         console.error(commitmentsRes.reason);
         STATE.commitments = [];
-        warnings.push('Tourism commitments mock file could not be loaded.');
+        warnings.push('Tourism commitments dataset could not be loaded.');
       }
 
       if (announcementsRes.status === 'fulfilled') {

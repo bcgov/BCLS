@@ -35,6 +35,19 @@ function Sync-File {
   Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath -Force
 }
 
+function Sync-FileIfExists {
+  param(
+    [Parameter(Mandatory = $true)][string]$SourcePath,
+    [Parameter(Mandatory = $true)][string]$DestinationPath
+  )
+  if (-not (Test-Path $SourcePath)) {
+    Write-Output "[WARN] Optional source file not found, skipping: $SourcePath"
+    return
+  }
+  New-Item -ItemType Directory -Force -Path (Split-Path $DestinationPath -Parent) | Out-Null
+  Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath -Force
+}
+
 function Remove-IfExists {
   param([string]$PathToRemove)
   if (Test-Path $PathToRemove) {
@@ -71,16 +84,9 @@ if (-not $SkipSpfx) {
 
   Sync-Folder (Join-Path $root "dashboards") $spfxDashboardsRoot
 
-  # Keep dashboards lean for SPFx: drop per-dashboard data folders except life sciences CSVs.
+  # Keep dashboards lean for SPFx: drop per-dashboard data folders.
   Get-ChildItem -Path $spfxDashboardsRoot -Recurse -Directory -Filter "data" -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notlike "*dashboards\\sectors\\life_sciences\\data" } |
     ForEach-Object { Remove-IfExists $_.FullName }
-
-  # In life sciences dashboard data, keep only the two CSVs used by Sector Snapshot.
-  $lsData = Join-Path $spfxDashboardsRoot "sectors/life_sciences/data"
-  New-Item -ItemType Directory -Force -Path $lsData | Out-Null
-  Sync-File (Join-Path $root "dashboards/sectors/life_sciences/data/LS GDP.csv") (Join-Path $lsData "LS GDP.csv")
-  Sync-File (Join-Path $root "dashboards/sectors/life_sciences/data/LS Business Count.csv") (Join-Path $lsData "LS Business Count.csv")
 
   # Keep only Logo.png in docs folders.
   Get-ChildItem -Path $spfxDashboardsRoot -Recurse -Directory -Filter "docs" -ErrorAction SilentlyContinue |
@@ -96,15 +102,23 @@ if (-not $SkipSpfx) {
   # Rebuild SPFx data folder with only runtime files currently used by dashboards.
   Remove-IfExists $spfxDataRoot
   New-Item -ItemType Directory -Force -Path $spfxDataRoot | Out-Null
-  Sync-File (Join-Path $root "data/bc_trade_analysis/trade_composition_sample.json") (Join-Path $spfxDataRoot "bc_trade_analysis/trade_composition_sample.json")
-  Sync-File (Join-Path $root "data/bc_economy_outlook/annual_forecast.csv") (Join-Path $spfxDataRoot "bc_economy_outlook/annual_forecast.csv")
-  Sync-File (Join-Path $root "data/bc_economy_outlook/quarterly_conditions_2025.csv") (Join-Path $spfxDataRoot "bc_economy_outlook/quarterly_conditions_2025.csv")
-  Sync-File (Join-Path $root "data/bc_economy_outlook/outlook_metadata.json") (Join-Path $spfxDataRoot "bc_economy_outlook/outlook_metadata.json")
-  Sync-File (Join-Path $root "data/look_west_strategy/look_west_media_coverage_mock.xlsx") (Join-Path $spfxDataRoot "look_west_strategy/look_west_media_coverage_mock.xlsx")
-  Sync-File (Join-Path $root "data/look_west_strategy/lw_related_funding_investments_mock.xlsx") (Join-Path $spfxDataRoot "look_west_strategy/lw_related_funding_investments_mock.xlsx")
-  Sync-File (Join-Path $root "data/sectors/life_sciences/Life_Sciences_light.xlsx") (Join-Path $spfxDataRoot "sectors/life_sciences/Life_Sciences_light.xlsx")
-  Sync-File (Join-Path $root "data/sectors/tourism/tourism_lookwest_goals_mock.csv") (Join-Path $spfxDataRoot "sectors/tourism/tourism_lookwest_goals_mock.csv")
-  Sync-File (Join-Path $root "data/sectors/tourism/tourism_initiatives_mock.csv") (Join-Path $spfxDataRoot "sectors/tourism/tourism_initiatives_mock.csv")
+  Sync-FileIfExists (Join-Path $root "data/bc_trade_analysis/trade_composition_sample.json") (Join-Path $spfxDataRoot "bc_trade_analysis/trade_composition_sample.json")
+  Sync-File (Join-Path $root "data/ourlook_annual_forecast.csv") (Join-Path $spfxDataRoot "bc_economy_outlook/ourlook_annual_forecast.csv")
+  Sync-File (Join-Path $root "data/ourlook_quarterly_conditions_2025.csv") (Join-Path $spfxDataRoot "bc_economy_outlook/ourlook_quarterly_conditions_2025.csv")
+  Sync-FileIfExists (Join-Path $root "data/bc_economy_outlook/outlook_metadata.json") (Join-Path $spfxDataRoot "bc_economy_outlook/outlook_metadata.json")
+  Sync-File (Join-Path $root "data/tourism_lookwest_goals_mock.csv") (Join-Path $spfxDataRoot "tourism_lookwest_goals_mock.csv")
+  Sync-File (Join-Path $root "data/life_sciences_lookwest_goals_mock.csv") (Join-Path $spfxDataRoot "life_sciences_lookwest_goals_mock.csv")
+  Sync-File (Join-Path $root "data/Action Plans Commitments.csv") (Join-Path $spfxDataRoot "Action Plans Commitments.csv")
+  Sync-File (Join-Path $root "data/LW Announcements.csv") (Join-Path $spfxDataRoot "LW Announcements.csv")
+  Sync-FileIfExists (Join-Path $root "data/Action Plans.csv") (Join-Path $spfxDataRoot "Action Plans.csv")
+  Sync-FileIfExists (Join-Path $root "data/Funding Programs.csv") (Join-Path $spfxDataRoot "Funding Programs.csv")
+  Sync-FileIfExists (Join-Path $root "data/Infrastructures.csv") (Join-Path $spfxDataRoot "Infrastructures.csv")
+  Sync-FileIfExists (Join-Path $root "data/Investment Promotion.csv") (Join-Path $spfxDataRoot "Investment Promotion.csv")
+  Sync-FileIfExists (Join-Path $root "data/LW News.csv") (Join-Path $spfxDataRoot "LW News.csv")
+  Sync-FileIfExists (Join-Path $root "data/Major Projects.csv") (Join-Path $spfxDataRoot "Major Projects.csv")
+  Sync-FileIfExists (Join-Path $root "data/Major Project Tracker.csv") (Join-Path $spfxDataRoot "Major Project Tracker.csv")
+  Sync-FileIfExists (Join-Path $root "data/Policy & Regulations.csv") (Join-Path $spfxDataRoot "Policy & Regulations.csv")
+  Sync-FileIfExists (Join-Path $root "data/Targets.csv") (Join-Path $spfxDataRoot "Targets.csv")
 
   # Rebuild shared folder with only vendor runtime libraries.
   Remove-IfExists $spfxSharedRoot

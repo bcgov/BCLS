@@ -443,9 +443,9 @@
 
   <script>
     const DATA_FILES = {
-      projects: '../../../data/look_west_strategy/Major Projects.csv',
-      tracker: '../../../data/look_west_strategy/Major Project Tracker.csv',
-      bcBoundary: '../../../data/look_west_strategy/bc_pr_boundary_2021.geojson'
+      projects: '../../../data/Major Projects.csv',
+      tracker: '../../../data/Major Project Tracker.csv',
+      bcBoundary: '../../../data/bc_pr_boundary_2021.geojson'
     };
 
     const STATUS_COLORS = {
@@ -583,13 +583,13 @@
 
     async function loadCsv(url) {
       const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Failed to fetch required dataset (HTTP ${res.status})`);
+      if (!res.ok) throw new Error(`Failed to fetch required dataset: ${url} (HTTP ${res.status})`);
       return parseCsvText(await res.text());
     }
 
     async function loadJson(url) {
       const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Failed to fetch required dataset (HTTP ${res.status})`);
+      if (!res.ok) throw new Error(`Failed to fetch required dataset: ${url} (HTTP ${res.status})`);
       return res.json();
     }
 
@@ -667,11 +667,16 @@
     }
 
     async function loadData() {
-      const [projectRows, trackerRows, bcBoundary] = await Promise.all([
+      const [projectRows, trackerRows] = await Promise.all([
         loadCsv(new URL(DATA_FILES.projects, window.location.href).toString()),
-        loadCsv(new URL(DATA_FILES.tracker, window.location.href).toString()),
-        loadJson(new URL(DATA_FILES.bcBoundary, window.location.href).toString())
+        loadCsv(new URL(DATA_FILES.tracker, window.location.href).toString())
       ]);
+      let bcBoundary = null;
+      try {
+        bcBoundary = await loadJson(new URL(DATA_FILES.bcBoundary, window.location.href).toString());
+      } catch (err) {
+        console.warn('BC boundary dataset could not be loaded; map boundary overlay skipped.', err);
+      }
       STATE.projects = projectRows.map(normalizeProject).filter((p) => p.id && p.name)
         .sort((a, b) => a.displayOrder - b.displayOrder || a.id.localeCompare(b.id));
       STATE.tracker = trackerRows.map(normalizeTracker).filter((r) => r.announcementId && r.projectId);
