@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LW Investment Promotion Tracker</title>
+  <script src="../../../../shared/vendor/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --navy: #003366;
+      --text: #1e293b;
+      --muted: #64748b;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px;
+    }
+
+    .page-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 560px;
+      box-shadow: var(--shadow);
+    }
+
+    .page-head {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px 15px;
+      background: linear-gradient(90deg, #eef2ff 0%, #f8fafc 100%);
+    }
+
+    .page-head h1 {
+      color: var(--navy);
+      font-size: 22px;
+      line-height: 1.2;
+      margin-bottom: 7px;
+    }
+
+    .page-head p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .content {
+      padding: 18px 20px 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .status-banner {
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .status-banner.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+      gap: 12px;
+    }
+
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px 14px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--kpi-color, #4b7ea8);
+      opacity: 0.95;
+    }
+
+    .kpi-label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .kpi-note {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .insight-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .insight-card h3 {
+      font-size: 13px;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .insight-card p {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+
+    .insight-list {
+      list-style: none;
+      display: grid;
+      gap: 7px;
+    }
+
+    .insight-list li {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 8px 9px;
+      font-size: 12px;
+      color: #1f2937;
+      line-height: 1.35;
+    }
+
+    .insight-list strong {
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .chart-grid.chart-grid-three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      min-height: 290px;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .chart-subtitle {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .chart-holder {
+      position: relative;
+      height: 230px;
+    }
+
+    .tracker-section {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .tracker-header {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 14px 10px;
+    }
+
+    .tracker-header h2 {
+      font-size: 14px;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .tracker-header p {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.45;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+      background: #f8fafc;
+    }
+
+    .filter-item label {
+      display: block;
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+      font-weight: 700;
+    }
+
+    .filter-item select,
+    .filter-item input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 12px;
+      padding: 8px 9px;
+    }
+
+    .filter-actions {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+    }
+
+    .btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #0f172a;
+      font-weight: 600;
+      padding: 8px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: #f1f5f9; }
+
+    .table-shell { overflow: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      min-width: 1700px;
+    }
+
+    thead th {
+      text-align: left;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      color: #475569;
+      font-weight: 700;
+      padding: 10px 11px;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    tbody td {
+      border-bottom: 1px solid #eef2f7;
+      padding: 9px 11px;
+      color: #334155;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #fcfdff;
+    }
+
+    .chip {
+      display: inline-block;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border: 1px solid #d1d5db;
+      background: #f8fafc;
+      color: #334155;
+      white-space: nowrap;
+    }
+
+    .chip.complete {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .chip.progress {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .chip.planned {
+      border-color: #e9d5ff;
+      background: #faf5ff;
+      color: #7e22ce;
+    }
+
+    .table-meta {
+      font-size: 11px;
+      color: #64748b;
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--border);
+      background: #ffffff;
+    }
+
+    .empty-row {
+      text-align: center;
+      color: #64748b;
+      font-style: italic;
+      padding: 14px !important;
+    }
+
+    @media (max-width: 1100px) {
+      .insight-grid { grid-template-columns: 1fr; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .chart-grid.chart-grid-three { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      body { padding: 12px; }
+      .content { padding: 12px; }
+      .filters { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page-wrap">
+    <header class="page-head">
+      <h1>LW Investment Promotion Tracker</h1>
+      <p>Investment promotion progress view from initiative records and tracker updates.</p>
+    </header>
+
+    <div class="content">
+      <div class="status-banner" id="status-banner">Loading investment promotion datasets...</div>
+
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div class="insight-grid">
+        <article class="insight-card">
+          <h3>More Frequently Tracked Initiatives</h3>
+          <p>Based on number of tracker rows linked to each promotion initiative.</p>
+          <ul class="insight-list" id="high-attention-list"></ul>
+        </article>
+        <article class="insight-card">
+          <h3>Initiatives with Limited Tracked Activity</h3>
+          <p>Initiatives with few or no linked tracker rows in current data.</p>
+          <ul class="insight-list" id="low-attention-list"></ul>
+        </article>
+      </div>
+
+      <div class="chart-grid">
+        <article class="chart-card">
+          <div class="chart-title">Updates by Stream</div>
+          <div class="chart-subtitle">Mapped updates grouped by Look West stream</div>
+          <div class="chart-holder"><canvas id="chart-stream-updates"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="chart-title">Investment Attracted by Sector</div>
+          <div class="chart-subtitle">Sum of reported investment attracted ($M)</div>
+          <div class="chart-holder"><canvas id="chart-sector-investment"></canvas></div>
+        </article>
+      </div>
+
+      <div class="chart-grid chart-grid-three">
+        <article class="chart-card">
+          <div class="chart-title">Updates by Pillar</div>
+          <div class="chart-subtitle">Mapped updates grouped by pillar</div>
+          <div class="chart-holder"><canvas id="chart-pillar-updates"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="chart-title">Updates by Theme</div>
+          <div class="chart-subtitle">Mapped updates grouped by theme</div>
+          <div class="chart-holder"><canvas id="chart-theme-updates"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="chart-title">Achievement Status Mix</div>
+          <div class="chart-subtitle">Status categories from promotion tracker rows</div>
+          <div class="chart-holder"><canvas id="chart-achievement-mix"></canvas></div>
+        </article>
+      </div>
+
+      <section class="tracker-section">
+        <div class="tracker-header">
+          <h2>Investment Promotion Tracker</h2>
+          <p>Filter and review tracker rows linked to promotion initiatives.</p>
+        </div>
+
+        <div class="filters">
+          <div class="filter-item">
+            <label for="filter-stream">Stream</label>
+            <select id="filter-stream"></select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-initiative">Initiative</label>
+            <select id="filter-initiative"></select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-sector">Sector</label>
+            <select id="filter-sector"></select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-activity">Activity Type</label>
+            <select id="filter-activity"></select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-search">Search</label>
+            <input id="filter-search" type="text" placeholder="Search initiative, note, stage, ministry, region">
+          </div>
+          <div class="filter-actions">
+            <button class="btn" id="reset-filters" type="button">Reset Filters</button>
+          </div>
+        </div>
+
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Announcement ID</th>
+                <th>Promotion ID</th>
+                <th>Initiative Name</th>
+                <th>Stream</th>
+                <th>Pillar</th>
+                <th>Theme</th>
+                <th>Sector</th>
+                <th>Status</th>
+                <th>Activity Type</th>
+                <th>Amount ($M)</th>
+                <th>Investment Attracted ($M)</th>
+                <th>Date</th>
+                <th>Engagement Stage</th>
+                <th>Achievement</th>
+                <th>Lead Ministry</th>
+                <th>Region</th>
+                <th>What Changed</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody id="tracker-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-meta" id="table-meta"></div>
+      </section>
+    </div>
+  </section>
+
+  <script>
+    const DATA_FILES = {
+      promotion: [
+        "../../../../data/Investment Promotion.csv",
+        "../../../../data/look_west_strategy/Investment Promotion.csv"
+      ],
+      tracker: [
+        "../../../../data/Investment Promotion Tracker.csv",
+        "../../../../data/look_west_strategy/Investment Promotion Tracker.csv"
+      ]
+    };
+
+    const KPI_COLORS = ["#4b7ea8", "#4f8d7a", "#b08a4c", "#7d78a8", "#5b8a63", "#a0617f", "#5d7f93", "#8b5e3c"];
+
+    const state = {
+      initiatives: [],
+      trackerRows: [],
+      initiativeById: new Map(),
+      charts: {},
+      filteredRows: []
+    };
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i += 1) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (inQuotes) {
+          if (ch === '"' && next === '"') {
+            value += '"';
+            i += 1;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            value += ch;
+          }
+        } else if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ",") {
+          row.push(value);
+          value = "";
+        } else if (ch === "\n") {
+          row.push(value);
+          rows.push(row);
+          row = [];
+          value = "";
+        } else if (ch !== "\r") {
+          value += ch;
+        }
+      }
+
+      if (value.length > 0 || row.length > 0) {
+        row.push(value);
+        rows.push(row);
+      }
+      if (!rows.length) return [];
+
+      const headers = rows[0].map((h) => String(h || "").trim());
+      return rows.slice(1)
+        .filter((r) => r.some((cell) => String(cell || "").trim() !== ""))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, idx) => {
+            obj[h] = String(r[idx] || "").trim();
+          });
+          return obj;
+        });
+    }
+
+    function getField(row, names) {
+      for (const name of names) {
+        if (Object.prototype.hasOwnProperty.call(row, name)) {
+          return String(row[name] || "").trim();
+        }
+      }
+      return "";
+    }
+
+    function parseNumber(value) {
+      const txt = String(value || "").replace(/[$,%\s]/g, "").replace(/,/g, "");
+      if (!txt) return null;
+      const num = Number(txt);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("en-CA", { maximumFractionDigits: 0 }).format(value || 0);
+    }
+
+    function formatNumberOneDecimal(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "-";
+      return new Intl.NumberFormat("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(value);
+    }
+
+    function formatCurrencyMillions(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "-";
+      return `$${new Intl.NumberFormat("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(value)}M`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function statusChipClass(value) {
+      const t = String(value || "").toLowerCase();
+      if (t.includes("complete") || t.includes("done") || t.includes("closed")) return "complete";
+      if (t.includes("progress") || t.includes("ongoing") || t.includes("active")) return "progress";
+      if (t.includes("planned") || t.includes("scoping") || t.includes("new")) return "planned";
+      return "";
+    }
+
+    function setStatus(message, isError) {
+      const banner = document.getElementById("status-banner");
+      banner.textContent = message;
+      banner.classList.toggle("error", !!isError);
+      banner.style.display = "";
+    }
+
+    function hideStatus() {
+      document.getElementById("status-banner").style.display = "none";
+    }
+
+    async function fetchCsvWithFallback(urls, label) {
+      let lastError = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (res.ok) return res.text();
+          lastError = new Error(`${label}: HTTP ${res.status} for ${url}`);
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error(`${label}: no available source`);
+    }
+
+    function normalizeInitiatives(rows) {
+      return rows.map((row, idx) => {
+        const promotionId = getField(row, ["Promotion ID"]) || `IP-${String(idx + 1).padStart(3, "0")}`;
+        return {
+          promotionId,
+          initiativeName: getField(row, ["Initiative Name"]) || `Initiative ${idx + 1}`,
+          dateAnnounced: getField(row, ["Date Announced"]) || "-",
+          stream: getField(row, ["Stream"]) || "Unspecified",
+          pillar: getField(row, ["Pillar"]) || "Unspecified",
+          theme: getField(row, ["Theme"]) || "Unspecified",
+          sector: getField(row, ["Sector"]) || "Unspecified",
+          region: getField(row, ["Region"]) || "Unspecified",
+          partners: getField(row, ["Partner Organizations"]) || "-",
+          description: getField(row, ["Description"]) || "-",
+          estimatedValue: parseNumber(getField(row, ["Estimated Value ($M)", "Estimated Value"])),
+          status: getField(row, ["Status"]) || "Unspecified",
+          leadMinistry: getField(row, ["Lead Ministry"]) || "Unspecified",
+          url: getField(row, ["URL"]) || ""
+        };
+      }).filter((r) => r.promotionId);
+    }
+
+    function normalizeTrackerRows(rows) {
+      return rows.map((row, idx) => {
+        const announcementId = getField(row, ["Announcement ID.lookupValue", "Announcement ID"]);
+        const promotionId = getField(row, ["Promotion ID.lookupValue", "Promotion ID"]);
+        const activityType = getField(row, ["Activity Type"]) || "Unspecified";
+        const amount = parseNumber(getField(row, ["Amount ($M)", "Amount"]));
+        const date = getField(row, ["Date"]) || "-";
+        const whatChanged = getField(row, ["What Changed", "Description", "Update"]) || "-";
+        const achievement = getField(row, ["Achievment", "Achievement", "Status"]) || "Not specified";
+        const stage = getField(row, ["Engagement Stage", "Implementation Stage", "Stage"]) || "Not specified";
+        const leadMinistry = getField(row, ["Lead Ministry.lookupValue", "Lead Ministry"]) || "Unspecified";
+        const region = getField(row, ["Region"]) || "Unspecified";
+        const note = getField(row, ["Note"]) || "-";
+        const investmentAttracted = parseNumber(getField(row, ["Investment Attracted ($M)"]));
+
+        const linked = state.initiativeById.get(promotionId);
+
+        const hasContent = announcementId || promotionId || activityType !== "Unspecified" || amount !== null ||
+          whatChanged !== "-" || note !== "-" || investmentAttracted !== null;
+        if (!hasContent) return null;
+
+        return {
+          rowId: idx + 1,
+          announcementId: announcementId || "(Unspecified)",
+          promotionId: linked ? linked.promotionId : (promotionId || "(Unmapped)"),
+          initiativeName: linked ? linked.initiativeName : "(No matched initiative)",
+          stream: linked ? linked.stream : "Unmapped",
+          pillar: linked ? linked.pillar : "Unmapped",
+          theme: linked ? linked.theme : "Unmapped",
+          sector: linked ? linked.sector : "Unmapped",
+          status: linked ? linked.status : "Unmapped",
+          leadMinistry: linked ? linked.leadMinistry : leadMinistry,
+          region: linked ? linked.region : region,
+          activityType,
+          amount,
+          investmentAttracted,
+          date,
+          stage,
+          achievement,
+          whatChanged,
+          note,
+          mapped: !!linked
+        };
+      }).filter(Boolean);
+    }
+
+    function computeSummary() {
+      const totalInitiatives = state.initiatives.length;
+      const totalEstimatedValue = state.initiatives.reduce((sum, i) => sum + (i.estimatedValue || 0), 0);
+      const totalUpdates = state.trackerRows.length;
+      const totalAmount = state.trackerRows.reduce((sum, r) => sum + (r.amount || 0), 0);
+      const totalInvestmentAttracted = state.trackerRows.reduce((sum, r) => sum + (r.investmentAttracted || 0), 0);
+
+      const distinctAnnouncements = new Set(
+        state.trackerRows
+          .map((r) => String(r.announcementId || "").trim())
+          .filter((v) => v && v !== "(Unspecified)")
+      ).size;
+
+      const mappedIds = new Set(state.trackerRows.filter((r) => r.mapped).map((r) => r.promotionId));
+      const initiativesWithTracking = mappedIds.size;
+      const coverageRate = totalInitiatives ? (initiativesWithTracking / totalInitiatives) * 100 : 0;
+      const unmappedRows = state.trackerRows.filter((r) => !r.mapped).length;
+
+      const initiativeCounts = new Map();
+      state.initiatives.forEach((item) => initiativeCounts.set(item.promotionId, 0));
+      state.trackerRows.forEach((row) => {
+        if (initiativeCounts.has(row.promotionId)) {
+          initiativeCounts.set(row.promotionId, initiativeCounts.get(row.promotionId) + 1);
+        }
+      });
+
+      return {
+        totalInitiatives,
+        totalEstimatedValue,
+        totalUpdates,
+        totalAmount,
+        totalInvestmentAttracted,
+        distinctAnnouncements,
+        initiativesWithTracking,
+        coverageRate,
+        unmappedRows,
+        initiativeCounts
+      };
+    }
+
+    function renderKpis(summary) {
+      const cards = [
+        { label: "Promotion Initiatives", value: formatNumber(summary.totalInitiatives), note: "Initiatives in current scope" },
+        { label: "Estimated Pipeline Value", value: formatCurrencyMillions(summary.totalEstimatedValue), note: "Sum of initiative estimated values" },
+        { label: "Relevant Announcements", value: formatNumber(summary.distinctAnnouncements), note: "Distinct announcement IDs in tracker" },
+        { label: "Reported Investment Attracted", value: formatCurrencyMillions(summary.totalInvestmentAttracted), note: "Sum of investment attracted values" }
+      ];
+
+      document.getElementById("kpi-grid").innerHTML = cards.map((card, idx) => `
+        <article class="kpi" style="--kpi-color:${KPI_COLORS[idx % KPI_COLORS.length]}">
+          <div class="kpi-label">${escapeHtml(card.label)}</div>
+          <div class="kpi-value">${escapeHtml(card.value)}</div>
+          <div class="kpi-note">${escapeHtml(card.note)}</div>
+        </article>
+      `).join("");
+    }
+
+    function getInitiativeLabel(promotionId) {
+      const item = state.initiativeById.get(promotionId);
+      if (!item) return promotionId;
+      return `${promotionId}: ${item.initiativeName}`;
+    }
+
+    function renderAttentionLists(summary) {
+      const entries = Array.from(summary.initiativeCounts.entries()).map(([promotionId, count]) => ({ promotionId, count }));
+
+      const high = entries
+        .filter((e) => e.count > 0)
+        .sort((a, b) => b.count - a.count || a.promotionId.localeCompare(b.promotionId))
+        .slice(0, 5);
+
+      const low = entries
+        .sort((a, b) => a.count - b.count || a.promotionId.localeCompare(b.promotionId))
+        .slice(0, 5);
+
+      document.getElementById("high-attention-list").innerHTML = high.length
+        ? high.map((item) => `<li><strong>${escapeHtml(getInitiativeLabel(item.promotionId))}</strong><br>${formatNumber(item.count)} tracker row(s)</li>`).join("")
+        : "<li>No linked tracker activity is recorded yet.</li>";
+
+      document.getElementById("low-attention-list").innerHTML = low.length
+        ? low.map((item) => `<li><strong>${escapeHtml(getInitiativeLabel(item.promotionId))}</strong><br>${formatNumber(item.count)} tracker row(s)</li>`).join("")
+        : "<li>No initiative records found.</li>";
+    }
+
+    function destroyChart(id) {
+      if (state.charts[id]) {
+        state.charts[id].destroy();
+        delete state.charts[id];
+      }
+    }
+
+    function renderGroupedBarChart({ chartKey, canvasId, rows, field, mode = "count", valueField = "amount", color, label }) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const key = row[field] || "Unspecified";
+        const current = map.get(key) || 0;
+        map.set(key, mode === "sum" ? current + (row[valueField] || 0) : current + 1);
+      });
+
+      const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const labels = sorted.length ? sorted.map((x) => x[0]) : ["No data"];
+      const values = sorted.length ? sorted.map((x) => x[1]) : [0];
+
+      destroyChart(chartKey);
+      const ctx = document.getElementById(canvasId);
+      state.charts[chartKey] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data: values,
+            borderWidth: 0,
+            borderRadius: 6,
+            backgroundColor: color
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { color: "#64748b", font: { size: 10 } },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: "#64748b",
+                font: { size: 10 },
+                callback: mode === "sum"
+                  ? (value) => `$${formatNumberOneDecimal(value)}M`
+                  : (value) => formatNumber(value)
+              },
+              grid: { color: "rgba(148, 163, 184, 0.18)" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderAchievementChart() {
+      const map = new Map();
+      state.trackerRows.forEach((row) => {
+        const key = row.achievement || "Not specified";
+        map.set(key, (map.get(key) || 0) + 1);
+      });
+      const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+      const labels = sorted.length ? sorted.map((x) => x[0]) : ["No data"];
+      const values = sorted.length ? sorted.map((x) => x[1]) : [1];
+
+      destroyChart("achievementMix");
+      const ctx = document.getElementById("chart-achievement-mix");
+      state.charts.achievementMix = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            borderWidth: 1,
+            borderColor: "#ffffff",
+            backgroundColor: ["#4f8d7a", "#4b7ea8", "#b08a4c", "#7d78a8", "#a0617f", "#94a3b8", "#8b5e3c"]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { boxWidth: 12, color: "#334155", font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderCharts() {
+      renderGroupedBarChart({
+        chartKey: "streamUpdates",
+        canvasId: "chart-stream-updates",
+        rows: state.trackerRows,
+        field: "stream",
+        mode: "count",
+        color: "rgba(75, 126, 168, 0.78)",
+        label: "Updates"
+      });
+
+      renderGroupedBarChart({
+        chartKey: "sectorInvestment",
+        canvasId: "chart-sector-investment",
+        rows: state.trackerRows,
+        field: "sector",
+        mode: "sum",
+        valueField: "investmentAttracted",
+        color: "rgba(91, 63, 183, 0.75)",
+        label: "Investment Attracted ($M)"
+      });
+
+      renderGroupedBarChart({
+        chartKey: "pillarUpdates",
+        canvasId: "chart-pillar-updates",
+        rows: state.trackerRows,
+        field: "pillar",
+        mode: "count",
+        color: "rgba(79, 141, 122, 0.8)",
+        label: "Updates"
+      });
+
+      renderGroupedBarChart({
+        chartKey: "themeUpdates",
+        canvasId: "chart-theme-updates",
+        rows: state.trackerRows,
+        field: "theme",
+        mode: "count",
+        color: "rgba(176, 138, 76, 0.8)",
+        label: "Updates"
+      });
+
+      renderAchievementChart();
+    }
+
+    function fillSelect(selectEl, values, defaultLabel) {
+      const options = [`<option value="__all__">${escapeHtml(defaultLabel)}</option>`]
+        .concat(values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`));
+      selectEl.innerHTML = options.join("");
+    }
+
+    function initializeFilters() {
+      const streams = Array.from(new Set(state.initiatives.map((x) => x.stream).concat(state.trackerRows.map((x) => x.stream))))
+        .sort((a, b) => a.localeCompare(b));
+      const sectors = Array.from(new Set(state.initiatives.map((x) => x.sector).concat(state.trackerRows.map((x) => x.sector))))
+        .sort((a, b) => a.localeCompare(b));
+      const activityTypes = Array.from(new Set(state.trackerRows.map((x) => x.activityType))).sort((a, b) => a.localeCompare(b));
+
+      fillSelect(document.getElementById("filter-stream"), streams, "All Streams");
+      fillSelect(document.getElementById("filter-sector"), sectors, "All Sectors");
+      fillSelect(document.getElementById("filter-activity"), activityTypes, "All Activity Types");
+
+      const initiativeSelect = document.getElementById("filter-initiative");
+      initiativeSelect.innerHTML = [
+        "<option value=\"__all__\">All Initiatives</option>",
+        ...state.initiatives.map((item) => `<option value="${escapeHtml(item.promotionId)}">${escapeHtml(`${item.promotionId} - ${item.initiativeName}`)}</option>`),
+        "<option value=\"__unmapped__\">(Unmapped rows)</option>"
+      ].join("");
+
+      document.getElementById("filter-stream").addEventListener("change", applyFilters);
+      document.getElementById("filter-initiative").addEventListener("change", applyFilters);
+      document.getElementById("filter-sector").addEventListener("change", applyFilters);
+      document.getElementById("filter-activity").addEventListener("change", applyFilters);
+      document.getElementById("filter-search").addEventListener("input", applyFilters);
+      document.getElementById("reset-filters").addEventListener("click", resetFilters);
+    }
+
+    function resetFilters() {
+      document.getElementById("filter-stream").value = "__all__";
+      document.getElementById("filter-initiative").value = "__all__";
+      document.getElementById("filter-sector").value = "__all__";
+      document.getElementById("filter-activity").value = "__all__";
+      document.getElementById("filter-search").value = "";
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const stream = document.getElementById("filter-stream").value;
+      const initiative = document.getElementById("filter-initiative").value;
+      const sector = document.getElementById("filter-sector").value;
+      const activity = document.getElementById("filter-activity").value;
+      const search = String(document.getElementById("filter-search").value || "").trim().toLowerCase();
+
+      state.filteredRows = state.trackerRows.filter((row) => {
+        if (stream !== "__all__" && row.stream !== stream) return false;
+
+        if (initiative === "__unmapped__" && row.mapped) return false;
+        if (initiative !== "__all__" && initiative !== "__unmapped__" && row.promotionId !== initiative) return false;
+
+        if (sector !== "__all__" && row.sector !== sector) return false;
+        if (activity !== "__all__" && row.activityType !== activity) return false;
+
+        if (search) {
+          const blob = [
+            row.announcementId, row.promotionId, row.initiativeName, row.stream, row.pillar, row.theme,
+            row.sector, row.status, row.activityType, row.stage, row.achievement, row.leadMinistry, row.region, row.whatChanged, row.note
+          ].join(" ").toLowerCase();
+          if (!blob.includes(search)) return false;
+        }
+
+        return true;
+      });
+
+      renderTable(state.filteredRows);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById("tracker-table-body");
+      if (!rows.length) {
+        tbody.innerHTML = "<tr><td class=\"empty-row\" colspan=\"18\">No tracker rows match current filters.</td></tr>";
+      } else {
+        tbody.innerHTML = rows.map((row) => `
+          <tr>
+            <td>${escapeHtml(row.announcementId)}</td>
+            <td>${escapeHtml(row.promotionId)}</td>
+            <td>${escapeHtml(row.initiativeName)}</td>
+            <td>${escapeHtml(row.stream)}</td>
+            <td>${escapeHtml(row.pillar)}</td>
+            <td>${escapeHtml(row.theme)}</td>
+            <td>${escapeHtml(row.sector)}</td>
+            <td><span class="chip ${statusChipClass(row.status)}">${escapeHtml(row.status)}</span></td>
+            <td>${escapeHtml(row.activityType)}</td>
+            <td>${row.amount === null ? "-" : escapeHtml(formatNumberOneDecimal(row.amount))}</td>
+            <td>${row.investmentAttracted === null ? "-" : escapeHtml(formatNumberOneDecimal(row.investmentAttracted))}</td>
+            <td>${escapeHtml(row.date)}</td>
+            <td>${escapeHtml(row.stage)}</td>
+            <td><span class="chip ${statusChipClass(row.achievement)}">${escapeHtml(row.achievement)}</span></td>
+            <td>${escapeHtml(row.leadMinistry)}</td>
+            <td>${escapeHtml(row.region)}</td>
+            <td>${escapeHtml(row.whatChanged)}</td>
+            <td>${escapeHtml(row.note)}</td>
+          </tr>
+        `).join("");
+      }
+
+      document.getElementById("table-meta").textContent =
+        `Showing ${formatNumber(rows.length)} of ${formatNumber(state.trackerRows.length)} tracker row(s).`;
+    }
+
+    async function loadData() {
+      setStatus("Loading investment promotion datasets...", false);
+      try {
+        const [initiativeText, trackerText] = await Promise.all([
+          fetchCsvWithFallback(DATA_FILES.promotion, "Investment Promotion dataset"),
+          fetchCsvWithFallback(DATA_FILES.tracker, "Investment Promotion Tracker dataset")
+        ]);
+
+        state.initiatives = normalizeInitiatives(parseCsv(initiativeText));
+        state.initiativeById = new Map(state.initiatives.map((item) => [item.promotionId, item]));
+        state.trackerRows = normalizeTrackerRows(parseCsv(trackerText));
+
+        const summary = computeSummary();
+        renderKpis(summary);
+        renderAttentionLists(summary);
+        renderCharts();
+        initializeFilters();
+        resetFilters();
+        hideStatus();
+      } catch (error) {
+        console.error(error);
+        setStatus(`Could not load LW Investment Promotion Tracker data. ${error.message}`, true);
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

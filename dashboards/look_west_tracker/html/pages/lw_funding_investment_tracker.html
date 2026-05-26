@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LW Funding and Investment Tracker</title>
+  <script src="../../../../shared/vendor/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --navy: #003366;
+      --text: #1e293b;
+      --muted: #64748b;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px;
+    }
+
+    .page-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 560px;
+      box-shadow: var(--shadow);
+    }
+
+    .page-head {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px 15px;
+      background: linear-gradient(90deg, #eef2ff 0%, #f8fafc 100%);
+    }
+
+    .page-head h1 {
+      color: var(--navy);
+      font-size: 22px;
+      line-height: 1.2;
+      margin-bottom: 7px;
+    }
+
+    .page-head p {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .content {
+      padding: 18px 20px 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .status-banner {
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .status-banner.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+      gap: 12px;
+    }
+
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px 14px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--kpi-color, #4b7ea8);
+      opacity: 0.95;
+    }
+
+    .kpi-label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      line-height: 1.05;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .kpi-note {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .insight-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .insight-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .insight-card h3 {
+      font-size: 13px;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .insight-card p {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+
+    .insight-list {
+      list-style: none;
+      display: grid;
+      gap: 7px;
+    }
+
+    .insight-list li {
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 8px 9px;
+      font-size: 12px;
+      color: #1f2937;
+      line-height: 1.35;
+    }
+
+    .insight-list strong {
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .chart-grid.chart-grid-three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      min-height: 290px;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .chart-subtitle {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .chart-holder {
+      position: relative;
+      height: 230px;
+    }
+
+    .tracker-section {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .tracker-header {
+      border-bottom: 1px solid var(--border);
+      padding: 14px 14px 10px;
+    }
+
+    .tracker-header h2 {
+      font-size: 14px;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .tracker-header p {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.45;
+    }
+
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+      background: #f8fafc;
+    }
+
+    .filter-item label {
+      display: block;
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+      font-weight: 700;
+    }
+
+    .filter-item select,
+    .filter-item input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 12px;
+      padding: 8px 9px;
+    }
+
+    .filter-actions {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+    }
+
+    .btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #0f172a;
+      font-weight: 600;
+      padding: 8px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: #f1f5f9; }
+
+    .table-shell { overflow: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      min-width: 1600px;
+    }
+
+    thead th {
+      text-align: left;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      color: #475569;
+      font-weight: 700;
+      padding: 10px 11px;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    tbody td {
+      border-bottom: 1px solid #eef2f7;
+      padding: 9px 11px;
+      color: #334155;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #fcfdff;
+    }
+
+    .chip {
+      display: inline-block;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border: 1px solid #d1d5db;
+      background: #f8fafc;
+      color: #334155;
+      white-space: nowrap;
+    }
+
+    .chip.complete {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .chip.progress {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    .chip.planned {
+      border-color: #e9d5ff;
+      background: #faf5ff;
+      color: #7e22ce;
+    }
+
+    .table-meta {
+      font-size: 11px;
+      color: #64748b;
+      padding: 10px 14px 12px;
+      border-top: 1px solid var(--border);
+      background: #ffffff;
+    }
+
+    .empty-row {
+      text-align: center;
+      color: #64748b;
+      font-style: italic;
+      padding: 14px !important;
+    }
+
+    @media (max-width: 1100px) {
+      .insight-grid { grid-template-columns: 1fr; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .chart-grid.chart-grid-three { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      body { padding: 12px; }
+      .content { padding: 12px; }
+      .filters { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page-wrap">
+    <header class="page-head">
+      <h1>LW Funding and Investment Tracker</h1>
+      <p>Funding and investment progress view from program records and transaction updates.</p>
+    </header>
+
+    <div class="content">
+      <div class="status-banner" id="status-banner">Loading funding datasets...</div>
+
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div class="insight-grid">
+        <article class="insight-card">
+          <h3>More Frequently Tracked Programs</h3>
+          <p>Based on number of transaction rows linked to each program.</p>
+          <ul class="insight-list" id="high-attention-list"></ul>
+        </article>
+        <article class="insight-card">
+          <h3>Programs with Limited Tracked Activity</h3>
+          <p>Programs with few or no linked transaction rows in current data.</p>
+          <ul class="insight-list" id="low-attention-list"></ul>
+        </article>
+      </div>
+
+      <div class="chart-grid">
+        <article class="chart-card">
+          <div class="chart-title">Transactions by Stream</div>
+          <div class="chart-subtitle">Mapped transactions grouped by Look West stream</div>
+          <div class="chart-holder"><canvas id="chart-stream-transactions"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="chart-title">Transaction Amount by Funding Source</div>
+          <div class="chart-subtitle">Sum of mapped transaction amounts ($M)</div>
+          <div class="chart-holder"><canvas id="chart-source-amount"></canvas></div>
+        </article>
+      </div>
+
+      <div class="chart-grid chart-grid-three">
+        <article class="chart-card">
+          <div class="chart-title">Transactions by Pillar</div>
+          <div class="chart-subtitle">Mapped transactions grouped by pillar</div>
+          <div class="chart-holder"><canvas id="chart-pillar-transactions"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="chart-title">Transactions by Theme</div>
+          <div class="chart-subtitle">Mapped transactions grouped by theme</div>
+          <div class="chart-holder"><canvas id="chart-theme-transactions"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="chart-title">Transaction Type Mix</div>
+          <div class="chart-subtitle">Transaction type categories from tracker rows</div>
+          <div class="chart-holder"><canvas id="chart-transaction-type-mix"></canvas></div>
+        </article>
+      </div>
+
+      <section class="tracker-section">
+        <div class="tracker-header">
+          <h2>Funding Programs Transactions</h2>
+          <p>Filter and review transaction rows linked to funding programs.</p>
+        </div>
+
+        <div class="filters">
+          <div class="filter-item">
+            <label for="filter-stream">Stream</label>
+            <select id="filter-stream"></select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-program">Program</label>
+            <select id="filter-program"></select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-source">Funding Source</label>
+            <select id="filter-source"></select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-transaction">Transaction Type</label>
+            <select id="filter-transaction"></select>
+          </div>
+          <div class="filter-item">
+            <label for="filter-search">Search</label>
+            <input id="filter-search" type="text" placeholder="Search program, note, source detail, stream">
+          </div>
+          <div class="filter-actions">
+            <button class="btn" id="reset-filters" type="button">Reset Filters</button>
+          </div>
+        </div>
+
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Announcement ID</th>
+                <th>Program ID</th>
+                <th>Program Name</th>
+                <th>Stream</th>
+                <th>Pillar</th>
+                <th>Theme</th>
+                <th>Funding Source</th>
+                <th>Commitment Status</th>
+                <th>Transaction Type</th>
+                <th>Amount ($M)</th>
+                <th>Date</th>
+                <th>Funding Source Detail</th>
+                <th>Region</th>
+                <th>Sector</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody id="tracker-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-meta" id="table-meta"></div>
+      </section>
+    </div>
+  </section>
+
+  <script>
+    const DATA_FILES = {
+      programs: [
+        "../../../../data/Funding Programs.csv",
+        "../../../../data/look_west_strategy/Funding Programs.csv"
+      ],
+      transactions: [
+        "../../../../data/Funding Programs Transactions.csv",
+        "../../../../data/look_west_strategy/Funding Programs Transactions.csv"
+      ]
+    };
+
+    const KPI_COLORS = ["#4b7ea8", "#4f8d7a", "#b08a4c", "#7d78a8", "#5b8a63", "#a0617f", "#5d7f93", "#8b5e3c"];
+
+    const state = {
+      programs: [],
+      transactions: [],
+      programById: new Map(),
+      charts: {},
+      filteredTransactions: []
+    };
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i += 1) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (inQuotes) {
+          if (ch === '"' && next === '"') {
+            value += '"';
+            i += 1;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            value += ch;
+          }
+        } else if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ",") {
+          row.push(value);
+          value = "";
+        } else if (ch === "\n") {
+          row.push(value);
+          rows.push(row);
+          row = [];
+          value = "";
+        } else if (ch !== "\r") {
+          value += ch;
+        }
+      }
+
+      if (value.length > 0 || row.length > 0) {
+        row.push(value);
+        rows.push(row);
+      }
+      if (!rows.length) return [];
+
+      const headers = rows[0].map((h) => String(h || "").trim());
+      return rows.slice(1)
+        .filter((r) => r.some((cell) => String(cell || "").trim() !== ""))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, idx) => {
+            obj[h] = String(r[idx] || "").trim();
+          });
+          return obj;
+        });
+    }
+
+    function getField(row, names) {
+      for (const name of names) {
+        if (Object.prototype.hasOwnProperty.call(row, name)) {
+          return String(row[name] || "").trim();
+        }
+      }
+      return "";
+    }
+
+    function parseNumber(value) {
+      const txt = String(value || "").replace(/[$,%\s]/g, "").replace(/,/g, "");
+      if (!txt) return null;
+      const num = Number(txt);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("en-CA", { maximumFractionDigits: 0 }).format(value || 0);
+    }
+
+    function formatNumberOneDecimal(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "-";
+      return new Intl.NumberFormat("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(value);
+    }
+
+    function formatCurrencyMillions(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "-";
+      return `$${new Intl.NumberFormat("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 1 }).format(value)}M`;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function commitmentChipClass(value) {
+      const t = String(value || "").toLowerCase();
+      if (t.includes("complete") || t.includes("closed")) return "complete";
+      if (t.includes("progress") || t.includes("active")) return "progress";
+      if (t.includes("scoping") || t.includes("new") || t.includes("plan")) return "planned";
+      return "";
+    }
+
+    function setStatus(message, isError) {
+      const banner = document.getElementById("status-banner");
+      banner.textContent = message;
+      banner.classList.toggle("error", !!isError);
+      banner.style.display = "";
+    }
+
+    function hideStatus() {
+      document.getElementById("status-banner").style.display = "none";
+    }
+
+    async function fetchCsvWithFallback(urls, label) {
+      let lastError = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (res.ok) return res.text();
+          lastError = new Error(`${label}: HTTP ${res.status} for ${url}`);
+        } catch (err) {
+          lastError = err;
+        }
+      }
+      throw lastError || new Error(`${label}: no available source`);
+    }
+
+    function normalizePrograms(rows) {
+      return rows.map((row, idx) => {
+        const programId = getField(row, ["Program ID"]) || `FP-${String(idx + 1).padStart(3, "0")}`;
+        return {
+          programId,
+          programName: getField(row, ["Program Name"]) || `Program ${idx + 1}`,
+          fundingSource: getField(row, ["Lead Funding Source"]) || "Unspecified",
+          stream: getField(row, ["Stream.lookupValue", "Stream"]) || "Unspecified",
+          pillar: getField(row, ["Pillar.lookupValue", "Pillar"]) || "Unspecified",
+          theme: getField(row, ["Theme.lookupValue", "Theme"]) || "Unspecified",
+          region: getField(row, ["Region.lookupValue", "Region"]) || "Unspecified",
+          dateAnnounced: getField(row, ["Date Announced", "Date"]) || "-",
+          partners: getField(row, ["Partner Organizations"]) || "-",
+          description: getField(row, ["Description"]) || "-",
+          note: getField(row, ["Note"]) || "-",
+          totalCommitment: parseNumber(getField(row, ["Total Commitment Value", "Total Commitment Value ($M)", "Commitment Value"])),
+          commitmentStatus: getField(row, ["Commitment Status"]) || "Unspecified",
+          jobsCreated: parseNumber(getField(row, ["Jobs Created"])),
+          jobsProtected: parseNumber(getField(row, ["Jobs Protected"])),
+          sector: getField(row, ["Sector.lookupValue", "Sector"]) || "Unspecified"
+        };
+      }).filter((p) => p.programId);
+    }
+
+    function normalizeTransactions(rows) {
+      return rows.map((row, idx) => {
+        const announcementId = getField(row, ["Announcement ID.lookupValue", "Announcement ID"]);
+        const programId = getField(row, ["Program ID", "Program ID.lookupValue"]);
+        const transactionType = getField(row, ["Transaction Type"]) || "Unspecified";
+        const amount = parseNumber(getField(row, ["Amount ($M)", "Amount", "Value ($M)"]));
+        const date = getField(row, ["Date"]) || "-";
+        const sourceDetail = getField(row, ["Funding source detail", "Funding Source Detail"]) || "-";
+        const note = getField(row, ["Note"]) || "-";
+
+        const linkedProgram = state.programById.get(programId);
+
+        const hasContent = announcementId || programId || transactionType !== "Unspecified" || amount !== null || sourceDetail !== "-" || note !== "-";
+        if (!hasContent) return null;
+
+        return {
+          rowId: idx + 1,
+          announcementId: announcementId || "(Unspecified)",
+          programId: linkedProgram ? linkedProgram.programId : (programId || "(Unmapped)"),
+          programName: linkedProgram ? linkedProgram.programName : "(No matched program)",
+          stream: linkedProgram ? linkedProgram.stream : "Unmapped",
+          pillar: linkedProgram ? linkedProgram.pillar : "Unmapped",
+          theme: linkedProgram ? linkedProgram.theme : "Unmapped",
+          fundingSource: linkedProgram ? linkedProgram.fundingSource : "Unmapped",
+          commitmentStatus: linkedProgram ? linkedProgram.commitmentStatus : "Unmapped",
+          region: linkedProgram ? linkedProgram.region : "Unmapped",
+          sector: linkedProgram ? linkedProgram.sector : "Unmapped",
+          transactionType,
+          amount,
+          date,
+          sourceDetail,
+          note,
+          mapped: !!linkedProgram
+        };
+      }).filter(Boolean);
+    }
+
+    function computeSummary() {
+      const totalPrograms = state.programs.length;
+      const totalCommitment = state.programs.reduce((sum, p) => sum + (p.totalCommitment || 0), 0);
+      const totalTransactions = state.transactions.length;
+      const totalTransactionAmount = state.transactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+
+      const distinctAnnouncements = new Set(
+        state.transactions
+          .map((r) => String(r.announcementId || "").trim())
+          .filter((v) => v && v !== "(Unspecified)")
+      ).size;
+
+      const mappedProgramIds = new Set(state.transactions.filter((t) => t.mapped).map((t) => t.programId));
+      const programsWithLinkedTransactions = mappedProgramIds.size;
+      const coverageRate = totalPrograms ? (programsWithLinkedTransactions / totalPrograms) * 100 : 0;
+      const unmappedTransactions = state.transactions.filter((t) => !t.mapped).length;
+
+      const programCounts = new Map();
+      state.programs.forEach((p) => programCounts.set(p.programId, 0));
+      state.transactions.forEach((t) => {
+        if (programCounts.has(t.programId)) {
+          programCounts.set(t.programId, programCounts.get(t.programId) + 1);
+        }
+      });
+
+      return {
+        totalPrograms,
+        totalCommitment,
+        totalTransactions,
+        totalTransactionAmount,
+        distinctAnnouncements,
+        programsWithLinkedTransactions,
+        coverageRate,
+        unmappedTransactions,
+        programCounts
+      };
+    }
+
+    function renderKpis(summary) {
+      const cards = [
+        { label: "Funding Programs", value: formatNumber(summary.totalPrograms), note: "Program records in current scope" },
+        { label: "Total Committed Value", value: formatCurrencyMillions(summary.totalCommitment), note: "Sum of program commitments" },
+        { label: "Relevant Announcements", value: formatNumber(summary.distinctAnnouncements), note: "Distinct announcement IDs in transactions" },
+        { label: "Programs with Linked Transactions", value: formatNumber(summary.programsWithLinkedTransactions), note: "Programs linked to at least one transaction" },
+        { label: "Reported Transaction Amount", value: formatCurrencyMillions(summary.totalTransactionAmount), note: "Sum of transaction amounts" }
+      ];
+
+      document.getElementById("kpi-grid").innerHTML = cards.map((card, idx) => `
+        <article class="kpi" style="--kpi-color:${KPI_COLORS[idx % KPI_COLORS.length]}">
+          <div class="kpi-label">${escapeHtml(card.label)}</div>
+          <div class="kpi-value">${escapeHtml(card.value)}</div>
+          <div class="kpi-note">${escapeHtml(card.note)}</div>
+        </article>
+      `).join("");
+    }
+
+    function getProgramLabel(programId) {
+      const p = state.programById.get(programId);
+      if (!p) return programId;
+      return `${programId}: ${p.programName}`;
+    }
+
+    function renderAttentionLists(summary) {
+      const entries = Array.from(summary.programCounts.entries()).map(([programId, count]) => ({ programId, count }));
+
+      const high = entries
+        .filter((e) => e.count > 0)
+        .sort((a, b) => b.count - a.count || a.programId.localeCompare(b.programId))
+        .slice(0, 5);
+
+      const low = entries
+        .sort((a, b) => a.count - b.count || a.programId.localeCompare(b.programId))
+        .slice(0, 5);
+
+      document.getElementById("high-attention-list").innerHTML = high.length
+        ? high.map((item) => `
+            <li><strong>${escapeHtml(getProgramLabel(item.programId))}</strong><br>${formatNumber(item.count)} transaction row(s)</li>
+          `).join("")
+        : "<li>No linked transaction activity is recorded yet.</li>";
+
+      document.getElementById("low-attention-list").innerHTML = low.length
+        ? low.map((item) => `
+            <li><strong>${escapeHtml(getProgramLabel(item.programId))}</strong><br>${formatNumber(item.count)} transaction row(s)</li>
+          `).join("")
+        : "<li>No program records found.</li>";
+    }
+
+    function destroyChart(id) {
+      if (state.charts[id]) {
+        state.charts[id].destroy();
+        delete state.charts[id];
+      }
+    }
+
+    function renderGroupedBarChart({ chartKey, canvasId, rows, field, mode = "count", color, label }) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const key = row[field] || "Unspecified";
+        const current = map.get(key) || 0;
+        map.set(key, mode === "sum" ? current + (row.amount || 0) : current + 1);
+      });
+
+      const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+      const labels = sorted.length ? sorted.map((x) => x[0]) : ["No data"];
+      const values = sorted.length ? sorted.map((x) => x[1]) : [0];
+
+      destroyChart(chartKey);
+      const ctx = document.getElementById(canvasId);
+      state.charts[chartKey] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data: values,
+            borderWidth: 0,
+            borderRadius: 6,
+            backgroundColor: color
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              ticks: { color: "#64748b", font: { size: 10 } },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: {
+                color: "#64748b",
+                font: { size: 10 },
+                callback: mode === "sum"
+                  ? (value) => `$${formatNumberOneDecimal(value)}M`
+                  : (value) => formatNumber(value)
+              },
+              grid: { color: "rgba(148, 163, 184, 0.18)" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTransactionTypeMixChart() {
+      const map = new Map();
+      state.transactions.forEach((row) => {
+        const key = row.transactionType || "Unspecified";
+        map.set(key, (map.get(key) || 0) + 1);
+      });
+      const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+      const labels = sorted.length ? sorted.map((x) => x[0]) : ["No data"];
+      const values = sorted.length ? sorted.map((x) => x[1]) : [1];
+
+      destroyChart("transactionTypeMix");
+      const ctx = document.getElementById("chart-transaction-type-mix");
+      state.charts.transactionTypeMix = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            borderWidth: 1,
+            borderColor: "#ffffff",
+            backgroundColor: ["#4f8d7a", "#4b7ea8", "#b08a4c", "#7d78a8", "#a0617f", "#94a3b8", "#8b5e3c"]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { boxWidth: 12, color: "#334155", font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderCharts() {
+      renderGroupedBarChart({
+        chartKey: "streamTransactions",
+        canvasId: "chart-stream-transactions",
+        rows: state.transactions,
+        field: "stream",
+        mode: "count",
+        color: "rgba(75, 126, 168, 0.78)",
+        label: "Transactions"
+      });
+
+      renderGroupedBarChart({
+        chartKey: "sourceAmount",
+        canvasId: "chart-source-amount",
+        rows: state.transactions,
+        field: "fundingSource",
+        mode: "sum",
+        color: "rgba(91, 63, 183, 0.75)",
+        label: "Amount ($M)"
+      });
+
+      renderGroupedBarChart({
+        chartKey: "pillarTransactions",
+        canvasId: "chart-pillar-transactions",
+        rows: state.transactions,
+        field: "pillar",
+        mode: "count",
+        color: "rgba(79, 141, 122, 0.8)",
+        label: "Transactions"
+      });
+
+      renderGroupedBarChart({
+        chartKey: "themeTransactions",
+        canvasId: "chart-theme-transactions",
+        rows: state.transactions,
+        field: "theme",
+        mode: "count",
+        color: "rgba(176, 138, 76, 0.8)",
+        label: "Transactions"
+      });
+
+      renderTransactionTypeMixChart();
+    }
+
+    function fillSelect(selectEl, values, defaultLabel) {
+      const options = [`<option value="__all__">${escapeHtml(defaultLabel)}</option>`]
+        .concat(values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`));
+      selectEl.innerHTML = options.join("");
+    }
+
+    function initializeFilters() {
+      const streams = Array.from(new Set(state.programs.map((p) => p.stream).concat(state.transactions.map((r) => r.stream))))
+        .sort((a, b) => a.localeCompare(b));
+      const sources = Array.from(new Set(state.programs.map((p) => p.fundingSource).concat(state.transactions.map((r) => r.fundingSource))))
+        .sort((a, b) => a.localeCompare(b));
+      const transactionTypes = Array.from(new Set(state.transactions.map((r) => r.transactionType))).sort((a, b) => a.localeCompare(b));
+
+      fillSelect(document.getElementById("filter-stream"), streams, "All Streams");
+      fillSelect(document.getElementById("filter-source"), sources, "All Funding Sources");
+      fillSelect(document.getElementById("filter-transaction"), transactionTypes, "All Transaction Types");
+
+      const programSelect = document.getElementById("filter-program");
+      programSelect.innerHTML = [
+        "<option value=\"__all__\">All Programs</option>",
+        ...state.programs.map((p) => `<option value="${escapeHtml(p.programId)}">${escapeHtml(`${p.programId} - ${p.programName}`)}</option>`),
+        "<option value=\"__unmapped__\">(Unmapped rows)</option>"
+      ].join("");
+
+      document.getElementById("filter-stream").addEventListener("change", applyFilters);
+      document.getElementById("filter-program").addEventListener("change", applyFilters);
+      document.getElementById("filter-source").addEventListener("change", applyFilters);
+      document.getElementById("filter-transaction").addEventListener("change", applyFilters);
+      document.getElementById("filter-search").addEventListener("input", applyFilters);
+      document.getElementById("reset-filters").addEventListener("click", resetFilters);
+    }
+
+    function resetFilters() {
+      document.getElementById("filter-stream").value = "__all__";
+      document.getElementById("filter-program").value = "__all__";
+      document.getElementById("filter-source").value = "__all__";
+      document.getElementById("filter-transaction").value = "__all__";
+      document.getElementById("filter-search").value = "";
+      applyFilters();
+    }
+
+    function applyFilters() {
+      const stream = document.getElementById("filter-stream").value;
+      const program = document.getElementById("filter-program").value;
+      const source = document.getElementById("filter-source").value;
+      const transactionType = document.getElementById("filter-transaction").value;
+      const search = String(document.getElementById("filter-search").value || "").trim().toLowerCase();
+
+      state.filteredTransactions = state.transactions.filter((row) => {
+        if (stream !== "__all__" && row.stream !== stream) return false;
+
+        if (program === "__unmapped__" && row.mapped) return false;
+        if (program !== "__all__" && program !== "__unmapped__" && row.programId !== program) return false;
+
+        if (source !== "__all__" && row.fundingSource !== source) return false;
+        if (transactionType !== "__all__" && row.transactionType !== transactionType) return false;
+
+        if (search) {
+          const blob = [
+            row.announcementId, row.programId, row.programName, row.stream, row.pillar, row.theme,
+            row.fundingSource, row.transactionType, row.sourceDetail, row.region, row.sector, row.note
+          ].join(" ").toLowerCase();
+          if (!blob.includes(search)) return false;
+        }
+
+        return true;
+      });
+
+      renderTable(state.filteredTransactions);
+    }
+
+    function renderTable(rows) {
+      const tbody = document.getElementById("tracker-table-body");
+      if (!rows.length) {
+        tbody.innerHTML = "<tr><td class=\"empty-row\" colspan=\"15\">No transactions match current filters.</td></tr>";
+      } else {
+        tbody.innerHTML = rows.map((row) => `
+          <tr>
+            <td>${escapeHtml(row.announcementId)}</td>
+            <td>${escapeHtml(row.programId)}</td>
+            <td>${escapeHtml(row.programName)}</td>
+            <td>${escapeHtml(row.stream)}</td>
+            <td>${escapeHtml(row.pillar)}</td>
+            <td>${escapeHtml(row.theme)}</td>
+            <td>${escapeHtml(row.fundingSource)}</td>
+            <td><span class="chip ${commitmentChipClass(row.commitmentStatus)}">${escapeHtml(row.commitmentStatus)}</span></td>
+            <td>${escapeHtml(row.transactionType)}</td>
+            <td>${row.amount === null ? "-" : escapeHtml(formatNumberOneDecimal(row.amount))}</td>
+            <td>${escapeHtml(row.date)}</td>
+            <td>${escapeHtml(row.sourceDetail)}</td>
+            <td>${escapeHtml(row.region)}</td>
+            <td>${escapeHtml(row.sector)}</td>
+            <td>${escapeHtml(row.note)}</td>
+          </tr>
+        `).join("");
+      }
+
+      document.getElementById("table-meta").textContent =
+        `Showing ${formatNumber(rows.length)} of ${formatNumber(state.transactions.length)} transaction row(s).`;
+    }
+
+    async function loadData() {
+      setStatus("Loading funding datasets...", false);
+      try {
+        const [programText, transactionText] = await Promise.all([
+          fetchCsvWithFallback(DATA_FILES.programs, "Funding Programs dataset"),
+          fetchCsvWithFallback(DATA_FILES.transactions, "Funding Programs Transactions dataset")
+        ]);
+
+        state.programs = normalizePrograms(parseCsv(programText));
+        state.programById = new Map(state.programs.map((p) => [p.programId, p]));
+        state.transactions = normalizeTransactions(parseCsv(transactionText));
+
+        const summary = computeSummary();
+        renderKpis(summary);
+        renderAttentionLists(summary);
+        renderCharts();
+        initializeFilters();
+        resetFilters();
+        hideStatus();
+      } catch (error) {
+        console.error(error);
+        setStatus(`Could not load LW Funding and Investment Tracker data. ${error.message}`, true);
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

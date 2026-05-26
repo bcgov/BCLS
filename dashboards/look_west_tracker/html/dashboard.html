@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Look West Tracker</title>
+  <style>
+    :root {
+      --navy: #003366;
+      --gold: #FCBA19;
+      --bg: #EEF2F7;
+      --surface: #FFFFFF;
+      --border: #E2E8F0;
+      --text: #1A202C;
+      --muted: #718096;
+      --accent: #5B3FB7;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,.12);
+      --radius: 10px;
+      --radius-lg: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 22px;
+    }
+
+    .tracker-view { display: none; }
+    .tracker-view.active { display: block; }
+
+    .tracker-hub-header {
+      background: linear-gradient(135deg, #5B3FB7 0%, #3D2F8C 100%);
+      border-radius: var(--radius-lg);
+      padding: 30px 34px;
+      color: #fff;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .tracker-hub-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      margin-bottom: 6px;
+    }
+
+    .tracker-hub-sub {
+      font-size: 13px;
+      opacity: 0.8;
+      line-height: 1.55;
+      max-width: 560px;
+    }
+
+    .tracker-hub-stats {
+      display: flex;
+      gap: 26px;
+      flex-shrink: 0;
+    }
+
+    .hub-stat-val { font-size: 34px; font-weight: 800; line-height: 1; }
+    .hub-stat-lbl { font-size: 11px; opacity: 0.7; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+    .tracker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 18px;
+    }
+
+    .tracker-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .tracker-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .tracker-card-stripe { height: 5px; background: var(--trk-color, var(--accent)); }
+    .tracker-card-body { padding: 18px 20px 16px; }
+
+    .trk-code {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--trk-color, var(--accent)) 14%, white);
+      color: var(--trk-color, var(--accent));
+      border: 1px solid color-mix(in srgb, var(--trk-color, var(--accent)) 34%, white);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      margin-bottom: 12px;
+    }
+
+    .trk-name { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 5px; line-height: 1.4; }
+    .trk-sub {
+      font-size: 11px;
+      color: color-mix(in srgb, var(--trk-color, var(--accent)) 78%, #334155);
+      font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.45;
+    }
+    .trk-desc {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.55;
+      min-height: 86px;
+      margin-bottom: 4px;
+    }
+
+    .detail-top {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 10px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .back-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: #334155;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .back-btn:hover { background: #F8FAFC; }
+
+    .crumb {
+      font-size: 13px;
+      color: #64748B;
+    }
+
+    .crumb strong { color: var(--navy); }
+
+    .detail-frame-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    #tracker-frame {
+      width: 100%;
+      border: 0;
+      min-height: 760px;
+      display: block;
+    }
+
+    @media (max-width: 900px) {
+      .tracker-hub-stats { display: none; }
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 14px; }
+      .tracker-hub-header { padding: 22px; margin-bottom: 18px; }
+      #tracker-frame { min-height: 920px; }
+    }
+  </style>
+</head>
+<body>
+  <section class="tracker-view active" id="tracker-hub-view">
+    <div class="tracker-hub-header">
+      <div>
+        <div class="tracker-hub-title">Look West Tracker</div>
+        <div class="tracker-hub-sub">
+        A dedicated workspace for Look West monitoring streams. Select a tracker page below to view and manage records.
+        </div>
+      </div>
+      <div class="tracker-hub-stats">
+        <div>
+          <div class="hub-stat-val" id="tracker-total-stat">5</div>
+          <div class="hub-stat-lbl">Tracker Pages</div>
+        </div>
+        <div>
+          <div class="hub-stat-val" id="tracker-ready-stat">5</div>
+          <div class="hub-stat-lbl">Ready</div>
+        </div>
+      </div>
+    </div>
+    <div class="tracker-grid" id="tracker-grid"></div>
+  </section>
+
+  <section class="tracker-view" id="tracker-detail-view">
+    <div class="detail-top">
+      <button class="back-btn" type="button" id="back-to-hub">Back to All Tracker Pages</button>
+      <div class="crumb">Look West Tracker / <strong id="tracker-detail-title">-</strong></div>
+    </div>
+    <div class="detail-frame-wrap">
+      <iframe id="tracker-frame" title="Look West Tracker Page" scrolling="no"></iframe>
+    </div>
+  </section>
+
+  <script>
+    const TRACKER_PAGES = [
+      {
+        id: 'targets',
+        code: 'TG',
+        title: 'LW Targets Tracker',
+        color: '#5B3FB7',
+        status: 'live',
+        subtitle: 'Outcome targets, baselines, and progress cadence',
+        description: 'Tracks target statements with baseline and current values, linked tracking activity, and update coverage by stream, pillar, theme, sector, and timeframe.',
+        path: 'pages/lw_targets_tracker.html'
+      },
+      {
+        id: 'policy-regulation',
+        code: 'PR',
+        title: 'LW Policy & Regulations Tracker',
+        color: '#1F78A8',
+        status: 'live',
+        subtitle: 'Policy and regulatory implementation lifecycle',
+        description: 'Monitors policy and regulation items from commitment to implementation, including status changes, accountable ministries, timing, and linked announcement evidence.',
+        path: 'pages/lw_policy_regulations_tracker.html'
+      },
+      {
+        id: 'funding-investment',
+        code: 'FI',
+        title: 'LW Funding and Investment Tracker',
+        color: '#2E8B7D',
+        status: 'live',
+        subtitle: 'Program allocations and transaction flow',
+        description: 'Follows funding programs from planned envelopes to transaction-level updates, including recipients, sectors, regions, and reported economic outcomes.',
+        path: 'pages/lw_funding_investment_tracker.html'
+      },
+      {
+        id: 'infrastructure',
+        code: 'IN',
+        title: 'LW Infrastructure Tracker',
+        color: '#C96A2A',
+        status: 'live',
+        subtitle: 'Delivery pipeline, milestones, and blockers',
+        description: 'Tracks infrastructure initiatives across planning, procurement, and delivery phases, with milestone movement, transaction history, and implementation constraints.',
+        path: 'pages/lw_infrastructure_tracker.html'
+      },
+      {
+        id: 'investment-promotion',
+        code: 'IP',
+        title: 'LW Investment Promotion Tracker',
+        color: '#A63D6E',
+        status: 'live',
+        subtitle: 'Pipeline conversion and promotion outcomes',
+        description: 'Reviews investment promotion activity from lead generation to conversion, including project pipeline changes, ministry actions, and realized investment signals.',
+        path: 'pages/lw_investment_promotion_tracker.html'
+      }
+    ];
+
+    const hubView = document.getElementById('tracker-hub-view');
+    const detailView = document.getElementById('tracker-detail-view');
+    const grid = document.getElementById('tracker-grid');
+    const frame = document.getElementById('tracker-frame');
+    const detailTitle = document.getElementById('tracker-detail-title');
+
+    function updateRoute(pageId) {
+      const url = new URL(window.location.href);
+      if (pageId) {
+        url.searchParams.set('page', pageId);
+      } else {
+        url.searchParams.delete('page');
+      }
+      window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+    }
+
+    function fitFrameHeight() {
+      try {
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        if (!doc) return;
+        const body = doc.body;
+        const html = doc.documentElement;
+        const h = Math.max(
+          body ? body.scrollHeight : 0,
+          body ? body.offsetHeight : 0,
+          html ? html.clientHeight : 0,
+          html ? html.scrollHeight : 0,
+          html ? html.offsetHeight : 0
+        );
+        if (h > 0) frame.style.height = (h + 18) + 'px';
+      } catch (_) {}
+    }
+
+    frame.addEventListener('load', () => {
+      fitFrameHeight();
+      setTimeout(fitFrameHeight, 120);
+      setTimeout(fitFrameHeight, 500);
+      setTimeout(fitFrameHeight, 1200);
+    });
+
+    setInterval(fitFrameHeight, 1200);
+
+    function showHub() {
+      hubView.classList.add('active');
+      detailView.classList.remove('active');
+      frame.removeAttribute('src');
+      updateRoute('');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showDetail(pageId) {
+      const item = TRACKER_PAGES.find((p) => p.id === pageId);
+      if (!item) {
+        showHub();
+        return;
+      }
+      detailTitle.textContent = item.title;
+      frame.src = item.path;
+      hubView.classList.remove('active');
+      detailView.classList.add('active');
+      updateRoute(pageId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateHubStats() {
+      const total = TRACKER_PAGES.length;
+      const ready = TRACKER_PAGES.filter((p) => p.status === 'live').length;
+      const totalEl = document.getElementById('tracker-total-stat');
+      const readyEl = document.getElementById('tracker-ready-stat');
+      if (totalEl) totalEl.textContent = String(total);
+      if (readyEl) readyEl.textContent = String(ready);
+    }
+
+    function renderGrid() {
+      grid.innerHTML = TRACKER_PAGES.map((item) => {
+        return `
+          <article class="tracker-card" data-page-id="${item.id}" style="--trk-color:${item.color || '#5B3FB7'};">
+            <div class="tracker-card-stripe"></div>
+            <div class="tracker-card-body">
+              <span class="trk-code">${item.code || '--'}</span>
+              <h3 class="trk-name">${item.title}</h3>
+              <p class="trk-sub">${item.subtitle || ''}</p>
+              <p class="trk-desc">${item.description}</p>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      grid.querySelectorAll('.tracker-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          const pageId = card.getAttribute('data-page-id');
+          showDetail(pageId);
+        });
+      });
+    }
+
+    document.getElementById('back-to-hub').addEventListener('click', showHub);
+
+    renderGrid();
+    updateHubStats();
+
+    const initialPage = new URLSearchParams(window.location.search).get('page');
+    if (initialPage) {
+      showDetail(initialPage);
+    }
+  </script>
+</body>
+</html>

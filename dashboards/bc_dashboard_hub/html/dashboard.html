@@ -36,6 +36,7 @@ body {
   /* Section colors */
   --c-macro:    #1565C0;
   --c-strategy: #00796B;
+  --c-tracker:  #5B3FB7;
   --c-sectors:  #4527A0;
   --c-projects: #BF360C;
   /* Active accent (updated by JS) */
@@ -599,6 +600,15 @@ body {
     <button class="nav-btn" data-section="strategy" onclick="navigate('strategy')">
       Look West Strategy
     </button>
+    <div class="nav-dropdown-wrap">
+      <button class="nav-btn" data-section="tracker" onclick="navigateTrackerHub()">
+        Look West Tracker
+        <span class="nav-chevron">v</span>
+      </button>
+      <div class="nav-dropdown" id="tracker-dd">
+        <!-- filled by JS -->
+      </div>
+    </div>
 
     <div class="nav-dropdown-wrap">
       <button class="nav-btn" data-section="sectors" onclick="navigate('sectors')">
@@ -660,6 +670,13 @@ body {
     <div class="section-wrap">
       <div class="dashboard-iframe-wrap">
         <iframe class="dashboard-iframe" src="../../look_west_strategy/html/dashboard.html" title="Look West Strategy Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
+      </div>
+    </div>
+  </section>
+  <section class="section-panel" id="panel-tracker">
+    <div class="section-wrap">
+      <div class="dashboard-iframe-wrap">
+        <iframe id="tracker-frame" class="dashboard-iframe" src="../../look_west_tracker/html/dashboard.html" title="Look West Tracker Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
       </div>
     </div>
   </section>
@@ -765,7 +782,7 @@ const SECTORS = [
   },
   {
     id: 'tourism', name: 'Tourism',
-    icon: 'TR', color: '#EC4899', status: 'planned',
+    icon: 'TR', color: '#EC4899', status: 'live',
     desc: 'Visitor economy, hospitality and destination development',
     excel: 'data/sectors/tourism/Tourism.xlsx',
     dashboard: '../../sectors/tourism/html/dashboard.html'
@@ -798,12 +815,21 @@ function getVisibleSectors() {
   return SECTORS.filter(s => !HIDDEN_SECTOR_IDS.has(s.id));
 }
 
+const TRACKER_PAGES = [
+  { id: 'targets', name: 'LW Targets Tracker', icon: 'TG' },
+  { id: 'policy-regulation', name: 'LW Policy & Regulations Tracker', icon: 'PR' },
+  { id: 'funding-investment', name: 'LW Funding and Investment Tracker', icon: 'FI' },
+  { id: 'infrastructure', name: 'LW Infrastructure Tracker', icon: 'IN' },
+  { id: 'investment-promotion', name: 'LW Investment Promotion Tracker', icon: 'IP' }
+];
+
 /* Section metadata */
 const SECTIONS = {
   macro:          { label: 'Macro Economy',      color: '#1565C0' },
   outlook:        { label: 'B.C. Economy Outlook', color: '#0F4C81' },
   trade:          { label: 'B.C. Trade Analysis', color: '#00695C' },
   strategy:       { label: 'Look West Strategy', color: '#00796B' },
+  tracker:        { label: 'Look West Tracker',  color: '#5B3FB7' },
   sectors:        { label: 'Sectors',            color: '#4527A0' },
   'sector-detail':{ label: 'Sector',             color: '#4527A0' },
   projects:       { label: 'Projects',           color: '#BF360C' },
@@ -812,7 +838,7 @@ const SECTIONS = {
 /* ══════════════════════════════════════════════════════════════════════════
    APP STATE
 ══════════════════════════════════════════════════════════════════════════ */
-const APP = { section: 'macro', sector: null, data: {} };
+const APP = { section: 'macro', sector: null, trackerPage: null, data: {} };
 
 function normalizeSectionId(raw) {
   const s = String(raw || '').trim().toLowerCase().replace(/_/g, '-');
@@ -821,16 +847,25 @@ function normalizeSectionId(raw) {
   return s || 'macro';
 }
 
+function normalizeTrackerPageId(raw) {
+  const id = String(raw || '').trim().toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-');
+  return TRACKER_PAGES.some(p => p.id === id) ? id : '';
+}
+
 function updateRouteQuery(section, sectorId) {
   try {
     const url = new URL(window.location.href);
     const cleanSection = normalizeSectionId(section);
+    const trackerPage = normalizeTrackerPageId(APP.trackerPage);
 
     if (cleanSection && cleanSection !== 'macro') url.searchParams.set('section', cleanSection);
     else url.searchParams.delete('section');
 
     if (cleanSection === 'sector-detail' && sectorId) url.searchParams.set('sector', sectorId);
     else url.searchParams.delete('sector');
+
+    if (cleanSection === 'tracker' && trackerPage) url.searchParams.set('trackerPage', trackerPage);
+    else url.searchParams.delete('trackerPage');
 
     url.searchParams.delete('standalone');
     const next = url.pathname + (url.search || '') + (url.hash || '');
@@ -842,7 +877,8 @@ function getInitialRoute() {
   const params = new URLSearchParams(window.location.search || '');
   const section = normalizeSectionId(params.get('section'));
   const sector = String(params.get('sector') || '').trim();
-  return { section, sector };
+  const trackerPage = normalizeTrackerPageId(params.get('trackerPage'));
+  return { section, sector, trackerPage };
 }
 
 function fitEmbeddedFrameHeight(frame) {
@@ -893,6 +929,7 @@ function navigate(section, sectorId) {
   section = normalizeSectionId(section);
   APP.section = section;
   APP.sector  = sectorId || null;
+  if (section !== 'tracker') APP.trackerPage = null;
   updateRouteQuery(section, sectorId);
 
   /* -- accent color -- */
@@ -943,6 +980,27 @@ function navigate(section, sectorId) {
   setTimeout(fitVisibleFrames, 80);
 }
 
+function setTrackerFramePage(pageId) {
+  const frame = document.getElementById('tracker-frame');
+  if (!frame) return;
+  const cleanPage = normalizeTrackerPageId(pageId);
+  const base = '../../look_west_tracker/html/dashboard.html';
+  frame.src = cleanPage ? `${base}?page=${encodeURIComponent(cleanPage)}` : base;
+}
+
+function navigateTrackerHub() {
+  APP.trackerPage = null;
+  setTrackerFramePage('');
+  navigate('tracker');
+}
+
+function navigateTrackerPage(pageId) {
+  const cleanPage = normalizeTrackerPageId(pageId);
+  APP.trackerPage = cleanPage || null;
+  setTrackerFramePage(cleanPage);
+  navigate('tracker');
+}
+
 /* ══════════════════════════════════════════════════════════════════════════
    SECTORS DROPDOWN
 ══════════════════════════════════════════════════════════════════════════ */
@@ -964,6 +1022,24 @@ function buildSectorsDropdown() {
       <span class="dd-icon">${sectorIconHtml(s, 'dd-icon-img')}</span>
       <span class="dd-name">${s.name}</span>
       <span class="dd-dot ${s.status}"></span>
+    `;
+    dd.appendChild(item);
+  });
+}
+
+function buildTrackerDropdown() {
+  const dd = document.getElementById('tracker-dd');
+  if (!dd) return;
+  dd.innerHTML = '';
+
+  TRACKER_PAGES.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'nav-dd-item';
+    item.onclick = () => navigateTrackerPage(p.id);
+    item.innerHTML = `
+      <span class="dd-icon">${p.icon}</span>
+      <span class="dd-name">${p.name}</span>
+      <span class="dd-dot live"></span>
     `;
     dd.appendChild(item);
   });
@@ -1008,7 +1084,7 @@ function renderSectorDetail(sectorId) {
   const wrap = document.getElementById('sector-detail-wrap');
   if (!wrap) return;
 
-  const hasDashboard = !!s.dashboard;
+  const hasDashboard = !!s.dashboard && s.status === 'live';
 
   wrap.innerHTML = `
     <!-- Banner -->
@@ -1088,14 +1164,7 @@ function renderSectorDevPlaceholder(s) {
   return `
     <div class="coming-soon-wrap">
       <div class="coming-soon">
-        <span style="font-size:60px;">${s.icon}</span>
-        <span class="cs-phase" style="background:#DBEAFE;color:#1D4ED8;">Phase 4 — In Development</span>
-        <span class="cs-title">${s.name} Dashboard</span>
-        <p class="cs-body">
-          This sector dashboard is being built in Phase 4. It will include economic KPIs,
-          Look West strategy goals, initiative tracking, evidence library, and sector-specific
-          charts — powered by <strong>${s.excel}</strong>.
-        </p>
+        <span class="cs-title">Coming soon!</span>
       </div>
     </div>
   `;
@@ -1553,6 +1622,7 @@ function init() {
   });
 
   /* Build navigation components */
+  buildTrackerDropdown();
   buildSectorsDropdown();
   buildSectorsGrid();
 
@@ -1571,6 +1641,9 @@ function init() {
     const exists = visibleSectors.some(s => s.id === route.sector);
     if (exists) navigate('sector-detail', route.sector);
     else navigate('sectors');
+  } else if (route.section === 'tracker') {
+    if (route.trackerPage) navigateTrackerPage(route.trackerPage);
+    else navigateTrackerHub();
   } else if (SECTIONS[route.section]) {
     navigate(route.section);
   } else {
@@ -1584,3 +1657,4 @@ document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
+

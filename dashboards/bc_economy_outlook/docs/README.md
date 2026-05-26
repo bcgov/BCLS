@@ -5,6 +5,6 @@
 - Data source files:
   - `C:/Users/mehdi/BCLS/data/ourlook_annual_forecast.csv`
   - `C:/Users/mehdi/BCLS/data/ourlook_quarterly_conditions_2025.csv`
-  - `C:/Users/mehdi/BCLS/data/bc_economy_outlook/outlook_metadata.json`
+  - Optional: `C:/Users/mehdi/BCLS/data/outlook_metadata.json`
 
 This page is intentionally dataset-driven for manual quarterly refresh.

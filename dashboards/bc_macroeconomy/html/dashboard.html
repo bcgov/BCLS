@@ -830,14 +830,14 @@ body {
       <!-- Industry movers table -->
       <div class="card" style="margin-bottom:20px;">
         <div class="movers-toolbar">
-          <div class="movers-title">Top Job Gainers / Losers (Month-over-Month)</div>
+          <div class="movers-title">Top 5 Expanded and Contracted Industries (Month-over-Month)</div>
           <div class="movers-controls">
             <label for="industry-month">Selected month</label>
             <select id="industry-month" onchange="renderIndustryMoversTable()"></select>
           </div>
         </div>
         <div class="movers-note" id="industry-movers-note">
-          First 5 rows: top job gainers. Last 5 rows: top job losers (final row is the largest job loss).
+          First 5 rows: top expanded industries. Last 5 rows: top contracted industries (final row is the largest contraction).
         </div>
         <div class="movers-wrap">
           <div id="industry-movers-empty" class="movers-empty">No industry movers data loaded. Click <strong>Update Data</strong>.</div>
@@ -848,7 +848,7 @@ body {
                 <th>Goods/Services</th>
                 <th>Industry</th>
                 <th>Employment</th>
-                <th>Job Gains/Losses</th>
+                <th>Employment Change</th>
                 <th>Employment Growth</th>
                 <th>Rank</th>
               </tr>
@@ -1950,7 +1950,7 @@ function renderIndustryMoversTable() {
   rows.sort((a,b) => b.delta - a.delta);
   const gainers = rows.filter(r => r.delta > 0).slice(0, 5);
   const losersRaw = rows.filter(r => r.delta < 0).sort((a,b) => a.delta - b.delta).slice(0, 5);
-  const losers = losersRaw.slice().reverse(); // final row = biggest job loss
+  const losers = losersRaw.slice().reverse(); // final row = largest contraction
 
   const goodsSet = new Set([
     'Agriculture',
@@ -1964,8 +1964,8 @@ function renderIndustryMoversTable() {
   }
 
   const out = [];
-  gainers.forEach((r, i) => out.push({ ...r, goodsServices: goodsOrServices(r.name), rank:`${ord(i+1)} Job Gainer`, rowClass:'row-gainer', rankClass:'rank-gainer' }));
-  losers.forEach((r, i) => out.push({ ...r, goodsServices: goodsOrServices(r.name), rank:`${ord(5-i)} Job Loser`, rowClass:'row-loser', rankClass:'rank-loser' }));
+  gainers.forEach((r, i) => out.push({ ...r, goodsServices: goodsOrServices(r.name), rank:`${ord(i+1)} Expanded`, rowClass:'row-gainer', rankClass:'rank-gainer' }));
+  losers.forEach((r, i) => out.push({ ...r, goodsServices: goodsOrServices(r.name), rank:`${ord(5-i)} Contracted`, rowClass:'row-loser', rankClass:'rank-loser' }));
 
   function deltaClass(d) {
     if (d > 0) return 'num-up';

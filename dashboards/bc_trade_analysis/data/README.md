@@ -1,7 +1,10 @@
 # Data
 
-`trade_composition_sample.json` was moved to:
-`C:/Users/smehd/BCLS/data/bc_trade_analysis/trade_composition_sample.json`.
+This dashboard can read trade composition JSON from:
+- `C:/Users/mehdi/BCLS/data/trade_composition_sample.json`
+
+If the external file is missing, it automatically falls back to:
+- `dashboards/bc_trade_analysis/html/trade_composition_embedded.js`
 
 Source references:
 - Statistics Canada `36-10-0709-01`

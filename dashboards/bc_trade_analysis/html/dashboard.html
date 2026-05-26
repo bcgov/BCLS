@@ -19,6 +19,7 @@
   <title>B.C. Trade Composition</title>
   <script src="../../../shared/vendor/chart.umd.min.js"></script>
   <script src="../../../shared/vendor/chartjs-chart-treemap.min.js"></script>
+  <script src="./trade_composition_embedded.js"></script>
   <style>
     :root {
       --bg: #f3f7fc;
@@ -236,10 +237,15 @@
 
   <script>
     const DATA_URLS = [
+      'http://localhost:8080/data/trade_composition_sample.json?v=20260408a',
+      '/data/trade_composition_sample.json?v=20260408a',
+      '../../../data/trade_composition_sample.json?v=20260408a',
+      '../data/trade_composition_sample.json?v=20260408a',
       'http://localhost:8080/data/bc_trade_analysis/trade_composition_sample.json?v=20260408a',
       '/data/bc_trade_analysis/trade_composition_sample.json?v=20260408a',
       '../../../data/bc_trade_analysis/trade_composition_sample.json?v=20260408a'
     ];
+    const EMBEDDED_TRADE_DATA = window.__TRADE_COMPOSITION_EMBEDDED__ || null;
     const REGION_COLORS = {
       'North America': '#1f77b4',
       'Asia-Pacific': '#2ca02c',
@@ -297,6 +303,7 @@
             lastErr = e;
           }
         }
+        if (!APP.data && EMBEDDED_TRADE_DATA) APP.data = EMBEDDED_TRADE_DATA;
         if (!APP.data) throw lastErr || new Error('No trade composition data source responded.');
         const years = APP.data.years || [];
         const min = Math.min(...years), max = Math.max(...years);
