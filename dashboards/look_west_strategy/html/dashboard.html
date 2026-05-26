@@ -324,6 +324,7 @@
       gap: 16px;
     }
     .lw-chart-card { padding: 18px; }
+    .lw-chart-card-wide { grid-column: span 2; }
     .lw-chart-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--text); }
     .lw-chart-subtitle { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
     .lw-chart-container { position: relative; height: 230px; }
@@ -359,6 +360,7 @@
     .lw-btn-secondary:hover { background: #f7fafc; }
     @media (max-width: 860px) {
       .lw-charts-grid { grid-template-columns: 1fr; }
+      .lw-chart-card-wide { grid-column: span 1; }
     }
   </style>
 </head>
@@ -390,7 +392,6 @@
     <div class="lw-section" id="lw-funding-charts-section" style="display:none">
       <div class="lw-section-head">
         <h2>Investment and Project Pipeline</h2>
-        <span class="sh-sub">Separate charts per dataset with independent quantitative breakdowns</span>
         <button class="chart-settings-btn" onclick="lwToggleChartPanel()">
           &#9881; Select Charts
         </button>
@@ -1048,7 +1049,8 @@
 
     const LW_CHART_DEFS = [
       { id: 'funding-programs', title: 'Funding Programs: Total Commitment by Funding Source ($M)' },
-      { id: 'funding-programs-donut', title: 'Funding Programs: Commitment Share by Pillar' },
+      { id: 'funding-programs-donut', title: 'Funding Programs: Total Commitment by Funding Source ($M)' },
+      { id: 'funding-programs-horizontal', title: 'Funding Programs: Commitment by Program and Type ($M)' },
       { id: 'infrastructures', title: 'Infrastructures: Estimated Value by Category ($M)' },
       { id: 'infrastructures-horizontal', title: 'Infrastructures: Estimated Value by Region ($M)' },
       { id: 'investment-promotion', title: 'Investment Promotion: Estimated Value by Sector ($M)' },
@@ -1118,6 +1120,13 @@
       return s || (fallback || 'Unspecified');
     }
 
+    function lwFundingSourceBucket(value) {
+      const s = normalizeText(value).toLowerCase();
+      if (s.includes('provincial')) return 'Provincial contribution';
+      if (s.includes('federal')) return 'Federal contribution';
+      return 'Other contributions';
+    }
+
     function lwBuildStackedData(rows, groupAccessor, seriesAccessor, valueAccessor, limit) {
       const grouped = new Map();
       const seriesSet = new Set();
@@ -1177,6 +1186,26 @@
       };
     }
 
+    function lwWrapLabel(text, maxChars) {
+      const src = String(text || '').trim();
+      const limit = Number(maxChars) > 8 ? Number(maxChars) : 26;
+      if (!src) return '';
+      const words = src.split(/\s+/);
+      const lines = [];
+      let line = '';
+      words.forEach((w) => {
+        const next = line ? `${line} ${w}` : w;
+        if (next.length <= limit) {
+          line = next;
+        } else {
+          if (line) lines.push(line);
+          line = w;
+        }
+      });
+      if (line) lines.push(line);
+      return lines.length > 1 ? lines : src;
+    }
+
     function lwRenderNoData(el, message) {
       const wrap = el && el.parentElement;
       if (!wrap) return;
@@ -1191,6 +1220,7 @@
       }
       const moneyMode = cfg.moneyMode === true;
       const horizontal = cfg.horizontal === true;
+      const legendPosition = cfg.legendPosition || 'bottom';
       new Chart(el, {
         type: 'bar',
         data: {
@@ -1201,7 +1231,7 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            legend: { position: legendPosition, labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
             tooltip: {
               callbacks: {
                 label: (ctx) => {
@@ -1354,13 +1384,15 @@
       Chart.defaults.color = '#5f7388';
 
       /* Build visible chart cards */
-      grid.innerHTML = LW_CHART_DEFS.filter(c => lwIsChartShown(c.id)).map(c => `
-        <div class="card lw-chart-card">
+      grid.innerHTML = LW_CHART_DEFS.filter(c => lwIsChartShown(c.id)).map(c => {
+        const extraClass = c.id === 'funding-programs-horizontal' ? ' lw-chart-card-wide' : '';
+        return `
+        <div class="card lw-chart-card${extraClass}">
           <div class="lw-chart-title">${c.title}</div>
-          <div class="lw-chart-subtitle">${lwChartSubtitle(c.id)}</div>
           <div class="lw-chart-container"><canvas id="lw-chart-${c.id}"></canvas></div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       LW_CHART_DEFS.forEach(c => {
         if (!lwIsChartShown(c.id)) return;
@@ -1374,8 +1406,9 @@
     }
 
     function lwChartSubtitle(id) {
-      if (id === 'funding-programs') return 'Funding Programs only · breakdown: Lead Funding Source × Pillar';
-      if (id === 'funding-programs-donut') return 'Funding Programs only · commitment share by pillar (doughnut)';
+      if (id === 'funding-programs') return 'Funding Programs only · grouped by Federal, Provincial, and Other contributions';
+      if (id === 'funding-programs-donut') return '';
+      if (id === 'funding-programs-horizontal') return '';
       if (id === 'infrastructures') return 'Infrastructures only · breakdown: Category × Funding Source';
       if (id === 'infrastructures-horizontal') return 'Infrastructures only · top regions by estimated value (horizontal bar)';
       if (id === 'investment-promotion') return 'Investment Promotion only · breakdown: Sector × Status';
@@ -1392,26 +1425,89 @@
     function lwBuildChart(id, el) {
       if (id === 'funding-programs') {
         const rows = STATE.fundingPrograms || [];
-        const data = lwBuildStackedData(
+        const series = lwBuildSeriesData(
           rows,
-          r => getField(r, ['Lead Funding Source']),
-          r => getField(r, ['Pillar.lookupValue', 'Pillar']),
+          r => lwFundingSourceBucket(getField(r, ['Lead Funding Source'])),
           r => parseNumber(getField(r, ['Total Commitment Value'])) || 0,
           10
         );
+        const order = ['Provincial contribution', 'Federal contribution', 'Other contributions'];
+        const valueMap = {};
+        series.labels.forEach((label, idx) => { valueMap[label] = Number(series.data[idx]) || 0; });
+        const data = {
+          labels: order,
+          datasets: [{
+            label: 'Total Commitment ($M)',
+            data: order.map((k) => Math.round(valueMap[k] || 0)),
+            backgroundColor: ['#0b4f8a', '#5b8ec9', '#b26d00'],
+            borderRadius: 3,
+            stack: 's'
+          }]
+        };
         lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No funding program records available' });
         return;
       }
 
       if (id === 'funding-programs-donut') {
         const rows = STATE.fundingPrograms || [];
-        const data = lwBuildDoughnutData(
+        const series = lwBuildSeriesData(
           rows,
-          r => getField(r, ['Pillar.lookupValue', 'Pillar']),
+          r => lwFundingSourceBucket(getField(r, ['Lead Funding Source'])),
           r => parseNumber(getField(r, ['Total Commitment Value'])) || 0,
           10
         );
+        const order = ['Provincial contribution', 'Federal contribution', 'Other contributions'];
+        const valueMap = {};
+        series.labels.forEach((label, idx) => { valueMap[label] = Number(series.data[idx]) || 0; });
+        const data = {
+          labels: order,
+          datasets: [{
+            data: order.map((k) => Math.round(valueMap[k] || 0)),
+            backgroundColor: ['#0b4f8a', '#5b8ec9', '#b26d00'],
+            borderWidth: 2,
+            borderColor: '#fff',
+            hoverOffset: 6
+          }]
+        };
         lwRenderDoughnut(el, data, { moneyMode: true, noDataMessage: 'No funding program records available' });
+        return;
+      }
+
+      if (id === 'funding-programs-horizontal') {
+        const grouped = new Map();
+        (STATE.fundingPrograms || []).forEach((r) => {
+          const amount = parseNumber(getField(r, ['Total Commitment Value'])) || 0;
+          if (!amount) return;
+          const program = lwLabel(getField(r, ['Program Name', 'Program ID']), 'Program');
+          const type = lwFundingSourceBucket(getField(r, ['Lead Funding Source']));
+          if (!grouped.has(program)) grouped.set(program, { total: 0, byType: {} });
+          const g = grouped.get(program);
+          g.total += amount;
+          g.byType[type] = (g.byType[type] || 0) + amount;
+        });
+        const rows = Array.from(grouped.entries())
+          .map(([program, v]) => ({ program, total: v.total, byType: v.byType }))
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 12);
+        const rawLabels = rows.map((r) => r.program);
+        const labels = rawLabels.map((name) => lwWrapLabel(name, 28));
+        const typeOrder = ['Provincial contribution', 'Federal contribution', 'Other contributions'];
+        const colors = {
+          'Provincial contribution': '#0b4f8a',
+          'Federal contribution': '#5b8ec9',
+          'Other contributions': '#b26d00'
+        };
+        const data = {
+          labels,
+          datasets: typeOrder.map((type) => ({
+            label: type,
+            data: rows.map((r) => Math.round((r.byType[type] || 0))),
+            backgroundColor: colors[type],
+            borderRadius: 3,
+            stack: 's'
+          }))
+        };
+        lwRenderStackedBar(el, data, { moneyMode: true, horizontal: true, legendPosition: 'right', noDataMessage: 'No funding program records available' });
         return;
       }
 
