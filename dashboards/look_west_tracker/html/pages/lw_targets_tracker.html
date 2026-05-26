@@ -154,10 +154,39 @@
       padding: 14px;
     }
 
-    .insight-card h3 {
+    .insight-toggle {
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .insight-toggle-title {
       font-size: 13px;
       color: #0f172a;
-      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .insight-toggle-icon {
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1;
+      transition: transform 0.15s ease;
+    }
+
+    .insight-card.collapsed .insight-toggle-icon {
+      transform: rotate(-90deg);
+    }
+
+    .insight-body {
+      margin-top: 8px;
     }
 
     .insight-card p {
@@ -196,6 +225,103 @@
 
     .chart-grid.chart-grid-three {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .chart-block {
+      display: grid;
+      gap: 12px;
+    }
+
+    .chart-block-head {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .chart-settings-btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #0f172a;
+      font-weight: 600;
+      padding: 6px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .chart-settings-btn:hover { background: #f1f5f9; }
+
+    .chart-settings-panel {
+      display: none;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .chart-settings-panel.open { display: block; }
+
+    .chart-settings-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #1e293b;
+      margin-bottom: 10px;
+    }
+
+    .chart-settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 8px;
+    }
+
+    .chart-settings-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #475569;
+      background: #ffffff;
+    }
+
+    .chart-settings-item:hover {
+      background: #f8fafc;
+    }
+
+    .chart-settings-item input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: #4b7ea8;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .chart-settings-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .chart-settings-action-btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #334155;
+      font-weight: 600;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+
+    .chart-settings-action-btn:hover {
+      background: #f8fafc;
     }
 
     .chart-card {
@@ -245,6 +371,13 @@
     .tracker-header {
       border-bottom: 1px solid var(--border);
       padding: 14px 14px 10px;
+    }
+
+    .tracker-header-split {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 10px;
     }
 
     .tracker-header h2 {
@@ -316,6 +449,24 @@
       border-collapse: collapse;
       font-size: 11px;
       min-width: 1200px;
+    }
+
+    .targets-table {
+      min-width: 980px;
+    }
+
+    .targets-table tbody tr[data-target-id] {
+      cursor: pointer;
+    }
+
+    .targets-table tbody tr[data-target-id]:hover td {
+      background: #f1f5f9;
+    }
+
+    .targets-table tbody tr.active-target td {
+      background: #e8f0fb !important;
+      color: #0f172a;
+      font-weight: 600;
     }
 
     thead th {
@@ -400,6 +551,7 @@
       .content { padding: 12px; }
       .filters { grid-template-columns: 1fr; }
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tracker-header-split { align-items: start; flex-direction: column; }
     }
   </style>
 </head>
@@ -415,51 +567,162 @@
       <div class="kpi-grid" id="kpi-grid"></div>
 
       <div class="insight-grid">
-        <article class="insight-card">
-          <h3>More Frequently Tracked Targets</h3>
-          <p>Based on number of tracker rows linked to each target.</p>
-          <ul class="insight-list" id="high-attention-list"></ul>
+        <article class="insight-card" id="high-attention-card">
+          <button class="insight-toggle" type="button" data-card-id="high-attention-card" aria-expanded="true" aria-controls="high-attention-body">
+            <span class="insight-toggle-title">More Frequently Tracked Targets</span>
+            <span class="insight-toggle-icon" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="insight-body" id="high-attention-body">
+            <p>Based on number of tracker rows linked to each target.</p>
+            <ul class="insight-list" id="high-attention-list"></ul>
+          </div>
         </article>
-        <article class="insight-card">
-          <h3>Targets with Limited Tracked Activity</h3>
-          <p>Targets with few or no linked tracker rows in the current data snapshot.</p>
-          <ul class="insight-list" id="low-attention-list"></ul>
-        </article>
-      </div>
-
-      <div class="chart-grid">
-        <article class="chart-card">
-          <div class="chart-title">Tracker Updates by Sector</div>
-          <div class="chart-subtitle">Mapped updates grouped by sector</div>
-          <div class="chart-holder"><canvas id="chart-sector-updates"></canvas></div>
-        </article>
-
-        <article class="chart-card">
-          <div class="chart-title">Tracker Updates by Stream</div>
-          <div class="chart-subtitle">Mapped updates grouped by Look West stream</div>
-          <div class="chart-holder"><canvas id="chart-stream-updates"></canvas></div>
+        <article class="insight-card" id="low-attention-card">
+          <button class="insight-toggle" type="button" data-card-id="low-attention-card" aria-expanded="true" aria-controls="low-attention-body">
+            <span class="insight-toggle-title">Targets with Limited Tracked Activity</span>
+            <span class="insight-toggle-icon" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="insight-body" id="low-attention-body">
+            <p>Targets with few or no linked tracker rows in the current data snapshot.</p>
+            <ul class="insight-list" id="low-attention-list"></ul>
+          </div>
         </article>
       </div>
 
-      <div class="chart-grid chart-grid-three">
-        <article class="chart-card">
-          <div class="chart-title">Tracker Updates by Pillar</div>
-          <div class="chart-subtitle">Mapped updates grouped by Look West pillar</div>
-          <div class="chart-holder"><canvas id="chart-pillar-updates"></canvas></div>
-        </article>
+      <div class="chart-block">
+        <div class="chart-block-head">
+          <button class="chart-settings-btn" type="button" onclick="toggleChartPanel()">&#9881; Select Charts</button>
+        </div>
+        <div class="chart-settings-panel" id="targets-chart-panel">
+          <div class="chart-settings-title">Show / hide charts</div>
+          <div class="chart-settings-grid" id="targets-csp-grid"></div>
+          <div class="chart-settings-actions">
+            <button class="chart-settings-action-btn" type="button" onclick="resetChartPrefs()">Reset</button>
+            <button class="chart-settings-action-btn" type="button" onclick="toggleChartPanel()">Close</button>
+          </div>
+        </div>
 
-        <article class="chart-card">
-          <div class="chart-title">Tracker Updates by Theme</div>
-          <div class="chart-subtitle">Mapped updates grouped by theme</div>
-          <div class="chart-holder"><canvas id="chart-theme-updates"></canvas></div>
-        </article>
+        <div class="chart-grid" id="targets-chart-grid-primary">
+          <article class="chart-card" data-chart-id="sector-updates">
+            <div class="chart-title">Tracker Updates by Sector</div>
+            <div class="chart-subtitle">Mapped updates grouped by sector</div>
+            <div class="chart-holder"><canvas id="chart-sector-updates"></canvas></div>
+          </article>
 
-        <article class="chart-card">
-          <div class="chart-title">Achievement Status Mix</div>
-          <div class="chart-subtitle">Status categories from tracker records</div>
-          <div class="chart-holder"><canvas id="chart-achievement-mix"></canvas></div>
-        </article>
+          <article class="chart-card" data-chart-id="stream-updates">
+            <div class="chart-title">Tracker Updates by Stream</div>
+            <div class="chart-subtitle">Mapped updates grouped by Look West stream</div>
+            <div class="chart-holder"><canvas id="chart-stream-updates"></canvas></div>
+          </article>
+        </div>
+
+        <div class="chart-grid chart-grid-three" id="targets-chart-grid-secondary">
+          <article class="chart-card" data-chart-id="pillar-updates">
+            <div class="chart-title">Tracker Updates by Pillar</div>
+            <div class="chart-subtitle">Mapped updates grouped by Look West pillar</div>
+            <div class="chart-holder"><canvas id="chart-pillar-updates"></canvas></div>
+          </article>
+
+          <article class="chart-card" data-chart-id="theme-updates">
+            <div class="chart-title">Tracker Updates by Theme</div>
+            <div class="chart-subtitle">Mapped updates grouped by theme</div>
+            <div class="chart-holder"><canvas id="chart-theme-updates"></canvas></div>
+          </article>
+
+          <article class="chart-card" data-chart-id="achievement-mix">
+            <div class="chart-title">Achievement Status Mix</div>
+            <div class="chart-subtitle">Status categories from tracker records</div>
+            <div class="chart-holder"><canvas id="chart-achievement-mix"></canvas></div>
+          </article>
+        </div>
+
+        <div class="chart-grid chart-grid-three" id="targets-chart-grid-targets-a">
+          <article class="chart-card" data-chart-id="targets-by-stream">
+            <div class="chart-title">Targets by Stream</div>
+            <div class="chart-subtitle">Targets dataset only</div>
+            <div class="chart-holder"><canvas id="chart-targets-by-stream"></canvas></div>
+          </article>
+
+          <article class="chart-card" data-chart-id="targets-by-pillar-mix">
+            <div class="chart-title">Targets by Pillar</div>
+            <div class="chart-subtitle">Targets dataset only</div>
+            <div class="chart-holder"><canvas id="chart-targets-by-pillar-mix"></canvas></div>
+          </article>
+
+          <article class="chart-card" data-chart-id="targets-by-section">
+            <div class="chart-title">Targets by Section</div>
+            <div class="chart-subtitle">Based on Page field in targets dataset</div>
+            <div class="chart-holder"><canvas id="chart-targets-by-section"></canvas></div>
+          </article>
+        </div>
+
+        <div class="chart-grid chart-grid-three" id="targets-chart-grid-targets-b">
+          <article class="chart-card" data-chart-id="targets-by-theme">
+            <div class="chart-title">Targets by Theme</div>
+            <div class="chart-subtitle">Targets dataset only</div>
+            <div class="chart-holder"><canvas id="chart-targets-by-theme"></canvas></div>
+          </article>
+
+          <article class="chart-card" data-chart-id="targets-by-sector">
+            <div class="chart-title">Targets by Sector</div>
+            <div class="chart-subtitle">Targets dataset only</div>
+            <div class="chart-holder"><canvas id="chart-targets-by-sector"></canvas></div>
+          </article>
+
+          <article class="chart-card" data-chart-id="targets-by-region">
+            <div class="chart-title">Targets by Region</div>
+            <div class="chart-subtitle">From region fields in targets dataset (if available)</div>
+            <div class="chart-holder"><canvas id="chart-targets-by-region"></canvas></div>
+          </article>
+        </div>
+
+        <div class="chart-grid chart-grid-three" id="targets-chart-grid-targets-c">
+          <article class="chart-card" data-chart-id="targets-by-lead-ministry">
+            <div class="chart-title">Targets by Lead Ministry</div>
+            <div class="chart-subtitle">Targets dataset only</div>
+            <div class="chart-holder"><canvas id="chart-targets-by-lead-ministry"></canvas></div>
+          </article>
+
+          <article class="chart-card" data-chart-id="targets-by-timeframe">
+            <div class="chart-title">Targets by Timeframe</div>
+            <div class="chart-subtitle">Targets dataset only</div>
+            <div class="chart-holder"><canvas id="chart-targets-by-timeframe"></canvas></div>
+          </article>
+
+          <article class="chart-card" data-chart-id="targets-directed-by-pillar">
+            <div class="chart-title">Directed vs Collective Targets by Pillar</div>
+            <div class="chart-subtitle">Targets dataset only</div>
+            <div class="chart-holder"><canvas id="chart-targets-directed-by-pillar"></canvas></div>
+          </article>
+        </div>
       </div>
+
+      <section class="tracker-section">
+        <div class="tracker-header tracker-header-split">
+          <div>
+            <h2>Look West Targets</h2>
+            <p>Click a target row to filter Targets Tracker table rows by Target ID.</p>
+          </div>
+          <button class="btn" id="clear-target-selection" type="button">Show All Tracker Rows</button>
+        </div>
+
+        <div class="table-shell">
+          <table class="targets-table">
+            <thead>
+              <tr>
+                <th>Target</th>
+                <th>Stream</th>
+                <th>Pillar</th>
+                <th>Theme</th>
+                <th>Sector</th>
+                <th>Timeframe</th>
+              </tr>
+            </thead>
+            <tbody id="targets-table-body"></tbody>
+          </table>
+        </div>
+        <div class="table-meta" id="targets-table-meta"></div>
+      </section>
 
       <section class="tracker-section">
         <div class="tracker-header">
@@ -493,8 +756,6 @@
           <table>
             <thead>
               <tr>
-                <th>Announcement ID</th>
-                <th>Target ID</th>
                 <th>Target</th>
                 <th>Stream</th>
                 <th>Achievement</th>
@@ -531,10 +792,28 @@
       trackers: [],
       targetMap: new Map(),
       charts: {},
-      filteredTrackers: []
+      filteredTrackers: [],
+      selectedTargetId: null
     };
 
     const KPI_COLORS = ["#4b7ea8", "#4f8d7a", "#b08a4c", "#7d78a8", "#5b8a63", "#a0617f"];
+    const TARGET_CHART_PREFS_KEY = "lw_targets_tracker_chart_prefs_v1";
+    const TARGET_CHART_DEFS = [
+      { id: "sector-updates", title: "Tracker Updates by Sector" },
+      { id: "stream-updates", title: "Tracker Updates by Stream" },
+      { id: "pillar-updates", title: "Tracker Updates by Pillar" },
+      { id: "theme-updates", title: "Tracker Updates by Theme" },
+      { id: "achievement-mix", title: "Achievement Status Mix" },
+      { id: "targets-by-stream", title: "Targets by Stream" },
+      { id: "targets-by-pillar-mix", title: "Targets by Pillar" },
+      { id: "targets-by-section", title: "Targets by Section" },
+      { id: "targets-by-theme", title: "Targets by Theme" },
+      { id: "targets-by-sector", title: "Targets by Sector" },
+      { id: "targets-by-region", title: "Targets by Region" },
+      { id: "targets-by-lead-ministry", title: "Targets by Lead Ministry" },
+      { id: "targets-by-timeframe", title: "Targets by Timeframe" },
+      { id: "targets-directed-by-pillar", title: "Directed vs Collective Targets by Pillar" }
+    ];
 
     function parseCsv(text) {
       const rows = [];
@@ -664,6 +943,8 @@
           pillar: getField(row, ["Pillar"]) || "Unspecified",
           theme: getField(row, ["Theme"]) || "Unspecified",
           sector: getField(row, ["Sector"]) || "Unspecified",
+          page: getField(row, ["Page", "Section"]) || "Unspecified",
+          region: getField(row, ["Region", "Regions", "Geographic Focus", "Geography"]) || "Not specified",
           target: getField(row, ["Target"]),
           timeframe: getField(row, ["Timeframe"]),
           leadMinistry: getField(row, ["Lead Ministry.lookupValue"]),
@@ -774,6 +1055,34 @@
       `).join("");
     }
 
+    function setInsightCollapsed(cardId, collapsed) {
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      const btn = card.querySelector(".insight-toggle");
+      const body = card.querySelector(".insight-body");
+      if (!btn || !body) return;
+
+      const shouldCollapse = !!collapsed;
+      card.classList.toggle("collapsed", shouldCollapse);
+      body.hidden = shouldCollapse;
+      btn.setAttribute("aria-expanded", shouldCollapse ? "false" : "true");
+    }
+
+    function toggleInsightCard(cardId) {
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      const nextCollapsed = !card.classList.contains("collapsed");
+      setInsightCollapsed(cardId, nextCollapsed);
+    }
+
+    function setupInsightCollapsibles() {
+      document.querySelectorAll(".insight-toggle[data-card-id]").forEach((btn) => {
+        if (btn.dataset.bound === "1") return;
+        btn.dataset.bound = "1";
+        btn.addEventListener("click", () => toggleInsightCard(btn.dataset.cardId));
+      });
+    }
+
     function getTargetLabel(targetId) {
       const target = state.targetMap.get(targetId);
       if (!target) return targetId;
@@ -817,6 +1126,100 @@
           </li>
         `).join("");
       }
+
+      const highInsufficient = high.length === 0 || high.every((item) => item.count === 0);
+      const lowInsufficient = low.length === 0 || low.every((item) => item.count === 0);
+      setInsightCollapsed("high-attention-card", highInsufficient);
+      setInsightCollapsed("low-attention-card", lowInsufficient);
+    }
+
+    function getChartPrefs() {
+      try {
+        return JSON.parse(localStorage.getItem(TARGET_CHART_PREFS_KEY) || "{}") || {};
+      } catch (error) {
+        return {};
+      }
+    }
+
+    function saveChartPrefs(prefs) {
+      try {
+        localStorage.setItem(TARGET_CHART_PREFS_KEY, JSON.stringify(prefs || {}));
+      } catch (error) {
+        // noop
+      }
+    }
+
+    function isChartShown(chartId) {
+      const prefs = getChartPrefs();
+      const hidden = Array.isArray(prefs.hidden) ? prefs.hidden : [];
+      return !hidden.includes(chartId);
+    }
+
+    function setChartShown(chartId, shown) {
+      const prefs = getChartPrefs();
+      const hiddenSet = new Set(Array.isArray(prefs.hidden) ? prefs.hidden : []);
+      if (shown) {
+        hiddenSet.delete(chartId);
+      } else {
+        hiddenSet.add(chartId);
+      }
+      prefs.hidden = Array.from(hiddenSet);
+      saveChartPrefs(prefs);
+    }
+
+    function applyChartVisibility() {
+      TARGET_CHART_DEFS.forEach((chart) => {
+        const card = document.querySelector(`.chart-card[data-chart-id="${chart.id}"]`);
+        if (!card) return;
+        card.style.display = isChartShown(chart.id) ? "" : "none";
+      });
+
+      [
+        "targets-chart-grid-primary",
+        "targets-chart-grid-secondary",
+        "targets-chart-grid-targets-a",
+        "targets-chart-grid-targets-b",
+        "targets-chart-grid-targets-c"
+      ].forEach((gridId) => {
+        const grid = document.getElementById(gridId);
+        if (!grid) return;
+        const hasVisibleCard = Array.from(grid.querySelectorAll(".chart-card"))
+          .some((card) => card.style.display !== "none");
+        grid.style.display = hasVisibleCard ? "" : "none";
+      });
+    }
+
+    function buildChartPanel() {
+      const grid = document.getElementById("targets-csp-grid");
+      if (!grid) return;
+      grid.innerHTML = TARGET_CHART_DEFS.map((chart) => `
+        <label class="chart-settings-item">
+          <input type="checkbox" ${isChartShown(chart.id) ? "checked" : ""}
+                 onchange="setChartShown('${chart.id}', this.checked);applyChartVisibility();renderCharts()">
+          <span>${escapeHtml(chart.title)}</span>
+        </label>
+      `).join("");
+    }
+
+    function toggleChartPanel() {
+      const panel = document.getElementById("targets-chart-panel");
+      if (!panel) return;
+      panel.classList.toggle("open");
+      if (panel.classList.contains("open")) {
+        buildChartPanel();
+      }
+    }
+
+    function resetChartPrefs() {
+      saveChartPrefs({});
+      buildChartPanel();
+      applyChartVisibility();
+      renderCharts();
+    }
+
+    function setupChartSelector() {
+      buildChartPanel();
+      applyChartVisibility();
     }
 
     function destroyChart(id) {
@@ -827,11 +1230,182 @@
     }
 
     function renderCharts(summary) {
-      renderSectorChart();
-      renderStreamChart();
-      renderPillarChart();
-      renderThemeChart();
-      renderAchievementChart();
+      if (isChartShown("sector-updates")) renderSectorChart();
+      else destroyChart("sectorUpdates");
+
+      if (isChartShown("stream-updates")) renderStreamChart();
+      else destroyChart("streamUpdates");
+
+      if (isChartShown("pillar-updates")) renderPillarChart();
+      else destroyChart("pillarUpdates");
+
+      if (isChartShown("theme-updates")) renderThemeChart();
+      else destroyChart("themeUpdates");
+
+      if (isChartShown("achievement-mix")) renderAchievementChart();
+      else destroyChart("achievementMix");
+
+      if (isChartShown("targets-by-stream")) renderTargetsByStreamChart();
+      else destroyChart("targetsByStream");
+
+      if (isChartShown("targets-by-pillar-mix")) renderTargetsByPillarMixChart();
+      else destroyChart("targetsByPillarMix");
+
+      if (isChartShown("targets-by-section")) renderTargetsBySectionChart();
+      else destroyChart("targetsBySection");
+
+      if (isChartShown("targets-by-theme")) renderTargetsByThemeChart();
+      else destroyChart("targetsByTheme");
+
+      if (isChartShown("targets-by-sector")) renderTargetsBySectorChart();
+      else destroyChart("targetsBySector");
+
+      if (isChartShown("targets-by-region")) renderTargetsByRegionChart();
+      else destroyChart("targetsByRegion");
+
+      if (isChartShown("targets-by-lead-ministry")) renderTargetsByLeadMinistryChart();
+      else destroyChart("targetsByLeadMinistry");
+
+      if (isChartShown("targets-by-timeframe")) renderTargetsByTimeframeChart();
+      else destroyChart("targetsByTimeframe");
+
+      if (isChartShown("targets-directed-by-pillar")) renderTargetsDirectedByPillarChart();
+      else destroyChart("targetsDirectedByPillar");
+    }
+
+    function cleanCategory(value, fallback = "Unspecified") {
+      const txt = String(value || "").trim();
+      return txt || fallback;
+    }
+
+    function truncateLabel(value, maxLen) {
+      const src = String(value || "").trim();
+      if (!src) return "Unspecified";
+      const limit = Number(maxLen) > 6 ? Number(maxLen) : 24;
+      if (src.length <= limit) return src;
+      return `${src.slice(0, Math.max(1, limit - 3)).trimEnd()}...`;
+    }
+
+    function buildCountEntries(rows, accessor) {
+      const map = new Map();
+      (rows || []).forEach((row) => {
+        const key = cleanCategory(accessor(row));
+        map.set(key, (map.get(key) || 0) + 1);
+      });
+      const entries = Array.from(map.entries())
+        .sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])));
+      if (!entries.length) return [["No data", 0]];
+      return entries;
+    }
+
+    function renderCountBarChart({
+      chartKey,
+      canvasId,
+      entries,
+      color,
+      label = "Targets",
+      horizontal = false,
+      truncateAt = 30
+    }) {
+      const fullLabels = (entries || []).map((entry) => String(entry[0] || "Unspecified"));
+      const labels = fullLabels.map((txt) => truncateLabel(txt, truncateAt));
+      const values = (entries || []).map((entry) => Number(entry[1]) || 0);
+
+      destroyChart(chartKey);
+      const ctx = document.getElementById(canvasId);
+      state.charts[chartKey] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [{
+            label,
+            data: values,
+            borderWidth: 0,
+            borderRadius: 6,
+            backgroundColor: color
+          }]
+        },
+        options: {
+          indexAxis: horizontal ? "y" : "x",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const idx = items?.[0]?.dataIndex ?? -1;
+                  return idx >= 0 && idx < fullLabels.length ? fullLabels[idx] : "";
+                }
+              }
+            }
+          },
+          scales: horizontal ? {
+            x: {
+              beginAtZero: true,
+              ticks: { precision: 0, color: "#64748b", font: { size: 10 } },
+              grid: { color: "rgba(148, 163, 184, 0.18)" }
+            },
+            y: {
+              ticks: { autoSkip: false, color: "#64748b", font: { size: 10 } },
+              grid: { display: false }
+            }
+          } : {
+            x: {
+              ticks: { color: "#64748b", font: { size: 10 }, maxRotation: 0, minRotation: 0 },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0, color: "#64748b", font: { size: 10 } },
+              grid: { color: "rgba(148, 163, 184, 0.18)" }
+            }
+          }
+        }
+      });
+    }
+
+    function renderCountDoughnutChart({
+      chartKey,
+      canvasId,
+      entries
+    }) {
+      const labels = (entries || []).map((entry) => String(entry[0] || "Unspecified"));
+      const values = (entries || []).map((entry) => Number(entry[1]) || 0);
+
+      destroyChart(chartKey);
+      const ctx = document.getElementById(canvasId);
+      state.charts[chartKey] = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            borderWidth: 1,
+            borderColor: "#ffffff",
+            backgroundColor: [
+              "#4b7ea8",
+              "#4f8d7a",
+              "#b08a4c",
+              "#7d78a8",
+              "#a0617f",
+              "#5b8a63",
+              "#94a3b8",
+              "#c084fc"
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { boxWidth: 12, color: "#334155", font: { size: 11 } }
+            }
+          }
+        }
+      });
     }
 
     function renderGroupedBarChart({
@@ -980,10 +1554,278 @@
       });
     }
 
+    function renderTargetsByStreamChart() {
+      const entries = buildCountEntries(state.targets, (row) => row.stream);
+      renderCountBarChart({
+        chartKey: "targetsByStream",
+        canvasId: "chart-targets-by-stream",
+        entries,
+        color: "rgba(75, 126, 168, 0.8)",
+        label: "Targets",
+        horizontal: false,
+        truncateAt: 30
+      });
+    }
+
+    function renderTargetsByPillarMixChart() {
+      const entries = buildCountEntries(state.targets, (row) => row.pillar);
+      renderCountDoughnutChart({
+        chartKey: "targetsByPillarMix",
+        canvasId: "chart-targets-by-pillar-mix",
+        entries
+      });
+    }
+
+    function renderTargetsBySectionChart() {
+      const entries = buildCountEntries(state.targets, (row) => row.page);
+      renderCountBarChart({
+        chartKey: "targetsBySection",
+        canvasId: "chart-targets-by-section",
+        entries,
+        color: "rgba(176, 138, 76, 0.82)",
+        label: "Targets",
+        horizontal: false,
+        truncateAt: 24
+      });
+    }
+
+    function renderTargetsByThemeChart() {
+      const entries = buildCountEntries(state.targets, (row) => row.theme);
+      renderCountBarChart({
+        chartKey: "targetsByTheme",
+        canvasId: "chart-targets-by-theme",
+        entries,
+        color: "rgba(125, 120, 168, 0.85)",
+        label: "Targets",
+        horizontal: true,
+        truncateAt: 34
+      });
+    }
+
+    function renderTargetsBySectorChart() {
+      const entries = buildCountEntries(state.targets, (row) => row.sector);
+      renderCountBarChart({
+        chartKey: "targetsBySector",
+        canvasId: "chart-targets-by-sector",
+        entries,
+        color: "rgba(91, 63, 183, 0.78)",
+        label: "Targets",
+        horizontal: true,
+        truncateAt: 26
+      });
+    }
+
+    function renderTargetsByRegionChart() {
+      const entries = buildCountEntries(state.targets, (row) => row.region);
+      renderCountBarChart({
+        chartKey: "targetsByRegion",
+        canvasId: "chart-targets-by-region",
+        entries,
+        color: "rgba(79, 141, 122, 0.82)",
+        label: "Targets",
+        horizontal: false,
+        truncateAt: 26
+      });
+    }
+
+    function renderTargetsByLeadMinistryChart() {
+      const entries = buildCountEntries(
+        state.targets,
+        (row) => row.leadMinistry || "Unspecified"
+      );
+      renderCountBarChart({
+        chartKey: "targetsByLeadMinistry",
+        canvasId: "chart-targets-by-lead-ministry",
+        entries,
+        color: "rgba(160, 97, 127, 0.84)",
+        label: "Targets",
+        horizontal: true,
+        truncateAt: 28
+      });
+    }
+
+    function renderTargetsByTimeframeChart() {
+      const entries = buildCountEntries(
+        state.targets,
+        (row) => row.timeframe || "Unspecified"
+      );
+      renderCountBarChart({
+        chartKey: "targetsByTimeframe",
+        canvasId: "chart-targets-by-timeframe",
+        entries,
+        color: "rgba(91, 138, 99, 0.84)",
+        label: "Targets",
+        horizontal: true,
+        truncateAt: 30
+      });
+    }
+
+    function normalizeDirectedCollective(value) {
+      const raw = String(value || "").trim().toLowerCase();
+      if (!raw) return "Unspecified";
+      if (raw.includes("direct")) return "Directed";
+      if (raw.includes("collective")) return "Collective";
+      return "Unspecified";
+    }
+
+    function renderTargetsDirectedByPillarChart() {
+      const pillarMap = new Map();
+      state.targets.forEach((row) => {
+        const pillar = cleanCategory(row.pillar);
+        if (!pillarMap.has(pillar)) {
+          pillarMap.set(pillar, { Directed: 0, Collective: 0, Unspecified: 0 });
+        }
+        const bucket = pillarMap.get(pillar);
+        bucket[normalizeDirectedCollective(row.directedCollective)] += 1;
+      });
+
+      const sorted = Array.from(pillarMap.entries())
+        .sort((a, b) => {
+          const totalA = a[1].Directed + a[1].Collective + a[1].Unspecified;
+          const totalB = b[1].Directed + b[1].Collective + b[1].Unspecified;
+          return totalB - totalA || a[0].localeCompare(b[0]);
+        });
+
+      const fullLabels = sorted.length ? sorted.map((entry) => entry[0]) : ["No data"];
+      const labels = fullLabels.map((txt) => truncateLabel(txt, 26));
+
+      const directed = sorted.length ? sorted.map((entry) => entry[1].Directed) : [0];
+      const collective = sorted.length ? sorted.map((entry) => entry[1].Collective) : [0];
+      const unspecified = sorted.length ? sorted.map((entry) => entry[1].Unspecified) : [0];
+
+      destroyChart("targetsDirectedByPillar");
+      const ctx = document.getElementById("chart-targets-directed-by-pillar");
+      state.charts.targetsDirectedByPillar = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Directed",
+              data: directed,
+              backgroundColor: "rgba(75, 126, 168, 0.85)",
+              borderRadius: 5,
+              borderWidth: 0
+            },
+            {
+              label: "Collective",
+              data: collective,
+              backgroundColor: "rgba(79, 141, 122, 0.85)",
+              borderRadius: 5,
+              borderWidth: 0
+            },
+            {
+              label: "Unspecified",
+              data: unspecified,
+              backgroundColor: "rgba(148, 163, 184, 0.9)",
+              borderRadius: 5,
+              borderWidth: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { boxWidth: 12, color: "#334155", font: { size: 11 } }
+            },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const idx = items?.[0]?.dataIndex ?? -1;
+                  return idx >= 0 && idx < fullLabels.length ? fullLabels[idx] : "";
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              ticks: { color: "#64748b", font: { size: 10 }, maxRotation: 0, minRotation: 0 },
+              grid: { display: false }
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              ticks: { precision: 0, color: "#64748b", font: { size: 10 } },
+              grid: { color: "rgba(148, 163, 184, 0.18)" }
+            }
+          }
+        }
+      });
+    }
+
     function fillSelect(selectEl, values, defaultLabel) {
       const options = [`<option value="__all__">${escapeHtml(defaultLabel)}</option>`]
         .concat(values.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`));
       selectEl.innerHTML = options.join("");
+    }
+
+    function renderTargetsReferenceTable() {
+      const tbody = document.getElementById("targets-table-body");
+      const meta = document.getElementById("targets-table-meta");
+      if (!tbody || !meta) return;
+
+      if (!state.targets.length) {
+        tbody.innerHTML = "<tr><td class=\"empty-row\" colspan=\"6\">No target records found.</td></tr>";
+        meta.textContent = "No target records available.";
+        return;
+      }
+
+      tbody.innerHTML = state.targets.map((target) => {
+        const isActive = state.selectedTargetId && state.selectedTargetId === target.targetId;
+        return `
+          <tr data-target-id="${escapeHtml(target.targetId)}" class="${isActive ? "active-target" : ""}">
+            <td>${escapeHtml(target.target || "-")}</td>
+            <td>${escapeHtml(target.stream)}</td>
+            <td>${escapeHtml(target.pillar)}</td>
+            <td>${escapeHtml(target.theme)}</td>
+            <td>${escapeHtml(target.sector)}</td>
+            <td>${escapeHtml(target.timeframe || "-")}</td>
+          </tr>
+        `;
+      }).join("");
+
+      if (state.selectedTargetId && state.targetMap.has(state.selectedTargetId)) {
+        const selected = state.targetMap.get(state.selectedTargetId);
+        meta.textContent = `Selected target: ${state.selectedTargetId} - ${selected.target}. Tracker table is filtered to this target.`;
+      } else {
+        meta.textContent = `Showing ${formatNumber(state.targets.length)} target(s). Click a row to filter tracker rows.`;
+      }
+    }
+
+    function setupTargetsTableInteraction() {
+      const tbody = document.getElementById("targets-table-body");
+      if (tbody && tbody.dataset.bound !== "1") {
+        tbody.dataset.bound = "1";
+        tbody.addEventListener("click", (event) => {
+          const row = event.target.closest("tr[data-target-id]");
+          if (!row) return;
+          const clickedTargetId = String(row.dataset.targetId || "").trim();
+          const nextTarget = state.selectedTargetId === clickedTargetId ? null : clickedTargetId;
+          const targetFilter = document.getElementById("filter-target");
+          if (targetFilter) {
+            targetFilter.value = nextTarget || "__all__";
+          }
+          state.selectedTargetId = nextTarget;
+          renderTargetsReferenceTable();
+          applyFilters();
+        });
+      }
+
+      const clearBtn = document.getElementById("clear-target-selection");
+      if (clearBtn && clearBtn.dataset.bound !== "1") {
+        clearBtn.dataset.bound = "1";
+        clearBtn.addEventListener("click", () => {
+          state.selectedTargetId = null;
+          const targetFilter = document.getElementById("filter-target");
+          if (targetFilter) targetFilter.value = "__all__";
+          renderTargetsReferenceTable();
+          applyFilters();
+        });
+      }
     }
 
     function initializeFilters() {
@@ -1011,6 +1853,7 @@
       document.getElementById("filter-achievement").addEventListener("change", applyFilters);
       document.getElementById("filter-search").addEventListener("input", applyFilters);
       document.getElementById("reset-filters").addEventListener("click", resetFilters);
+      setupTargetsTableInteraction();
     }
 
     function resetFilters() {
@@ -1018,6 +1861,8 @@
       document.getElementById("filter-target").value = "__all__";
       document.getElementById("filter-achievement").value = "__all__";
       document.getElementById("filter-search").value = "";
+      state.selectedTargetId = null;
+      renderTargetsReferenceTable();
       applyFilters();
     }
 
@@ -1026,6 +1871,12 @@
       const target = document.getElementById("filter-target").value;
       const achievement = document.getElementById("filter-achievement").value;
       const search = String(document.getElementById("filter-search").value || "").trim().toLowerCase();
+
+      const selectedFromFilter = (target !== "__all__" && target !== "__unmapped__") ? target : null;
+      if (state.selectedTargetId !== selectedFromFilter) {
+        state.selectedTargetId = selectedFromFilter;
+        renderTargetsReferenceTable();
+      }
 
       state.filteredTrackers = state.trackers.filter((row) => {
         if (stream !== "__all__" && row.stream !== stream) return false;
@@ -1058,12 +1909,10 @@
     function renderTable(rows) {
       const tbody = document.getElementById("tracker-table-body");
       if (!rows.length) {
-        tbody.innerHTML = "<tr><td class=\"empty-row\" colspan=\"11\">No tracker rows match current filters.</td></tr>";
+        tbody.innerHTML = "<tr><td class=\"empty-row\" colspan=\"9\">No tracker rows match current filters.</td></tr>";
       } else {
         tbody.innerHTML = rows.map((row) => `
           <tr>
-            <td>${escapeHtml(row.announcementId)}</td>
-            <td>${escapeHtml(row.targetId)}</td>
             <td>${escapeHtml(row.targetText)}</td>
             <td>${escapeHtml(row.stream)}</td>
             <td><span class="chip ${achievementClass(row.achievement)}">${escapeHtml(row.achievement)}</span></td>
@@ -1084,6 +1933,8 @@
     async function loadData() {
       setStatus("Loading target datasets...", false);
       try {
+        setupInsightCollapsibles();
+        setupChartSelector();
         const [targetsText, trackingText] = await Promise.all([
           fetchCsvWithFallback(DATA_FILES.targets, "Targets dataset"),
           fetchCsvWithFallback(DATA_FILES.tracking, "Target Tracking dataset")
@@ -1101,15 +1952,30 @@
         renderAttentionLists(summary);
         renderCharts(summary);
         initializeFilters();
+        renderTargetsReferenceTable();
         resetFilters();
         hideStatus();
       } catch (error) {
         console.error(error);
-        setStatus(`Could not load LW Targets Tracker data. ${error.message}`, true);
+        const protoHint = location.protocol === "file:"
+          ? " Open this page via local server: http://localhost:8080/dashboards/look_west_tracker/html/pages/lw_targets_tracker.html"
+          : "";
+        setStatus(`Could not load LW Targets Tracker data. ${error.message || error}.${protoHint}`, true);
       }
     }
 
-    loadData();
+    function bootPage() {
+      if (location.protocol === "file:") {
+        setStatus(
+          "Opened as local file. Start local server with `python scripts/serve.py` and open `http://localhost:8080/dashboards/look_west_tracker/html/pages/lw_targets_tracker.html`.",
+          true
+        );
+        return;
+      }
+      loadData();
+    }
+
+    document.addEventListener("DOMContentLoaded", bootPage);
   </script>
 </body>
 </html>
