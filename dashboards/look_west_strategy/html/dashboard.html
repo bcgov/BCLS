@@ -390,7 +390,7 @@
     <div class="lw-section" id="lw-funding-charts-section" style="display:none">
       <div class="lw-section-head">
         <h2>Investment and Project Pipeline</h2>
-        <span class="sh-sub">Cross-program commitments and delivery trends</span>
+        <span class="sh-sub">Separate charts per dataset with independent quantitative breakdowns</span>
         <button class="chart-settings-btn" onclick="lwToggleChartPanel()">
           &#9881; Select Charts
         </button>
@@ -1047,11 +1047,18 @@
     const LW_CHART_PREFS_KEY = 'lw_chart_prefs_v1';
 
     const LW_CHART_DEFS = [
-      { id: 'pillar-invest',  title: 'Total Commitment Value by Pillar ($M)' },
-      { id: 'funding-mix',   title: 'Lead Funding Source Mix' },
-      { id: 'top-regions',   title: 'Top Regions by Total Commitment Value ($M)' },
-      { id: 'employment',    title: 'Jobs Created and Protected by Pillar' },
-      { id: 'employment-breakdown', title: 'Jobs Created and Protected by Data Source' }
+      { id: 'funding-programs', title: 'Funding Programs: Total Commitment by Funding Source ($M)' },
+      { id: 'funding-programs-donut', title: 'Funding Programs: Commitment Share by Pillar' },
+      { id: 'infrastructures', title: 'Infrastructures: Estimated Value by Category ($M)' },
+      { id: 'infrastructures-horizontal', title: 'Infrastructures: Estimated Value by Region ($M)' },
+      { id: 'investment-promotion', title: 'Investment Promotion: Estimated Value by Sector ($M)' },
+      { id: 'investment-promotion-donut', title: 'Investment Promotion: Initiative Mix by Status' },
+      { id: 'major-projects', title: 'Major Projects: Total Commitment by Status ($M)' },
+      { id: 'major-projects-combo', title: 'Major Projects: Commitment and Jobs by Project' },
+      { id: 'policy-regulations', title: 'Policy & Regulations: Item Count by Policy Type' },
+      { id: 'policy-regulations-donut', title: 'Policy & Regulations: Item Share by Policy Type' },
+      { id: 'targets', title: 'Targets: Item Count by Pillar' },
+      { id: 'targets-horizontal', title: 'Targets: Directed/Collective Mix by Sector' }
     ];
 
     function lwGetChartPrefs() {
@@ -1104,31 +1111,240 @@
       if (inst) inst.destroy();
     }
 
-    const LW_C = {
-      provincial: '#0b4f8a',
-      attracted:  '#1f7a4d',
-      federal:    '#5b8ec9',
-      other:      '#b26d00'
-    };
-    const LW_PILLAR_SHORT = {
-      'Strengthening Our Workforce':      'Workforce',
-      'Delivering Major Projects Faster': 'Major Projects',
-      'Diversifying Markets':             'Diversifying',
-      'Growing Targeted Sectors':         'Targeted Sectors'
-    };
-    const LW_PILLARS_ORDER = [
-      'Strengthening Our Workforce',
-      'Delivering Major Projects Faster',
-      'Diversifying Markets',
-      'Growing Targeted Sectors'
-    ];
+    const LW_SERIES_COLORS = ['#0b4f8a', '#1f7a4d', '#5b8ec9', '#b26d00', '#7d78a8', '#5d7f93', '#a0617f', '#4f8d7a'];
+
+    function lwLabel(value, fallback) {
+      const s = normalizeText(value);
+      return s || (fallback || 'Unspecified');
+    }
+
+    function lwBuildStackedData(rows, groupAccessor, seriesAccessor, valueAccessor, limit) {
+      const grouped = new Map();
+      const seriesSet = new Set();
+      (rows || []).forEach((row) => {
+        const group = lwLabel(groupAccessor(row));
+        const series = lwLabel(seriesAccessor(row));
+        const value = Number(valueAccessor(row)) || 0;
+        if (!grouped.has(group)) grouped.set(group, {});
+        const bucket = grouped.get(group);
+        bucket[series] = (bucket[series] || 0) + value;
+        seriesSet.add(series);
+      });
+
+      const labels = Array.from(grouped.keys()).sort((a, b) => {
+        const ta = Object.values(grouped.get(a) || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+        const tb = Object.values(grouped.get(b) || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+        return tb - ta;
+      });
+      const keptLabels = Number(limit) > 0 ? labels.slice(0, Number(limit)) : labels;
+      const series = Array.from(seriesSet.values());
+      const datasets = series.map((name, idx) => ({
+        label: name,
+        data: keptLabels.map((g) => Math.round((grouped.get(g) || {})[name] || 0)),
+        backgroundColor: LW_SERIES_COLORS[idx % LW_SERIES_COLORS.length],
+        borderRadius: 3,
+        stack: 's'
+      }));
+      return { labels: keptLabels, datasets };
+    }
+
+    function lwBuildSeriesData(rows, labelAccessor, valueAccessor, limit) {
+      const totals = new Map();
+      (rows || []).forEach((row) => {
+        const label = lwLabel(labelAccessor(row));
+        const value = Number(valueAccessor(row)) || 0;
+        totals.set(label, (totals.get(label) || 0) + value);
+      });
+      const entries = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
+      const kept = Number(limit) > 0 ? entries.slice(0, Number(limit)) : entries;
+      return {
+        labels: kept.map(([k]) => k),
+        data: kept.map(([, v]) => Math.round(v))
+      };
+    }
+
+    function lwBuildDoughnutData(rows, labelAccessor, valueAccessor, limit) {
+      const series = lwBuildSeriesData(rows, labelAccessor, valueAccessor, limit);
+      return {
+        labels: series.labels,
+        datasets: [{
+          data: series.data,
+          backgroundColor: series.labels.map((_, idx) => LW_SERIES_COLORS[idx % LW_SERIES_COLORS.length]),
+          borderWidth: 2,
+          borderColor: '#fff',
+          hoverOffset: 6
+        }]
+      };
+    }
+
+    function lwRenderNoData(el, message) {
+      const wrap = el && el.parentElement;
+      if (!wrap) return;
+      wrap.innerHTML = `<div class="small" style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;">${esc(message || 'No data available')}</div>`;
+    }
+
+    function lwRenderStackedBar(el, data, options) {
+      const cfg = options || {};
+      if (!data || !Array.isArray(data.labels) || !data.labels.length || !Array.isArray(data.datasets) || !data.datasets.length) {
+        lwRenderNoData(el, cfg.noDataMessage || 'No records available');
+        return;
+      }
+      const moneyMode = cfg.moneyMode === true;
+      const horizontal = cfg.horizontal === true;
+      new Chart(el, {
+        type: 'bar',
+        data: {
+          labels: data.labels,
+          datasets: data.datasets
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  if (moneyMode) return ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-CA')}M`;
+                  return ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('en-CA')}`;
+                }
+              }
+            }
+          },
+          indexAxis: horizontal ? 'y' : 'x',
+          scales: horizontal ? {
+            x: {
+              stacked: true,
+              grid: { color: '#edf1f5' },
+              ticks: {
+                font: { size: 11 },
+                callback: (v) => moneyMode ? ('$' + v + 'M') : formatNumber(v)
+              }
+            },
+            y: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            }
+          } : {
+            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 0, minRotation: 0 } },
+            y: {
+              stacked: true,
+              grid: { color: '#edf1f5' },
+              ticks: {
+                font: { size: 11 },
+                callback: (v) => moneyMode ? ('$' + v + 'M') : formatNumber(v)
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function lwRenderDoughnut(el, data, options) {
+      const cfg = options || {};
+      if (!data || !Array.isArray(data.labels) || !data.labels.length || !Array.isArray(data.datasets) || !data.datasets.length) {
+        lwRenderNoData(el, cfg.noDataMessage || 'No records available');
+        return;
+      }
+      const moneyMode = cfg.moneyMode === true;
+      new Chart(el, {
+        type: 'doughnut',
+        data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '58%',
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  if (moneyMode) return ` ${ctx.label}: $${Number(ctx.parsed || 0).toLocaleString('en-CA')}M`;
+                  return ` ${ctx.label}: ${Number(ctx.parsed || 0).toLocaleString('en-CA')}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function lwRenderComboBarLine(el, labels, barData, lineData, options) {
+      const cfg = options || {};
+      if (!Array.isArray(labels) || !labels.length) {
+        lwRenderNoData(el, cfg.noDataMessage || 'No records available');
+        return;
+      }
+      new Chart(el, {
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: cfg.barLabel || 'Total Value ($M)',
+              data: barData,
+              backgroundColor: '#0b4f8a',
+              borderRadius: 3,
+              yAxisID: 'y'
+            },
+            {
+              type: 'line',
+              label: cfg.lineLabel || 'Jobs',
+              data: lineData,
+              borderColor: '#b26d00',
+              backgroundColor: '#b26d00',
+              tension: 0.25,
+              pointRadius: 3,
+              pointHoverRadius: 4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  if (ctx.dataset.type === 'line') return ` ${ctx.dataset.label}: ${Number(ctx.parsed.y || 0).toLocaleString('en-CA')}`;
+                  return ` ${ctx.dataset.label}: $${Number(ctx.parsed.y || 0).toLocaleString('en-CA')}M`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 35, minRotation: 0 } },
+            y: {
+              position: 'left',
+              grid: { color: '#edf1f5' },
+              ticks: { font: { size: 11 }, callback: (v) => '$' + v + 'M' }
+            },
+            y1: {
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { font: { size: 11 }, callback: (v) => formatNumber(v) }
+            }
+          }
+        }
+      });
+    }
 
     function renderCharts() {
       if (typeof Chart === 'undefined') return;
-      const funding = STATE.funding;
       const section = document.getElementById('lw-funding-charts-section');
       const grid    = document.getElementById('lw-charts-grid');
-      if (!funding.length) {
+      const hasAny = [
+        STATE.fundingPrograms,
+        STATE.infrastructures,
+        STATE.investmentPromotion,
+        STATE.majorProjects,
+        STATE.policy,
+        STATE.targets
+      ].some(arr => Array.isArray(arr) && arr.length > 0);
+      if (!hasAny) {
         if (section) section.style.display = 'none';
         return;
       }
@@ -1146,8 +1362,6 @@
         </div>
       `).join('');
 
-      const pillars = LW_PILLARS_ORDER.filter(p => funding.some(r => r.pillar === p));
-
       LW_CHART_DEFS.forEach(c => {
         if (!lwIsChartShown(c.id)) return;
         const el = document.getElementById('lw-chart-' + c.id);
@@ -1155,163 +1369,196 @@
         lwDestroyChart(c.id);
         const inst = Chart.getChart(el);
         if (inst) inst.destroy();
-        lwBuildChart(c.id, el, funding, pillars);
+        lwBuildChart(c.id, el);
       });
     }
 
     function lwChartSubtitle(id) {
-      if (id === 'pillar-invest')  return 'Combined funding, project, infrastructure, and investment promotion records';
-      if (id === 'funding-mix')    return 'Grouped by funding source across integrated records';
-      if (id === 'top-regions')    return 'Grouped by region across integrated records';
-      if (id === 'employment')     return 'Jobs metrics from funding, major project, infrastructure, and investment promotion records';
-      if (id === 'employment-breakdown') return 'Breakdown from Funding Programs, Major Projects, Infrastructures, and Investment Promotion records';
+      if (id === 'funding-programs') return 'Funding Programs only · breakdown: Lead Funding Source × Pillar';
+      if (id === 'funding-programs-donut') return 'Funding Programs only · commitment share by pillar (doughnut)';
+      if (id === 'infrastructures') return 'Infrastructures only · breakdown: Category × Funding Source';
+      if (id === 'infrastructures-horizontal') return 'Infrastructures only · top regions by estimated value (horizontal bar)';
+      if (id === 'investment-promotion') return 'Investment Promotion only · breakdown: Sector × Status';
+      if (id === 'investment-promotion-donut') return 'Investment Promotion only · initiative count mix by status (doughnut)';
+      if (id === 'major-projects') return 'Major Projects only · breakdown: Status × Funding Source';
+      if (id === 'major-projects-combo') return 'Major Projects only · commitments ($M) vs total jobs by project (combo)';
+      if (id === 'policy-regulations') return 'Policy & Regulations only · breakdown: Policy Type × Jurisdiction';
+      if (id === 'policy-regulations-donut') return 'Policy & Regulations only · item share by policy type (doughnut)';
+      if (id === 'targets') return 'Targets only · breakdown: Pillar × Directed/Collective';
+      if (id === 'targets-horizontal') return 'Targets only · directed/collective mix by sector (horizontal stacked bar)';
       return '';
     }
 
-    function lwBuildChart(id, el, funding, pillars) {
-      const byPillar = key => pillars.map(p =>
-        Math.round(funding.filter(r => r.pillar === p).reduce((s, r) => s + (r[key] || 0), 0))
-      );
-
-      if (id === 'pillar-invest') {
-        new Chart(el, {
-          type: 'bar',
-          data: {
-            labels: pillars.map(p => LW_PILLAR_SHORT[p] || p),
-            datasets: [
-              { label: 'Provincial', data: byPillar('provincial'), backgroundColor: LW_C.provincial, borderRadius: 3, stack: 's' },
-              { label: 'Attracted',  data: byPillar('attracted'),  backgroundColor: LW_C.attracted,  borderRadius: 3, stack: 's' },
-              { label: 'Federal',    data: byPillar('federal'),    backgroundColor: LW_C.federal,    borderRadius: 3, stack: 's' },
-              { label: 'Other',      data: byPillar('other'),      backgroundColor: LW_C.other,      borderRadius: 3, stack: 's' }
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
-              tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-CA')}M` } }
-            },
-            scales: {
-              x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
-              y: { stacked: true, grid: { color: '#edf1f5' }, ticks: { font: { size: 11 }, callback: v => '$' + v + 'M' } }
-            }
-          }
-        });
+    function lwBuildChart(id, el) {
+      if (id === 'funding-programs') {
+        const rows = STATE.fundingPrograms || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Lead Funding Source']),
+          r => getField(r, ['Pillar.lookupValue', 'Pillar']),
+          r => parseNumber(getField(r, ['Total Commitment Value'])) || 0,
+          10
+        );
+        lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No funding program records available' });
+        return;
       }
 
-      if (id === 'funding-mix') {
-        const totP = Math.round(funding.reduce((s,r) => s+(r.provincial||0), 0));
-        const totA = Math.round(funding.reduce((s,r) => s+(r.attracted||0), 0));
-        const totF = Math.round(funding.reduce((s,r) => s+(r.federal||0), 0));
-        const totO = Math.round(funding.reduce((s,r) => s+(r.other||0), 0));
-        new Chart(el, {
-          type: 'doughnut',
-          data: {
-            labels: ['Provincial', 'Attracted to BC', 'Federal', 'Other'],
-            datasets: [{
-              data: [totP, totA, totF, totO],
-              backgroundColor: [LW_C.provincial, LW_C.attracted, LW_C.federal, LW_C.other],
-              borderWidth: 2, borderColor: '#fff', hoverOffset: 6
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, cutout: '60%',
-            plugins: {
-              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
-              tooltip: { callbacks: { label: ctx => ` ${ctx.label}: $${ctx.parsed.toLocaleString('en-CA')}M` } }
-            }
-          }
-        });
+      if (id === 'funding-programs-donut') {
+        const rows = STATE.fundingPrograms || [];
+        const data = lwBuildDoughnutData(
+          rows,
+          r => getField(r, ['Pillar.lookupValue', 'Pillar']),
+          r => parseNumber(getField(r, ['Total Commitment Value'])) || 0,
+          10
+        );
+        lwRenderDoughnut(el, data, { moneyMode: true, noDataMessage: 'No funding program records available' });
+        return;
       }
 
-      if (id === 'top-regions') {
-        const regionMap = {};
-        funding.forEach(r => {
-          const reg = (r.region || '').trim();
-          if (reg) regionMap[reg] = (regionMap[reg] || 0) + (r.total || 0);
-        });
-        const top = Object.entries(regionMap).sort((a,b) => b[1]-a[1]).slice(0, 8);
-        new Chart(el, {
-          type: 'bar',
-          data: {
-            labels: top.map(([k]) => k),
-            datasets: [{
-              label: 'Total Investment ($M)',
-              data: top.map(([,v]) => Math.round(v)),
-              backgroundColor: top.map((_,i) => `rgba(11,79,138,${Math.max(0.25, 1-i*0.1).toFixed(2)})`),
-              borderRadius: 4
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-            plugins: {
-              legend: { display: false },
-              tooltip: { callbacks: { label: ctx => ` $${ctx.parsed.x.toLocaleString('en-CA')}M` } }
-            },
-            scales: {
-              x: { grid: { color: '#edf1f5' }, ticks: { font: { size: 11 }, callback: v => '$' + v + 'M' } },
-              y: { grid: { display: false }, ticks: { font: { size: 11 } } }
-            }
-          }
-        });
+      if (id === 'infrastructures') {
+        const rows = STATE.infrastructures || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Infrastructure Category']),
+          r => getField(r, ['Funding Source']),
+          r => parseNumber(getField(r, ['Total Estimated Value ($M)'])) || 0,
+          10
+        );
+        lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No infrastructure records available' });
+        return;
       }
 
-      if (id === 'employment') {
-        const created   = pillars.map(p => Math.round(funding.filter(r=>r.pillar===p).reduce((s,r)=>s+(r.jobsCreated||0),0)));
-        const protected_ = pillars.map(p => Math.round(funding.filter(r=>r.pillar===p).reduce((s,r)=>s+(r.jobsProtected||0),0)));
-        new Chart(el, {
-          type: 'bar',
-          data: {
-            labels: pillars.map(p => LW_PILLAR_SHORT[p] || p),
-            datasets: [
-              { label: 'Jobs Created',   data: created,    backgroundColor: LW_C.attracted, borderRadius: 3 },
-              { label: 'Jobs Protected', data: protected_, backgroundColor: LW_C.federal,   borderRadius: 3 }
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
-              tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('en-CA')}` } }
-            },
-            scales: {
-              x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-              y: { grid: { color: '#edf1f5' }, ticks: { font: { size: 11 } } }
-            }
-          }
-        });
+      if (id === 'infrastructures-horizontal') {
+        const rows = STATE.infrastructures || [];
+        const series = lwBuildSeriesData(
+          rows,
+          r => getField(r, ['Region']),
+          r => parseNumber(getField(r, ['Total Estimated Value ($M)'])) || 0,
+          10
+        );
+        const data = {
+          labels: series.labels,
+          datasets: [{
+            label: 'Estimated Value ($M)',
+            data: series.data,
+            backgroundColor: '#0b4f8a',
+            borderRadius: 3,
+            stack: 's'
+          }]
+        };
+        lwRenderStackedBar(el, data, { moneyMode: true, horizontal: true, noDataMessage: 'No infrastructure records available' });
+        return;
       }
 
-      if (id === 'employment-breakdown') {
-        const sources = [
-          { label: 'Funding Programs', key: 'Funding Programs.csv' },
-          { label: 'Major Projects', key: 'Major Projects.csv' },
-          { label: 'Infrastructures', key: 'Infrastructures.csv' },
-          { label: 'Investment Promotion', key: 'Investment Promotion.csv' }
-        ];
-        const created = sources.map(s => Math.round(funding.filter(r => r.dataSource === s.key).reduce((acc, r) => acc + (r.jobsCreated || 0), 0)));
-        const protected_ = sources.map(s => Math.round(funding.filter(r => r.dataSource === s.key).reduce((acc, r) => acc + (r.jobsProtected || 0), 0)));
-        new Chart(el, {
-          type: 'bar',
-          data: {
-            labels: sources.map(s => s.label),
-            datasets: [
-              { label: 'Jobs Created', data: created, backgroundColor: LW_C.attracted, borderRadius: 3 },
-              { label: 'Jobs Protected', data: protected_, backgroundColor: LW_C.federal, borderRadius: 3 }
-            ]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
-              tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('en-CA')}` } }
-            },
-            scales: {
-              x: { grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 0, minRotation: 0 } },
-              y: { grid: { color: '#edf1f5' }, ticks: { font: { size: 11 } } }
-            }
+      if (id === 'investment-promotion') {
+        const rows = STATE.investmentPromotion || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Sector']),
+          r => getField(r, ['Status']),
+          r => parseNumber(getField(r, ['Estimated Value ($M)'])) || 0,
+          10
+        );
+        lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No investment promotion records available' });
+        return;
+      }
+
+      if (id === 'investment-promotion-donut') {
+        const rows = STATE.investmentPromotion || [];
+        const data = lwBuildDoughnutData(
+          rows,
+          r => getField(r, ['Status']),
+          () => 1,
+          10
+        );
+        lwRenderDoughnut(el, data, { moneyMode: false, noDataMessage: 'No investment promotion records available' });
+        return;
+      }
+
+      if (id === 'major-projects') {
+        const rows = STATE.majorProjects || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Status']),
+          r => getField(r, ['Funding Source']),
+          r => parseNumber(getField(r, ['Total Commitment Value'])) || 0,
+          10
+        );
+        lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No major project records available' });
+        return;
+      }
+
+      if (id === 'major-projects-combo') {
+        const rows = (STATE.majorProjects || []).slice().sort((a, b) =>
+          (parseNumber(getField(b, ['Total Commitment Value'])) || 0) - (parseNumber(getField(a, ['Total Commitment Value'])) || 0)
+        ).slice(0, 10);
+        const labels = rows.map(r => lwLabel(getField(r, ['Project Name'])));
+        const commitments = rows.map(r => Math.round(parseNumber(getField(r, ['Total Commitment Value'])) || 0));
+        const jobs = rows.map(r =>
+          Math.round((parseNumber(getField(r, ['Jobs Created'])) || 0) + (parseNumber(getField(r, ['Jobs Protected'])) || 0))
+        );
+        lwRenderComboBarLine(
+          el,
+          labels,
+          commitments,
+          jobs,
+          {
+            barLabel: 'Total Commitment ($M)',
+            lineLabel: 'Jobs Created + Protected',
+            noDataMessage: 'No major project records available'
           }
-        });
+        );
+        return;
+      }
+
+      if (id === 'policy-regulations') {
+        const rows = STATE.policy || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => r.policyType,
+          r => r.jurisdiction,
+          () => 1,
+          12
+        );
+        lwRenderStackedBar(el, data, { moneyMode: false, noDataMessage: 'No policy/regulation records available' });
+        return;
+      }
+
+      if (id === 'policy-regulations-donut') {
+        const rows = STATE.policy || [];
+        const data = lwBuildDoughnutData(
+          rows,
+          r => r.policyType,
+          () => 1,
+          10
+        );
+        lwRenderDoughnut(el, data, { moneyMode: false, noDataMessage: 'No policy/regulation records available' });
+        return;
+      }
+
+      if (id === 'targets') {
+        const rows = STATE.targets || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Pillar']),
+          r => getField(r, ['Directed / Collective']),
+          () => 1,
+          12
+        );
+        lwRenderStackedBar(el, data, { moneyMode: false, noDataMessage: 'No target records available' });
+        return;
+      }
+
+      if (id === 'targets-horizontal') {
+        const rows = STATE.targets || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Sector']),
+          r => getField(r, ['Directed / Collective']),
+          () => 1,
+          12
+        );
+        lwRenderStackedBar(el, data, { moneyMode: false, horizontal: true, noDataMessage: 'No target records available' });
       }
     }
 
