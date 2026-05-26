@@ -1564,28 +1564,35 @@
       }
 
       if (id === 'funding-programs-horizontal') {
-        const trackerSplitMap = lwFundingProgramTrackerSplitMap();
+        const programNameById = new Map();
+        (STATE.fundingPrograms || []).forEach((r) => {
+          const idKey = normalizeText(getField(r, ['Program ID']));
+          const name = normalizeText(getField(r, ['Program Name']));
+          if (!idKey) return;
+          if (name) programNameById.set(idKey, name);
+        });
+
         const grouped = new Map();
-        (STATE.fundingPrograms || []).forEach((r, idx) => {
-          const programId = normalizeText(getField(r, ['Program ID'])) || `__row_${idx}`;
-          if (grouped.has(programId)) return;
-          const split = lwFundingProgramTypeBreakdown(r, trackerSplitMap);
-          const amount = LW_FUNDING_TYPE_ORDER.reduce((acc, type) => acc + (Number(split[type]) || 0), 0);
+        (STATE.fundingProgramTracker || []).forEach((r, idx) => {
+          const amount = parseNumber(getField(r, ['Amount ($M)', 'Amount'])) || 0;
           if (amount <= 0) return;
-          const program = lwLabel(getField(r, ['Program Name']), lwLabel(programId, 'Program'));
-          grouped.set(programId, {
-            program,
-            total: amount,
-            byType: {
-              'Provincial contribution': Number(split['Provincial contribution']) || 0,
-              'Federal contribution': Number(split['Federal contribution']) || 0,
-              'Other contributions': Number(split['Other contributions']) || 0
-            }
-          });
+          const programId = normalizeText(getField(r, ['Program ID'])) || `__tracker_row_${idx}`;
+          const type = lwFundingSourceBucket(getField(r, ['Transaction Type']));
+          if (!grouped.has(programId)) {
+            const programName = programNameById.get(programId);
+            grouped.set(programId, {
+              program: lwLabel(programName, programId),
+              total: 0,
+              byType: lwZeroFundingSplit()
+            });
+          }
+          const g = grouped.get(programId);
+          g.total += amount;
+          g.byType[type] = (g.byType[type] || 0) + amount;
         });
         const rows = Array.from(grouped.values())
           .sort((a, b) => b.total - a.total)
-          .slice(0, 12);
+          .filter((r) => r.total > 0);
         const rawLabels = rows.map((r) => r.program);
         const labels = rawLabels.map((name) => lwTruncateLabel(name, 42));
         const colors = {
