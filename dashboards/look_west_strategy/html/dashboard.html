@@ -52,7 +52,12 @@
       gap: 14px;
       border-bottom: 1px solid rgba(255,255,255,0.2);
     }
-    .header-title { font-size: 24px; font-weight: 700; letter-spacing: -0.2px; }
+    .header-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: #fff;
+    }
     .header-sub { font-size: 12px; opacity: 0.9; margin-top: 3px; }
     .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
     .header-meta { font-size: 11px; opacity: 0.95; }
@@ -660,14 +665,28 @@
           return obj;
         });
     }
-    function csvUrl(fileName) {
-      return new URL(`../../../data/look_west_strategy/${fileName}`, window.location.href).toString();
+    function csvUrls(fileName) {
+      return [
+        new URL(`../../../data/${fileName}`, window.location.href).toString(),
+        new URL(`../../../data/look_west_strategy/${fileName}`, window.location.href).toString()
+      ];
     }
     async function loadCsvFile(fileName) {
-      const url = csvUrl(fileName);
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Failed to fetch required dataset (HTTP ${res.status})`);
-      return parseCsvText(await res.text());
+      const urls = csvUrls(fileName);
+      let lastErr = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: 'no-store' });
+          if (!res.ok) {
+            lastErr = new Error(`Failed to fetch required dataset (HTTP ${res.status})`);
+            continue;
+          }
+          return parseCsvText(await res.text());
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error('Failed to fetch required dataset');
     }
     function getField(row, candidates) {
       if (!row || !candidates || !candidates.length) return '';
