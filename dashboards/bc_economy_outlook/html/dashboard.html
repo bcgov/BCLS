@@ -245,9 +245,10 @@
 
 <script>
 const DATA_PATHS = {
-  annual: '../../../data/ourlook_annual_forecast.csv',
-  quarterly: '../../../data/ourlook_quarterly_conditions_2025.csv',
+  annual: '../../../data/outlook_data/ourlook_annual_forecast.csv',
+  quarterly: '../../../data/outlook_data/ourlook_quarterly_conditions_2025.csv',
   metaCandidates: [
+    '../../../data/outlook_data/outlook_metadata.json',
     '../../../data/outlook_metadata.json',
     '../../../data/bc_economy_outlook/outlook_metadata.json'
   ]
@@ -332,6 +333,23 @@ function normalizeMeta(rawMeta, annualRows, quarterlyRows) {
   };
 }
 
+function detectQuarterlyYtdField(rows) {
+  if (!Array.isArray(rows) || !rows.length) {
+    return { field: 'ytd_2025_change', year: '2025' };
+  }
+  const keys = Object.keys(rows[0] || {});
+  const matches = keys
+    .map((k) => {
+      const m = /^ytd_(\d{4})_change$/i.exec(String(k || '').trim());
+      return m ? { field: k, year: Number(m[1]) } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.year - a.year);
+  if (matches.length) return { field: matches[0].field, year: String(matches[0].year) };
+  const fallback = keys.find((k) => /^ytd_.*change$/i.test(String(k || '').trim()));
+  return { field: fallback || 'ytd_2025_change', year: 'Latest' };
+}
+
 async function fetchOptionalMeta() {
   const candidates = Array.isArray(DATA_PATHS.metaCandidates) ? DATA_PATHS.metaCandidates : [];
   for (const path of candidates) {
@@ -409,9 +427,9 @@ function render(annualRows, quarterlyRows, meta) {
         <h2>Dataset Notes</h2>
         <div class="sub">Manual update workflow</div>
         <ul class="bullets">
-          <li>Update annual values in <code>ourlook_annual_forecast.csv</code> from the same report tables each quarter.</li>
-          <li>Update short-term momentum values in <code>ourlook_quarterly_conditions_2025.csv</code> from Table 2.1.</li>
-          <li>Optionally update report metadata and summary bullets in <code>outlook_metadata.json</code>.</li>
+          <li>Update annual values in <code>data/outlook_data/ourlook_annual_forecast.csv</code> from the same report tables each quarter.</li>
+          <li>Update short-term momentum values in <code>data/outlook_data/ourlook_quarterly_conditions_2025.csv</code> from Table 2.1.</li>
+          <li>Optionally update report metadata and summary bullets in <code>data/outlook_data/outlook_metadata.json</code>.</li>
         </ul>
         <div class="note">This page is intentionally data-file driven so future report updates can be done without changing dashboard code.</div>
       </div>
@@ -443,7 +461,7 @@ function render(annualRows, quarterlyRows, meta) {
       </div>
 
       <div class="card chart-card" style="grid-column: 1 / -1;">
-        <div class="chart-title">2025 In-year Momentum (Table 2.1)</div>
+        <div class="chart-title" id="quarterly-title">In-year Momentum (Table 2.1)</div>
         <div class="chart-sub">Year-to-date percent change</div>
         <div class="chart-wrap" style="height:320px;"><canvas id="chart-quarterly"></canvas></div>
       </div>
@@ -539,8 +557,13 @@ function render(annualRows, quarterlyRows, meta) {
   });
 
   const qLabels = quarterlyRows.map(r => r.indicator);
-  const qYtd = quarterlyRows.map(r => toNum(r.ytd_2025_change));
+  const quarterlyYtd = detectQuarterlyYtdField(quarterlyRows);
+  const qYtd = quarterlyRows.map(r => toNum(r[quarterlyYtd.field]));
   const qColors = qYtd.map(v => v >= 0 ? 'rgba(46, 125, 50, 0.75)' : 'rgba(198, 40, 40, 0.75)');
+  const qTitle = document.getElementById('quarterly-title');
+  if (qTitle) {
+    qTitle.textContent = `${quarterlyYtd.year} In-year Momentum (Table 2.1)`;
+  }
 
   createChart('chart-quarterly', {
     type: 'bar',
