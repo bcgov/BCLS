@@ -554,6 +554,7 @@
       actionPlans: 'Action Plans.csv',
       commitments: 'Action Plans Commitments.csv',
       fundingPrograms: 'Funding Programs.csv',
+      fundingProgramTracker: 'Funding Program Tracker.csv',
       infrastructures: 'Infrastructures.csv',
       investmentPromotion: 'Investment Promotion.csv',
       announcements: 'LW Announcements.csv',
@@ -574,6 +575,7 @@
       actionPlans: [],
       commitments: [],
       fundingPrograms: [],
+      fundingProgramTracker: [],
       infrastructures: [],
       investmentPromotion: [],
       announcements: [],
@@ -951,6 +953,7 @@
       STATE.actionPlans = data.actionPlans || [];
       STATE.commitments = data.commitments || [];
       STATE.fundingPrograms = data.fundingPrograms || [];
+      STATE.fundingProgramTracker = data.fundingProgramTracker || [];
       STATE.infrastructures = data.infrastructures || [];
       STATE.investmentPromotion = data.investmentPromotion || [];
       STATE.announcements = data.announcements || [];
@@ -985,6 +988,7 @@
           actionPlans: STATE.actionPlans,
           commitments: STATE.commitments,
           fundingPrograms: STATE.fundingPrograms,
+          fundingProgramTracker: STATE.fundingProgramTracker,
           infrastructures: STATE.infrastructures,
           investmentPromotion: STATE.investmentPromotion,
           announcements: STATE.announcements,
@@ -1009,6 +1013,7 @@
         STATE.actionPlans = Array.isArray(payload.actionPlans) ? payload.actionPlans : [];
         STATE.commitments = Array.isArray(payload.commitments) ? payload.commitments : [];
         STATE.fundingPrograms = Array.isArray(payload.fundingPrograms) ? payload.fundingPrograms : [];
+        STATE.fundingProgramTracker = Array.isArray(payload.fundingProgramTracker) ? payload.fundingProgramTracker : [];
         STATE.infrastructures = Array.isArray(payload.infrastructures) ? payload.infrastructures : [];
         STATE.investmentPromotion = Array.isArray(payload.investmentPromotion) ? payload.investmentPromotion : [];
         STATE.announcements = Array.isArray(payload.announcements) ? payload.announcements : [];
@@ -1125,6 +1130,92 @@
       if (s.includes('provincial')) return 'Provincial contribution';
       if (s.includes('federal')) return 'Federal contribution';
       return 'Other contributions';
+    }
+
+    const LW_FUNDING_TYPE_ORDER = ['Provincial contribution', 'Federal contribution', 'Other contributions'];
+
+    function lwZeroFundingSplit() {
+      return {
+        'Provincial contribution': 0,
+        'Federal contribution': 0,
+        'Other contributions': 0
+      };
+    }
+
+    function lwFundingProgramTrackerSplitMap() {
+      const map = new Map();
+      (STATE.fundingProgramTracker || []).forEach((row) => {
+        const programId = normalizeText(getField(row, ['Program ID']));
+        const amount = parseNumber(getField(row, ['Amount ($M)', 'Amount']));
+        if (!programId || !(Number(amount) > 0)) return;
+        const type = lwFundingSourceBucket(getField(row, ['Transaction Type', 'Funding source detail', 'Funding Source']));
+        if (!map.has(programId)) map.set(programId, lwZeroFundingSplit());
+        const split = map.get(programId);
+        split[type] += Number(amount) || 0;
+      });
+      return map;
+    }
+
+    function lwFundingProgramTypeBreakdown(row, trackerSplitMap) {
+      const programId = normalizeText(getField(row, ['Program ID']));
+      if (trackerSplitMap && programId && trackerSplitMap.has(programId)) {
+        const fromTracker = trackerSplitMap.get(programId) || lwZeroFundingSplit();
+        return {
+          'Provincial contribution': Number(fromTracker['Provincial contribution']) || 0,
+          'Federal contribution': Number(fromTracker['Federal contribution']) || 0,
+          'Other contributions': Number(fromTracker['Other contributions']) || 0
+        };
+      }
+
+      const total = parseNumber(getField(row, ['Total Commitment Value'])) || 0;
+      const pRaw = parseNumber(getField(row, ['Provincial Contribution ($M)', 'Provincial Contribution', 'Provincial ($M)', 'Provincial']));
+      const fRaw = parseNumber(getField(row, ['Federal Contribution ($M)', 'Federal Contribution', 'Federal ($M)', 'Federal']));
+      const oRaw = parseNumber(getField(row, ['Other Contribution ($M)', 'Other Contribution', 'Other ($M)', 'Other']));
+      const hasExplicit = [pRaw, fRaw, oRaw].some(v => v !== null && v !== undefined);
+
+      let provincial = Number(pRaw) || 0;
+      let federal = Number(fRaw) || 0;
+      let other = Number(oRaw) || 0;
+
+      if (hasExplicit) {
+        const explicitSum = provincial + federal + other;
+        if (total > 0 && explicitSum < total) other += (total - explicitSum);
+        if (total > 0 && explicitSum > total) {
+          const scale = total / explicitSum;
+          provincial *= scale;
+          federal *= scale;
+          other *= scale;
+        }
+        return {
+          'Provincial contribution': provincial,
+          'Federal contribution': federal,
+          'Other contributions': other
+        };
+      }
+
+      const bucket = lwFundingSourceBucket(getField(row, ['Lead Funding Source']));
+      return {
+        'Provincial contribution': bucket === 'Provincial contribution' ? total : 0,
+        'Federal contribution': bucket === 'Federal contribution' ? total : 0,
+        'Other contributions': bucket === 'Other contributions' ? total : 0
+      };
+    }
+
+    function lwFundingProgramTotals(rows) {
+      const totals = lwZeroFundingSplit();
+      const trackerSplitMap = lwFundingProgramTrackerSplitMap();
+      const uniquePrograms = new Map();
+      (rows || []).forEach((row, idx) => {
+        const programId = normalizeText(getField(row, ['Program ID'])) || `__row_${idx}`;
+        if (!uniquePrograms.has(programId)) uniquePrograms.set(programId, row);
+      });
+      uniquePrograms.forEach((row) => {
+        const split = lwFundingProgramTypeBreakdown(row, trackerSplitMap);
+        LW_FUNDING_TYPE_ORDER.forEach((type) => {
+          totals[type] += Number(split[type]) || 0;
+        });
+      });
+      return totals;
     }
 
     function lwBuildStackedData(rows, groupAccessor, seriesAccessor, valueAccessor, limit) {
@@ -1425,20 +1516,12 @@
     function lwBuildChart(id, el) {
       if (id === 'funding-programs') {
         const rows = STATE.fundingPrograms || [];
-        const series = lwBuildSeriesData(
-          rows,
-          r => lwFundingSourceBucket(getField(r, ['Lead Funding Source'])),
-          r => parseNumber(getField(r, ['Total Commitment Value'])) || 0,
-          10
-        );
-        const order = ['Provincial contribution', 'Federal contribution', 'Other contributions'];
-        const valueMap = {};
-        series.labels.forEach((label, idx) => { valueMap[label] = Number(series.data[idx]) || 0; });
+        const totals = lwFundingProgramTotals(rows);
         const data = {
-          labels: order,
+          labels: LW_FUNDING_TYPE_ORDER,
           datasets: [{
             label: 'Total Commitment ($M)',
-            data: order.map((k) => Math.round(valueMap[k] || 0)),
+            data: LW_FUNDING_TYPE_ORDER.map((k) => Math.round(totals[k] || 0)),
             backgroundColor: ['#0b4f8a', '#5b8ec9', '#b26d00'],
             borderRadius: 3,
             stack: 's'
@@ -1450,19 +1533,11 @@
 
       if (id === 'funding-programs-donut') {
         const rows = STATE.fundingPrograms || [];
-        const series = lwBuildSeriesData(
-          rows,
-          r => lwFundingSourceBucket(getField(r, ['Lead Funding Source'])),
-          r => parseNumber(getField(r, ['Total Commitment Value'])) || 0,
-          10
-        );
-        const order = ['Provincial contribution', 'Federal contribution', 'Other contributions'];
-        const valueMap = {};
-        series.labels.forEach((label, idx) => { valueMap[label] = Number(series.data[idx]) || 0; });
+        const totals = lwFundingProgramTotals(rows);
         const data = {
-          labels: order,
+          labels: LW_FUNDING_TYPE_ORDER,
           datasets: [{
-            data: order.map((k) => Math.round(valueMap[k] || 0)),
+            data: LW_FUNDING_TYPE_ORDER.map((k) => Math.round(totals[k] || 0)),
             backgroundColor: ['#0b4f8a', '#5b8ec9', '#b26d00'],
             borderWidth: 2,
             borderColor: '#fff',
@@ -1474,24 +1549,30 @@
       }
 
       if (id === 'funding-programs-horizontal') {
+        const trackerSplitMap = lwFundingProgramTrackerSplitMap();
         const grouped = new Map();
-        (STATE.fundingPrograms || []).forEach((r) => {
-          const amount = parseNumber(getField(r, ['Total Commitment Value'])) || 0;
-          if (!amount) return;
-          const program = lwLabel(getField(r, ['Program Name', 'Program ID']), 'Program');
-          const type = lwFundingSourceBucket(getField(r, ['Lead Funding Source']));
-          if (!grouped.has(program)) grouped.set(program, { total: 0, byType: {} });
-          const g = grouped.get(program);
-          g.total += amount;
-          g.byType[type] = (g.byType[type] || 0) + amount;
+        (STATE.fundingPrograms || []).forEach((r, idx) => {
+          const programId = normalizeText(getField(r, ['Program ID'])) || `__row_${idx}`;
+          if (grouped.has(programId)) return;
+          const split = lwFundingProgramTypeBreakdown(r, trackerSplitMap);
+          const amount = LW_FUNDING_TYPE_ORDER.reduce((acc, type) => acc + (Number(split[type]) || 0), 0);
+          if (amount <= 0) return;
+          const program = lwLabel(getField(r, ['Program Name']), lwLabel(programId, 'Program'));
+          grouped.set(programId, {
+            program,
+            total: amount,
+            byType: {
+              'Provincial contribution': Number(split['Provincial contribution']) || 0,
+              'Federal contribution': Number(split['Federal contribution']) || 0,
+              'Other contributions': Number(split['Other contributions']) || 0
+            }
+          });
         });
-        const rows = Array.from(grouped.entries())
-          .map(([program, v]) => ({ program, total: v.total, byType: v.byType }))
+        const rows = Array.from(grouped.values())
           .sort((a, b) => b.total - a.total)
           .slice(0, 12);
         const rawLabels = rows.map((r) => r.program);
         const labels = rawLabels.map((name) => lwWrapLabel(name, 28));
-        const typeOrder = ['Provincial contribution', 'Federal contribution', 'Other contributions'];
         const colors = {
           'Provincial contribution': '#0b4f8a',
           'Federal contribution': '#5b8ec9',
@@ -1499,7 +1580,7 @@
         };
         const data = {
           labels,
-          datasets: typeOrder.map((type) => ({
+          datasets: LW_FUNDING_TYPE_ORDER.map((type) => ({
             label: type,
             data: rows.map((r) => Math.round((r.byType[type] || 0))),
             backgroundColor: colors[type],
