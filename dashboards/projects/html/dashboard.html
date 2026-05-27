@@ -465,6 +465,28 @@
       'Thompson Okanagan': { lat: 50.20, lon: -119.35 }
     };
 
+    const FALLBACK_BC_BOUNDARY_RINGS = [
+      [
+        [-139.06, 60.00], [-136.80, 59.80], [-134.40, 59.55], [-132.20, 58.95],
+        [-130.60, 58.15], [-129.00, 57.15], [-127.55, 56.10], [-126.30, 55.20],
+        [-125.20, 54.35], [-124.20, 53.55], [-123.35, 52.85], [-122.50, 52.10],
+        [-121.55, 51.35], [-120.70, 50.75], [-119.90, 50.20], [-119.10, 49.65],
+        [-118.25, 49.20], [-117.45, 49.00], [-116.20, 49.00], [-114.10, 49.00],
+        [-114.10, 60.00], [-120.00, 60.00], [-126.00, 60.00], [-132.00, 60.00],
+        [-139.06, 60.00]
+      ],
+      [
+        [-128.45, 50.90], [-127.70, 50.70], [-126.90, 50.30], [-126.10, 49.90],
+        [-125.40, 49.45], [-124.70, 49.10], [-124.10, 48.90], [-123.85, 48.70],
+        [-124.15, 48.45], [-124.85, 48.55], [-125.60, 48.90], [-126.35, 49.40],
+        [-127.10, 49.90], [-127.85, 50.35], [-128.45, 50.90]
+      ],
+      [
+        [-133.35, 54.40], [-132.85, 53.95], [-132.25, 53.85], [-131.95, 54.20],
+        [-132.25, 54.60], [-132.95, 54.60], [-133.35, 54.40]
+      ]
+    ];
+
     const STATE = {
       projects: [],
       tracker: [],
@@ -626,6 +648,14 @@
       return out;
     }
 
+    function chooseBoundaryStep(length) {
+      if (length > 3000) return 16;
+      if (length > 1800) return 10;
+      if (length > 900) return 6;
+      if (length > 300) return 3;
+      return 2;
+    }
+
     function normalizeProject(row) {
       const id = normalizeText(row['Project-ID'] || row['Project ID']);
       return {
@@ -680,9 +710,12 @@
       STATE.projects = projectRows.map(normalizeProject).filter((p) => p.id && p.name)
         .sort((a, b) => a.displayOrder - b.displayOrder || a.id.localeCompare(b.id));
       STATE.tracker = trackerRows.map(normalizeTracker).filter((r) => r.announcementId && r.projectId);
-      STATE.boundaryRings = extractBoundaryRings(bcBoundary)
+      const extractedRings = extractBoundaryRings(bcBoundary)
         .filter((ring) => Array.isArray(ring) && ring.length > 3)
-        .map((ring) => simplifyRing(ring, 4));
+        .map((ring) => simplifyRing(ring, chooseBoundaryStep(ring.length)));
+      STATE.boundaryRings = extractedRings.length
+        ? extractedRings
+        : FALLBACK_BC_BOUNDARY_RINGS.map((ring) => simplifyRing(ring, 2));
       STATE.loadedAt = new Date();
     }
 
@@ -961,7 +994,16 @@
           mode: 'lines',
           lon: ringLon,
           lat: ringLat,
-          line: { color: '#2e5f91', width: 2.1 },
+          line: { color: 'rgba(255,255,255,0.92)', width: 5.2 },
+          hoverinfo: 'skip',
+          showlegend: false
+        });
+        traces.push({
+          type: 'scattermapbox',
+          mode: 'lines',
+          lon: ringLon,
+          lat: ringLat,
+          line: { color: '#1f4f7f', width: 2.4 },
           hoverinfo: 'skip',
           showlegend: false
         });
@@ -1006,7 +1048,7 @@
         paper_bgcolor: 'rgba(0,0,0,0)',
         plot_bgcolor: 'rgba(0,0,0,0)',
         uirevision: 'projects-map',
-        dragmode: 'zoom',
+        dragmode: 'pan',
         legend: {
           orientation: 'h',
           x: 0,
@@ -1022,6 +1064,8 @@
           style: 'white-bg',
           center,
           zoom,
+          minzoom: zoom,
+          maxzoom: zoom,
           bearing: 0,
           pitch: 0,
           layers: [
@@ -1043,14 +1087,25 @@
 
       const config = {
         responsive: true,
-        scrollZoom: true,
+        scrollZoom: false,
         displayModeBar: true,
         displaylogo: false,
-        modeBarButtonsToAdd: ['zoomInMapbox', 'zoomOutMapbox', 'resetViewMapbox'],
-        modeBarButtonsToRemove: ['toImage']
+        modeBarButtonsToRemove: ['toImage', 'zoomInMapbox', 'zoomOutMapbox', 'resetViewMapbox']
       };
 
       Plotly.react(mapEl, traces, layout, config).then(() => {
+        try {
+          const subplot = mapEl?._fullLayout?.mapbox?._subplot;
+          const mapboxMap = subplot?.map;
+          if (mapboxMap) {
+            if (mapboxMap.scrollZoom) mapboxMap.scrollZoom.disable();
+            if (mapboxMap.boxZoom) mapboxMap.boxZoom.disable();
+            if (mapboxMap.doubleClickZoom) mapboxMap.doubleClickZoom.disable();
+            if (mapboxMap.touchZoomRotate) mapboxMap.touchZoomRotate.disable();
+            if (mapboxMap.keyboard) mapboxMap.keyboard.disable();
+          }
+        } catch (_) {}
+
         if (typeof mapEl.removeAllListeners === 'function') {
           mapEl.removeAllListeners('plotly_click');
           mapEl.removeAllListeners('plotly_doubleclick');
@@ -1086,7 +1141,7 @@
           ${esc(status)} (${formatNumber(statusCounts[status])})
         </span>
       `).join('');
-      legendEl.innerHTML = legendItems + '<span class="legend-item">Wheel or +/-: zoom | Drag: pan | Click point: toggle project | Double-click: clear project selection</span>';
+      legendEl.innerHTML = legendItems + '<span class="legend-item">Zoom: disabled | Drag: pan | Click point: toggle project | Double-click: clear project selection</span>';
     }
 
     function renderChart() {

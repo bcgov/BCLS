@@ -90,6 +90,16 @@
       box-shadow: var(--shadow-lg);
     }
 
+    .tracker-card.is-disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .tracker-card.is-disabled:hover {
+      transform: none;
+      box-shadow: var(--shadow);
+    }
+
     .tracker-card-stripe { height: 5px; background: var(--trk-color, var(--accent)); }
     .tracker-card-body { padding: 18px 20px 16px; }
 
@@ -123,6 +133,19 @@
       line-height: 1.55;
       min-height: 86px;
       margin-bottom: 4px;
+    }
+
+    .trk-state {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #2563eb;
+      margin-top: 8px;
+    }
+
+    .tracker-card.is-disabled .trk-state {
+      color: #64748b;
     }
 
     .detail-top {
@@ -193,16 +216,6 @@
         A dedicated workspace for Look West monitoring streams. Select a tracker page below to view and manage records.
         </div>
       </div>
-      <div class="tracker-hub-stats">
-        <div>
-          <div class="hub-stat-val" id="tracker-total-stat">5</div>
-          <div class="hub-stat-lbl">Tracker Pages</div>
-        </div>
-        <div>
-          <div class="hub-stat-val" id="tracker-ready-stat">5</div>
-          <div class="hub-stat-lbl">Ready</div>
-        </div>
-      </div>
     </div>
     <div class="tracker-grid" id="tracker-grid"></div>
   </section>
@@ -224,7 +237,8 @@
         code: 'TG',
         title: 'LW Targets Tracker',
         color: '#5B3FB7',
-        status: 'live',
+        status: 'active',
+        enabled: true,
         subtitle: 'Outcome targets, baselines, and progress cadence',
         description: 'Tracks target statements with baseline and current values, linked tracking activity, and update coverage by stream, pillar, theme, sector, and timeframe.',
         path: 'pages/lw_targets_tracker.html'
@@ -234,7 +248,8 @@
         code: 'PR',
         title: 'LW Policy & Regulations Tracker',
         color: '#1F78A8',
-        status: 'live',
+        status: 'inactive',
+        enabled: false,
         subtitle: 'Policy and regulatory implementation lifecycle',
         description: 'Monitors policy and regulation items from commitment to implementation, including status changes, accountable ministries, timing, and linked announcement evidence.',
         path: 'pages/lw_policy_regulations_tracker.html'
@@ -244,7 +259,8 @@
         code: 'FI',
         title: 'LW Funding and Investment Tracker',
         color: '#2E8B7D',
-        status: 'live',
+        status: 'inactive',
+        enabled: false,
         subtitle: 'Program allocations and transaction flow',
         description: 'Follows funding programs from planned envelopes to transaction-level updates, including recipients, sectors, regions, and reported economic outcomes.',
         path: 'pages/lw_funding_investment_tracker.html'
@@ -254,7 +270,8 @@
         code: 'IN',
         title: 'LW Infrastructure Tracker',
         color: '#C96A2A',
-        status: 'live',
+        status: 'inactive',
+        enabled: false,
         subtitle: 'Delivery pipeline, milestones, and blockers',
         description: 'Tracks infrastructure initiatives across planning, procurement, and delivery phases, with milestone movement, transaction history, and implementation constraints.',
         path: 'pages/lw_infrastructure_tracker.html'
@@ -264,7 +281,8 @@
         code: 'IP',
         title: 'LW Investment Promotion Tracker',
         color: '#A63D6E',
-        status: 'live',
+        status: 'inactive',
+        enabled: false,
         subtitle: 'Pipeline conversion and promotion outcomes',
         description: 'Reviews investment promotion activity from lead generation to conversion, including project pipeline changes, ministry actions, and realized investment signals.',
         path: 'pages/lw_investment_promotion_tracker.html'
@@ -323,7 +341,7 @@
 
     function showDetail(pageId) {
       const item = TRACKER_PAGES.find((p) => p.id === pageId);
-      if (!item) {
+      if (!item || !item.enabled) {
         showHub();
         return;
       }
@@ -335,25 +353,19 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function updateHubStats() {
-      const total = TRACKER_PAGES.length;
-      const ready = TRACKER_PAGES.filter((p) => p.status === 'live').length;
-      const totalEl = document.getElementById('tracker-total-stat');
-      const readyEl = document.getElementById('tracker-ready-stat');
-      if (totalEl) totalEl.textContent = String(total);
-      if (readyEl) readyEl.textContent = String(ready);
-    }
-
     function renderGrid() {
       grid.innerHTML = TRACKER_PAGES.map((item) => {
+        const disabledClass = item.enabled ? '' : 'is-disabled';
+        const stateLabel = item.enabled ? 'Active' : 'Inactive';
         return `
-          <article class="tracker-card" data-page-id="${item.id}" style="--trk-color:${item.color || '#5B3FB7'};">
+          <article class="tracker-card ${disabledClass}" data-page-id="${item.id}" style="--trk-color:${item.color || '#5B3FB7'};">
             <div class="tracker-card-stripe"></div>
             <div class="tracker-card-body">
               <span class="trk-code">${item.code || '--'}</span>
               <h3 class="trk-name">${item.title}</h3>
               <p class="trk-sub">${item.subtitle || ''}</p>
               <p class="trk-desc">${item.description}</p>
+              <div class="trk-state">${stateLabel}</div>
             </div>
           </article>
         `;
@@ -362,6 +374,8 @@
       grid.querySelectorAll('.tracker-card').forEach((card) => {
         card.addEventListener('click', () => {
           const pageId = card.getAttribute('data-page-id');
+          const item = TRACKER_PAGES.find((p) => p.id === pageId);
+          if (!item || !item.enabled) return;
           showDetail(pageId);
         });
       });
@@ -370,7 +384,6 @@
     document.getElementById('back-to-hub').addEventListener('click', showHub);
 
     renderGrid();
-    updateHubStats();
 
     const initialPage = new URLSearchParams(window.location.search).get('page');
     if (initialPage) {

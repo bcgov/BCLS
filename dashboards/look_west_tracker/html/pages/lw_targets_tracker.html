@@ -469,6 +469,48 @@
       font-weight: 600;
     }
 
+    .table-pager {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px 0;
+      flex-wrap: wrap;
+    }
+
+    .pager-btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 7px;
+      font-size: 11px;
+      color: #334155;
+      font-weight: 600;
+      padding: 4px 8px;
+      cursor: pointer;
+      min-width: 34px;
+      text-align: center;
+    }
+
+    .pager-btn:hover {
+      background: #f8fafc;
+    }
+
+    .pager-btn.active {
+      background: #e8f0fb;
+      border-color: #93c5fd;
+      color: #1e3a8a;
+    }
+
+    .pager-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .pager-ellipsis {
+      font-size: 11px;
+      color: #64748b;
+      padding: 0 2px;
+    }
+
     thead th {
       text-align: left;
       background: #f8fafc;
@@ -721,6 +763,7 @@
             <tbody id="targets-table-body"></tbody>
           </table>
         </div>
+        <div class="table-pager" id="targets-table-pager"></div>
         <div class="table-meta" id="targets-table-meta"></div>
       </section>
 
@@ -793,11 +836,13 @@
       targetMap: new Map(),
       charts: {},
       filteredTrackers: [],
-      selectedTargetId: null
+      selectedTargetId: null,
+      targetsPage: 1
     };
 
     const KPI_COLORS = ["#4b7ea8", "#4f8d7a", "#b08a4c", "#7d78a8", "#5b8a63", "#a0617f"];
     const TARGET_CHART_PREFS_KEY = "lw_targets_tracker_chart_prefs_v1";
+    const TARGETS_TABLE_PAGE_SIZE = 10;
     const TARGET_CHART_DEFS = [
       { id: "sector-updates", title: "Tracker Updates by Sector" },
       { id: "stream-updates", title: "Tracker Updates by Stream" },
@@ -1763,18 +1808,84 @@
       selectEl.innerHTML = options.join("");
     }
 
+    function getTargetsTotalPages() {
+      return Math.max(1, Math.ceil((state.targets.length || 0) / TARGETS_TABLE_PAGE_SIZE));
+    }
+
+    function setSelectedTarget(targetId) {
+      const normalized = targetId ? String(targetId).trim() : "";
+      state.selectedTargetId = normalized || null;
+      if (!state.selectedTargetId) return;
+      const idx = state.targets.findIndex((target) => target.targetId === state.selectedTargetId);
+      if (idx >= 0) {
+        state.targetsPage = Math.floor(idx / TARGETS_TABLE_PAGE_SIZE) + 1;
+      }
+    }
+
+    function goTargetsPage(page) {
+      const totalPages = getTargetsTotalPages();
+      const nextPage = Math.max(1, Math.min(totalPages, Number(page) || 1));
+      if (nextPage === state.targetsPage) return;
+      state.targetsPage = nextPage;
+      renderTargetsReferenceTable();
+    }
+
+    function renderTargetsTablePager(totalRows, totalPages) {
+      const pager = document.getElementById("targets-table-pager");
+      if (!pager) return;
+      if (!totalRows || totalRows <= TARGETS_TABLE_PAGE_SIZE) {
+        pager.innerHTML = "";
+        return;
+      }
+
+      const current = state.targetsPage;
+      const pageSet = new Set([1, totalPages, current - 1, current, current + 1]);
+      const pages = Array.from(pageSet)
+        .filter((p) => p >= 1 && p <= totalPages)
+        .sort((a, b) => a - b);
+
+      const parts = [];
+      parts.push(`<button class="pager-btn" type="button" onclick="goTargetsPage(${current - 1})" ${current <= 1 ? "disabled" : ""}>Prev</button>`);
+
+      let prevPage = 0;
+      pages.forEach((pageNum) => {
+        if (pageNum - prevPage > 1) {
+          parts.push("<span class=\"pager-ellipsis\">...</span>");
+        }
+        parts.push(
+          `<button class="pager-btn ${pageNum === current ? "active" : ""}" type="button" onclick="goTargetsPage(${pageNum})">${pageNum}</button>`
+        );
+        prevPage = pageNum;
+      });
+
+      parts.push(`<button class="pager-btn" type="button" onclick="goTargetsPage(${current + 1})" ${current >= totalPages ? "disabled" : ""}>Next</button>`);
+      pager.innerHTML = parts.join("");
+    }
+
     function renderTargetsReferenceTable() {
       const tbody = document.getElementById("targets-table-body");
       const meta = document.getElementById("targets-table-meta");
+      const pager = document.getElementById("targets-table-pager");
       if (!tbody || !meta) return;
 
       if (!state.targets.length) {
         tbody.innerHTML = "<tr><td class=\"empty-row\" colspan=\"6\">No target records found.</td></tr>";
+        if (pager) pager.innerHTML = "";
         meta.textContent = "No target records available.";
+        state.targetsPage = 1;
         return;
       }
 
-      tbody.innerHTML = state.targets.map((target) => {
+      const totalRows = state.targets.length;
+      const totalPages = getTargetsTotalPages();
+      if (state.targetsPage < 1) state.targetsPage = 1;
+      if (state.targetsPage > totalPages) state.targetsPage = totalPages;
+
+      const from = (state.targetsPage - 1) * TARGETS_TABLE_PAGE_SIZE;
+      const to = Math.min(from + TARGETS_TABLE_PAGE_SIZE, totalRows);
+      const pageRows = state.targets.slice(from, to);
+
+      tbody.innerHTML = pageRows.map((target) => {
         const isActive = state.selectedTargetId && state.selectedTargetId === target.targetId;
         return `
           <tr data-target-id="${escapeHtml(target.targetId)}" class="${isActive ? "active-target" : ""}">
@@ -1788,11 +1899,13 @@
         `;
       }).join("");
 
+      renderTargetsTablePager(totalRows, totalPages);
+
       if (state.selectedTargetId && state.targetMap.has(state.selectedTargetId)) {
         const selected = state.targetMap.get(state.selectedTargetId);
-        meta.textContent = `Selected target: ${state.selectedTargetId} - ${selected.target}. Tracker table is filtered to this target.`;
+        meta.textContent = `Showing ${formatNumber(from + 1)}-${formatNumber(to)} of ${formatNumber(totalRows)} target(s) (page ${state.targetsPage} of ${totalPages}). Selected target: ${state.selectedTargetId} - ${selected.target}. Tracker table is filtered to this target.`;
       } else {
-        meta.textContent = `Showing ${formatNumber(state.targets.length)} target(s). Click a row to filter tracker rows.`;
+        meta.textContent = `Showing ${formatNumber(from + 1)}-${formatNumber(to)} of ${formatNumber(totalRows)} target(s) (page ${state.targetsPage} of ${totalPages}). Click a row to filter tracker rows.`;
       }
     }
 
@@ -1805,11 +1918,11 @@
           if (!row) return;
           const clickedTargetId = String(row.dataset.targetId || "").trim();
           const nextTarget = state.selectedTargetId === clickedTargetId ? null : clickedTargetId;
+          setSelectedTarget(nextTarget);
           const targetFilter = document.getElementById("filter-target");
           if (targetFilter) {
-            targetFilter.value = nextTarget || "__all__";
+            targetFilter.value = state.selectedTargetId || "__all__";
           }
-          state.selectedTargetId = nextTarget;
           renderTargetsReferenceTable();
           applyFilters();
         });
@@ -1819,7 +1932,7 @@
       if (clearBtn && clearBtn.dataset.bound !== "1") {
         clearBtn.dataset.bound = "1";
         clearBtn.addEventListener("click", () => {
-          state.selectedTargetId = null;
+          setSelectedTarget(null);
           const targetFilter = document.getElementById("filter-target");
           if (targetFilter) targetFilter.value = "__all__";
           renderTargetsReferenceTable();
@@ -1861,7 +1974,8 @@
       document.getElementById("filter-target").value = "__all__";
       document.getElementById("filter-achievement").value = "__all__";
       document.getElementById("filter-search").value = "";
-      state.selectedTargetId = null;
+      state.targetsPage = 1;
+      setSelectedTarget(null);
       renderTargetsReferenceTable();
       applyFilters();
     }
@@ -1874,7 +1988,7 @@
 
       const selectedFromFilter = (target !== "__all__" && target !== "__unmapped__") ? target : null;
       if (state.selectedTargetId !== selectedFromFilter) {
-        state.selectedTargetId = selectedFromFilter;
+        setSelectedTarget(selectedFromFilter);
         renderTargetsReferenceTable();
       }
 

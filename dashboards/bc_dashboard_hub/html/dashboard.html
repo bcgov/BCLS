@@ -168,6 +168,14 @@ body {
   transition: background .1s, border-color .1s;
 }
 .nav-dd-item:hover { background: #F7FAFC; border-left-color: var(--c-sectors); }
+.nav-dd-item.disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.nav-dd-item.disabled:hover {
+  background: transparent;
+  border-left-color: transparent;
+}
 .nav-dd-item .dd-icon { font-size: 17px; width: 22px; text-align: center; }
 .nav-dd-item .dd-name { flex: 1; font-weight: 500; }
 .dd-icon-img { width: 18px; height: 18px; object-fit: contain; vertical-align: middle; }
@@ -435,6 +443,14 @@ body {
 .sector-card:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
+}
+.sector-card.is-disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.sector-card.is-disabled:hover {
+  transform: none;
+  box-shadow: var(--shadow);
 }
 .sector-card-stripe {
   height: 5px;
@@ -829,16 +845,23 @@ SECTORS.forEach(s => {
 });
 
 const HIDDEN_SECTOR_IDS = new Set(['future-sector-01', 'future-sector-02']);
+const ACTIVE_SECTOR_IDS = new Set(['life-sciences', 'tourism']);
+function isSectorEnabledById(id) {
+  return ACTIVE_SECTOR_IDS.has(String(id || '').trim());
+}
+function isSectorEnabled(sector) {
+  return !!sector && isSectorEnabledById(sector.id);
+}
 function getVisibleSectors() {
   return SECTORS.filter(s => !HIDDEN_SECTOR_IDS.has(s.id));
 }
 
 const TRACKER_PAGES = [
-  { id: 'targets', name: 'LW Targets Tracker', icon: 'TG' },
-  { id: 'policy-regulation', name: 'LW Policy & Regulations Tracker', icon: 'PR' },
-  { id: 'funding-investment', name: 'LW Funding and Investment Tracker', icon: 'FI' },
-  { id: 'infrastructure', name: 'LW Infrastructure Tracker', icon: 'IN' },
-  { id: 'investment-promotion', name: 'LW Investment Promotion Tracker', icon: 'IP' }
+  { id: 'targets', name: 'LW Targets Tracker', icon: 'TG', enabled: true },
+  { id: 'policy-regulation', name: 'LW Policy & Regulations Tracker', icon: 'PR', enabled: false },
+  { id: 'funding-investment', name: 'LW Funding and Investment Tracker', icon: 'FI', enabled: false },
+  { id: 'infrastructure', name: 'LW Infrastructure Tracker', icon: 'IN', enabled: false },
+  { id: 'investment-promotion', name: 'LW Investment Promotion Tracker', icon: 'IP', enabled: false }
 ];
 
 /* Section metadata */
@@ -945,6 +968,10 @@ function ensureFrameFitLoop() {
 ══════════════════════════════════════════════════════════════════════════ */
 function navigate(section, sectorId) {
   section = normalizeSectionId(section);
+  if (section === 'sector-detail' && sectorId && !isSectorEnabledById(sectorId)) {
+    section = 'sectors';
+    sectorId = null;
+  }
   APP.section = section;
   APP.sector  = sectorId || null;
   if (section !== 'tracker') APP.trackerPage = null;
@@ -1033,9 +1060,10 @@ function buildSectorsDropdown() {
   const visibleSectors = getVisibleSectors();
 
   visibleSectors.forEach(s => {
+    const enabled = isSectorEnabled(s);
     const item = document.createElement('div');
-    item.className = 'nav-dd-item';
-    item.onclick = () => navigate('sector-detail', s.id);
+    item.className = 'nav-dd-item' + (enabled ? '' : ' disabled');
+    if (enabled) item.onclick = () => navigate('sector-detail', s.id);
     item.innerHTML = `
       <span class="dd-icon">${sectorIconHtml(s, 'dd-icon-img')}</span>
       <span class="dd-name">${s.name}</span>
@@ -1054,10 +1082,11 @@ function buildTrackerDropdown() {
     const item = document.createElement('div');
     item.className = 'nav-dd-item';
     item.onclick = () => navigateTrackerPage(p.id);
+    const dotHtml = p.enabled ? '<span class="dd-dot live"></span>' : '';
     item.innerHTML = `
       <span class="dd-icon">${p.icon}</span>
       <span class="dd-name">${p.name}</span>
-      <span class="dd-dot live"></span>
+      ${dotHtml}
     `;
     dd.appendChild(item);
   });
@@ -1071,25 +1100,34 @@ function buildSectorsGrid() {
   if (!grid) return;
   const visibleSectors = getVisibleSectors();
 
-  const cardMeta = (s) => {
+  const cardMeta = (s, enabled) => {
+    if (!enabled) return 'Deactivated';
     if (s.last_updated) return `Last updated: ${s.last_updated}`;
-    return 'Coming Soon';
+    return 'Active';
   };
 
   grid.innerHTML = visibleSectors.map(s => `
-    <div class="sector-card" style="--sc-color:${s.color}"
-         onclick="navigate('sector-detail','${s.id}')">
+    <div class="sector-card ${isSectorEnabled(s) ? '' : 'is-disabled'}"
+         style="--sc-color:${s.color}"
+         data-sector-id="${s.id}"
+         aria-disabled="${isSectorEnabled(s) ? 'false' : 'true'}">
       <div class="sector-card-stripe"></div>
       <div class="sector-card-body">
         <span class="sc-icon">${sectorIconHtml(s, 'sc-icon-img')}</span>
         <div class="sc-name">${s.name}</div>
         <div class="sc-desc">${s.desc}</div>
         <div class="sc-footer">
-          <span class="sc-meta">${cardMeta(s)}</span>
+          <span class="sc-meta">${cardMeta(s, isSectorEnabled(s))}</span>
         </div>
       </div>
     </div>
   `).join('');
+
+  grid.querySelectorAll('.sector-card[data-sector-id]').forEach((card) => {
+    const sectorId = card.getAttribute('data-sector-id');
+    if (!isSectorEnabledById(sectorId)) return;
+    card.addEventListener('click', () => navigate('sector-detail', sectorId));
+  });
 
 }
 
@@ -1657,7 +1695,7 @@ function init() {
   if (route.section === 'sector-detail') {
     const visibleSectors = getVisibleSectors();
     const exists = visibleSectors.some(s => s.id === route.sector);
-    if (exists) navigate('sector-detail', route.sector);
+    if (exists && isSectorEnabledById(route.sector)) navigate('sector-detail', route.sector);
     else navigate('sectors');
   } else if (route.section === 'tracker') {
     if (route.trackerPage) navigateTrackerPage(route.trackerPage);
