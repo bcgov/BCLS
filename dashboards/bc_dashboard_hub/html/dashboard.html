@@ -218,6 +218,35 @@ body {
 
 .section-wrap { padding: 28px 28px; max-width: 1600px; margin: 0 auto; }
 
+/* Actuals tabs */
+.actuals-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.actuals-tab-btn {
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 14px 9px;
+  cursor: pointer;
+}
+.actuals-tab-btn:hover {
+  color: var(--text);
+  background: #F7FAFC;
+}
+.actuals-tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.actuals-tab-panel { display: none; }
+.actuals-tab-panel.active { display: block; }
+
 /* Section header */
 .section-hdr {
   margin-bottom: 28px;
@@ -620,15 +649,7 @@ body {
   <div class="nav-inner">
 
     <button class="nav-btn active" data-section="macro" onclick="navigate('macro')">
-      B.C. Economy Snapshot
-    </button>
-
-    <button class="nav-btn" data-section="outlook" onclick="navigate('outlook')">
-      B.C. Economy Outlook
-    </button>
-
-    <button class="nav-btn" data-section="trade" onclick="navigate('trade')">
-      B.C. Trade Analysis
+      B.C. Economy Actuals Snapshot
     </button>
 
     <button class="nav-btn" data-section="strategy" onclick="navigate('strategy')">
@@ -676,8 +697,25 @@ body {
   <!-- ════════════════════  MACRO ECONOMY  ════════════════════ -->
   <section class="section-panel active" id="panel-macro">
     <div class="section-wrap">
-      <div class="dashboard-iframe-wrap">
-        <iframe class="dashboard-iframe" src="../../bc_macroeconomy/html/dashboard.html" title="BC Macroeconomy Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
+      <div class="actuals-tabs" role="tablist" aria-label="B.C. Economy Actuals tabs">
+        <button class="actuals-tab-btn active" type="button" data-actuals-tab="gdp" onclick="setActualsTab('gdp')">GDP</button>
+        <button class="actuals-tab-btn" type="button" data-actuals-tab="labour" onclick="setActualsTab('labour')">Labour Market</button>
+        <button class="actuals-tab-btn" type="button" data-actuals-tab="trade" onclick="setActualsTab('trade')">Trade</button>
+      </div>
+      <div class="actuals-tab-panel active" data-actuals-panel="gdp">
+        <div class="dashboard-iframe-wrap">
+          <iframe class="dashboard-iframe" src="../../bc_macroeconomy/html/dashboard.html?actualsView=gdp" title="B.C. GDP Actuals Snapshot Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
+        </div>
+      </div>
+      <div class="actuals-tab-panel" data-actuals-panel="labour">
+        <div class="dashboard-iframe-wrap">
+          <iframe class="dashboard-iframe" src="../../bc_macroeconomy/html/dashboard.html?actualsView=labour" title="B.C. Labour Market Actuals Snapshot Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
+        </div>
+      </div>
+      <div class="actuals-tab-panel" data-actuals-panel="trade">
+        <div class="dashboard-iframe-wrap">
+          <iframe class="dashboard-iframe" src="../../bc_trade_analysis/html/dashboard.html" title="B.C. Trade Actuals Snapshot Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
+        </div>
       </div>
     </div>
   </section>
@@ -686,15 +724,7 @@ body {
   <section class="section-panel" id="panel-outlook">
     <div class="section-wrap">
       <div class="dashboard-iframe-wrap">
-        <iframe class="dashboard-iframe" src="../../bc_economy_outlook/html/dashboard.html" title="BC Economy Outlook Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
-      </div>
-    </div>
-  </section>
-
-  <section class="section-panel" id="panel-trade">
-    <div class="section-wrap">
-      <div class="dashboard-iframe-wrap">
-        <iframe class="dashboard-iframe" src="../../bc_trade_analysis/html/dashboard.html" title="BC Trade Analysis Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
+        <iframe class="dashboard-iframe" src="../../bc_economy_outlook/html/dashboard.html" title="B.C. Economy Outlook and Forecasts Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
       </div>
     </div>
   </section>
@@ -866,9 +896,8 @@ const TRACKER_PAGES = [
 
 /* Section metadata */
 const SECTIONS = {
-  macro:          { label: 'Macro Economy',      color: '#1565C0' },
-  outlook:        { label: 'B.C. Economy Outlook', color: '#0F4C81' },
-  trade:          { label: 'B.C. Trade Analysis', color: '#00695C' },
+  macro:          { label: 'B.C. Economy Actuals Snapshot', color: '#1565C0' },
+  outlook:        { label: 'B.C. Economy Outlook & Forecasts', color: '#0F4C81' },
   strategy:       { label: 'Look West Strategy', color: '#00796B' },
   tracker:        { label: 'Look West Tracker',  color: '#5B3FB7' },
   sectors:        { label: 'Sectors',            color: '#4527A0' },
@@ -879,13 +908,21 @@ const SECTIONS = {
 /* ══════════════════════════════════════════════════════════════════════════
    APP STATE
 ══════════════════════════════════════════════════════════════════════════ */
-const APP = { section: 'macro', sector: null, trackerPage: null, data: {} };
+const APP = { section: 'macro', sector: null, trackerPage: null, actualsTab: 'gdp', data: {} };
 
 function normalizeSectionId(raw) {
   const s = String(raw || '').trim().toLowerCase().replace(/_/g, '-');
+  if (s === 'trade') return 'macro';
+  if (s === 'outlook') return 'macro';
   if (s === 'sector') return 'sector-detail';
   if (s === 'sectordetail') return 'sector-detail';
   return s || 'macro';
+}
+
+function normalizeActualsTabId(raw) {
+  const id = String(raw || '').trim().toLowerCase().replace(/_/g, '-').replace(/\s+/g, '-');
+  if (id === 'indicators' || id === 'economy-indicators') return 'gdp';
+  return ['gdp', 'labour', 'trade'].includes(id) ? id : 'gdp';
 }
 
 function normalizeTrackerPageId(raw) {
@@ -908,6 +945,9 @@ function updateRouteQuery(section, sectorId) {
     if (cleanSection === 'tracker' && trackerPage) url.searchParams.set('trackerPage', trackerPage);
     else url.searchParams.delete('trackerPage');
 
+    if (cleanSection === 'macro' && APP.actualsTab !== 'gdp') url.searchParams.set('actualsTab', APP.actualsTab);
+    else url.searchParams.delete('actualsTab');
+
     url.searchParams.delete('standalone');
     const next = url.pathname + (url.search || '') + (url.hash || '');
     window.history.replaceState({}, '', next);
@@ -916,10 +956,12 @@ function updateRouteQuery(section, sectorId) {
 
 function getInitialRoute() {
   const params = new URLSearchParams(window.location.search || '');
-  const section = normalizeSectionId(params.get('section'));
+  const rawSection = String(params.get('section') || '').trim();
+  const section = normalizeSectionId(rawSection);
   const sector = String(params.get('sector') || '').trim();
   const trackerPage = normalizeTrackerPageId(params.get('trackerPage'));
-  return { section, sector, trackerPage };
+  const actualsTab = normalizeActualsTabId(params.get('actualsTab') || (rawSection.toLowerCase() === 'trade' ? 'trade' : ''));
+  return { section, sector, trackerPage, actualsTab };
 }
 
 function fitEmbeddedFrameHeight(frame) {
@@ -966,6 +1008,21 @@ function ensureFrameFitLoop() {
 /* ══════════════════════════════════════════════════════════════════════════
    NAVIGATION
 ══════════════════════════════════════════════════════════════════════════ */
+function setActualsTab(tab) {
+  const clean = normalizeActualsTabId(tab);
+  APP.actualsTab = clean;
+
+  document.querySelectorAll('.actuals-tab-btn[data-actuals-tab]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.actualsTab === clean);
+  });
+  document.querySelectorAll('.actuals-tab-panel[data-actuals-panel]').forEach(panel => {
+    panel.classList.toggle('active', panel.dataset.actualsPanel === clean);
+  });
+
+  if (APP.section === 'macro') updateRouteQuery('macro', null);
+  setTimeout(fitVisibleFrames, 80);
+}
+
 function navigate(section, sectorId) {
   section = normalizeSectionId(section);
   if (section === 'sector-detail' && sectorId && !isSectorEnabledById(sectorId)) {
@@ -1007,6 +1064,7 @@ function navigate(section, sectorId) {
   const panelId = section === 'sector-detail' ? 'panel-sector-detail' : 'panel-' + section;
   const panel = document.getElementById(panelId);
   if (panel) panel.classList.add('active');
+  if (section === 'macro') setActualsTab(APP.actualsTab);
 
   /* -- breadcrumb -- */
   const bc = document.getElementById('breadcrumb');
@@ -1692,6 +1750,7 @@ function init() {
 
   /* Route deep-linking: open requested hub tab/sector from query params. */
   const route = getInitialRoute();
+  APP.actualsTab = route.actualsTab || 'gdp';
   if (route.section === 'sector-detail') {
     const visibleSectors = getVisibleSectors();
     const exists = visibleSectors.some(s => s.id === route.sector);

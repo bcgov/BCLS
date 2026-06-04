@@ -16,7 +16,7 @@
     } catch (_) {}
   })();
   </script>
-  <title>British Columbia Economy Snapshot</title>
+  <title>B.C. Economy Actuals Snapshot</title>
 <script src="../../../shared/vendor/chart.umd.min.js"></script>
 <script src="../../../shared/vendor/xlsx.full.min.js"></script>
   <style>
@@ -634,6 +634,9 @@ body {
 #panel-macro {
   display: block !important;
 }
+.actuals-hidden {
+  display: none !important;
+}
   </style>
 
 
@@ -705,8 +708,8 @@ body {
       <!-- Hero strip -->
       <div class="macro-hero">
         <div>
-          <div class="macro-hero-title">British Columbia Economy Snapshot</div>
-          <div class="macro-hero-sub">Developed in Government of British Columbia, Ministry of Jobs and Economic Growth, Economic Strategy Branch.</div>
+          <div class="macro-hero-title">B.C. Economy Actuals Snapshot</div>
+          <div class="macro-hero-sub">Current and historical view of B.C.'s economy based on actual Statistics Canada data.</div>
         </div>
         <div class="macro-hero-tools">
           <div class="macro-updated-info macro-updated-info-hero">
@@ -2812,11 +2815,72 @@ function linkDatasetTags() {
   });
 }
 
+function getActualsView() {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    const view = String(params.get('actualsView') || '').trim().toLowerCase();
+    return view === 'labour' || view === 'labour-market' ? 'labour' : 'gdp';
+  } catch (_) {
+    return 'gdp';
+  }
+}
+
+function setActualsCardVisible(elementId, visible) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const card = el.closest('.kpi-card, .card');
+  if (card) card.classList.toggle('actuals-hidden', !visible);
+}
+
+function tidyActualsChartGrids() {
+  document.querySelectorAll('.chart-grid').forEach(grid => {
+    const visibleCards = Array.from(grid.children).filter(child => !child.classList.contains('actuals-hidden'));
+    grid.classList.toggle('actuals-hidden', visibleCards.length === 0);
+    grid.style.gridTemplateColumns = visibleCards.length === 1 ? '1fr' : '';
+  });
+}
+
+function applyActualsView() {
+  const view = getActualsView();
+  const isGdp = view === 'gdp';
+
+  const title = document.querySelector('.macro-hero-title');
+  const sub = document.querySelector('.macro-hero-sub');
+  if (title) title.textContent = isGdp ? 'B.C. Economy Actuals Snapshot: GDP' : 'B.C. Economy Actuals Snapshot: Labour Market';
+  if (sub) {
+    sub.textContent = isGdp
+      ? 'Current and historical view of B.C. GDP based on actual Statistics Canada data.'
+      : 'Current and historical view of B.C. employment, unemployment, labour force, and industry movement data.';
+  }
+
+  const kpiGrid = document.getElementById('macro-kpi-grid');
+  if (kpiGrid) kpiGrid.style.gridTemplateColumns = isGdp ? 'repeat(1, minmax(240px, 360px))' : 'repeat(3, minmax(180px, 1fr))';
+
+  setActualsCardVisible('kpi-gdp', isGdp);
+  setActualsCardVisible('kpi-infl', false);
+  setActualsCardVisible('kpi-emp', !isGdp);
+  setActualsCardVisible('kpi-unemp', !isGdp);
+  setActualsCardVisible('kpi-labour', !isGdp);
+
+  setActualsCardVisible('chart-labour', !isGdp);
+  setActualsCardVisible('chart-gdp', isGdp);
+  setActualsCardVisible('chart-gdp-share', isGdp);
+  setActualsCardVisible('industry-movers-table', !isGdp);
+
+  setActualsCardVisible('chart-cpi', false);
+  setActualsCardVisible('chart-cpi-contrib', false);
+  setActualsCardVisible('chart-interprov-trade', false);
+  setActualsCardVisible('chart-international-trade', false);
+
+  tidyActualsChartGrids();
+}
+
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    INIT
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function init() {
   document.documentElement.style.setProperty('--accent', SECTIONS.macro.color);
+  applyActualsView();
   linkDatasetTags();
 
   /* Load macro section from localStorage (no auto-fetch) */
@@ -2825,6 +2889,7 @@ function init() {
   // Ensure the GDP toggle reflects current state.
   const sel = document.getElementById('gdp-measure');
   if (sel) sel.value = APP.gdpMeasure;
+  applyActualsView();
 }
 
 document.addEventListener('DOMContentLoaded', init);
