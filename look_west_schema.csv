@@ -1,0 +1,208 @@
+Dataset,Column
+LW Announcements,Announcement ID
+LW Announcements,Date
+LW Announcements,Headline
+LW Announcements,Subtitle
+LW Announcements,Stream
+LW Announcements,Pillar
+LW Announcements,Theme
+LW Announcements,Primary Sector
+LW Announcements,Secondary Sectors
+LW Announcements,Region
+LW Announcements,Project ID
+LW Announcements,Source
+LW Announcements,Ministry
+LW Announcements,URL
+LW Announcements,Key Message
+LW Announcements,Target?
+LW Announcements,Action Plan?
+LW Announcements,Funding/Investment?
+LW Announcements,Policy/Regulation?
+LW Announcements,Infrastructure?
+LW Announcements,Investment Promotion?
+LW Announcements,LW Mentioned?
+LW Announcements,Note
+LW Announcements,Modified
+LW Announcements,Created
+LW Announcements,Created By
+LW Announcements,Modified By
+Datasets Status,Dataset
+Datasets Status,Owner
+Datasets Status,Current Status
+Datasets Status,Expected Completion Date
+Datasets Status,Update Frequency
+Datasets Status,Last Date of Update
+Datasets Status,Approved By
+Datasets Status,Data Source
+LW News,News ID
+LW News,Date
+LW News,Headline
+LW News,Subtitle
+LW News,Stream
+LW News,Pillar
+LW News,Theme
+LW News,Sector
+LW News,Region
+LW News,Source
+LW News,Ministry
+LW News,URL
+LW News,Key Message
+LW News,Created
+LW News,Modified
+Funding Programs,Program ID
+Funding Programs,Program Name
+Funding Programs,Description
+Funding Programs,Stream
+Funding Programs,Pillar
+Funding Programs,Sector
+Funding Programs,Ministry
+Funding Programs,Funding Type
+Funding Programs,Status
+Funding Programs,Start Date
+Funding Programs,End Date
+Funding Program Tracker,Record ID
+Funding Program Tracker,Program ID
+Funding Program Tracker,Project ID
+Funding Program Tracker,Recipient
+Funding Program Tracker,Funding Amount
+Funding Program Tracker,Approval Date
+Funding Program Tracker,Status
+Funding Program Tracker,Region
+Funding Program Tracker,Sector
+Funding Program Tracker,Notes
+Policy and Regulations,Policy ID
+Policy and Regulations,Policy Name
+Policy and Regulations,Description
+Policy and Regulations,Type
+Policy and Regulations,Stream
+Policy and Regulations,Pillar
+Policy and Regulations,Theme
+Policy and Regulations,Ministry
+Policy and Regulations,Status
+Policy and Regulations,Effective Date
+Policy & Regulation Tracker,Record ID
+Policy & Regulation Tracker,Policy ID
+Policy & Regulation Tracker,Milestone
+Policy & Regulation Tracker,Status
+Policy & Regulation Tracker,Date
+Policy & Regulation Tracker,Notes
+Infrastructure,Infrastructure ID
+Infrastructure,Project Name
+Infrastructure,Description
+Infrastructure,Type
+Infrastructure,Stream
+Infrastructure,Pillar
+Infrastructure,Sector
+Infrastructure,Region
+Infrastructure,Budget
+Infrastructure,Status
+Infrastructure,Start Date
+Infrastructure,End Date
+Infrastructure Tracker,Record ID
+Infrastructure Tracker,Infrastructure ID
+Infrastructure Tracker,Milestone
+Infrastructure Tracker,Status
+Infrastructure Tracker,Completion %
+Infrastructure Tracker,Update Date
+Investment Promotions,Promotion ID
+Investment Promotions,Initiative Name
+Investment Promotions,Description
+Investment Promotions,Target Market
+Investment Promotions,Sector
+Investment Promotions,Region
+Investment Promotions,Ministry
+Investment Promotions,Status
+Investment Promotions,Start Date
+Investment Promotion Tracker,Record ID
+Investment Promotion Tracker,Promotion ID
+Investment Promotion Tracker,Activity
+Investment Promotion Tracker,Status
+Investment Promotion Tracker,Outcome
+Investment Promotion Tracker,Date
+Targets,Target ID
+Targets,Target Name
+Targets,Description
+Targets,Metric
+Targets,Baseline
+Targets,Target Value
+Targets,Stream
+Targets,Pillar
+Targets,Theme
+Targets,Timeline
+Targets,Status
+Target Tracker,Record ID
+Target Tracker,Target ID
+Target Tracker,Current Value
+Target Tracker,Progress %
+Target Tracker,Status
+Target Tracker,Update Date
+Major Projects,Project ID
+Major Projects,Project Name
+Major Projects,Description
+Major Projects,Sector
+Major Projects,Region
+Major Projects,Investment Value
+Major Projects,Status
+Major Projects,Start Date
+Major Projects,End Date
+Major Project Tracker,Record ID
+Major Project Tracker,Project ID
+Major Project Tracker,Milestone
+Major Project Tracker,Status
+Major Project Tracker,Completion %
+Major Project Tracker,Update Date
+Action Plans,Action Plan ID
+Action Plans,Name
+Action Plans,Description
+Action Plans,Stream
+Action Plans,Pillar
+Action Plans,Ministry
+Action Plans,Timeline
+Action Plans,Status
+Action Plans Commitments,Commitment ID
+Action Plans Commitments,Action Plan ID
+Action Plans Commitments,Commitment Description
+Action Plans Commitments,Owner
+Action Plans Commitments,Timeline
+Action Plans Commitments,Status
+Action Plans Tracker,Record ID
+Action Plans Tracker,Action Plan ID
+Action Plans Tracker,Milestone
+Action Plans Tracker,Status
+Action Plans Tracker,Progress
+Action Plans Tracker,Notes
+Workflow and Ownership Registry,Record ID
+Workflow and Ownership Registry,Dataset Name
+Workflow and Ownership Registry,Owner
+Workflow and Ownership Registry,Backup Owner
+Workflow and Ownership Registry,Workflow Stage
+Workflow and Ownership Registry,Status
+Workflow and Ownership Registry,Last Updated
+LW Sectors,Sector ID
+LW Sectors,Sector Name
+LW Sectors,Description
+LW Sectors,Parent Sector
+LW Pillars,Pillar ID
+LW Pillars,Pillar Name
+LW Pillars,Description
+LW Stream,Stream ID
+LW Stream,Stream Name
+LW Stream,Description
+LW Regions,Region ID
+LW Regions,Region Name
+LW Regions,Description
+LW Themes,Theme ID
+LW Themes,Theme Name
+LW Themes,Pillar
+LW Themes,Description
+LW Timeframe,Timeframe ID
+LW Timeframe,Label
+LW Timeframe,Start Date
+LW Timeframe,End Date
+LW Initiatives,Initiative ID
+LW Initiatives,Initiative Name
+LW Initiatives,Description
+LW Initiatives,Stream
+LW Initiatives,Pillar
+LW Initiatives,Theme
+LW Initiatives,Status
