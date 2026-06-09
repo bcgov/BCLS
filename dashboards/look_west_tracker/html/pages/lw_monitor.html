@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Look West Monitor</title>
+  <script src="../../../../shared/vendor/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --navy: #003366;
+      --gold: #FCBA19;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #5b3fb7;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+
+      --st-complete: #16a34a;
+      --st-progress: #2563eb;
+      --st-initiated: #b45309;
+      --st-notstarted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px;
+    }
+
+    .page-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 560px;
+      box-shadow: var(--shadow);
+    }
+
+    .page-head {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 22px 16px;
+      background: linear-gradient(120deg, #002b57 0%, #0a3d75 55%, #5b3fb7 140%);
+      color: #fff;
+    }
+
+    .page-head h1 {
+      font-size: 23px;
+      line-height: 1.2;
+      margin-bottom: 7px;
+      letter-spacing: -0.2px;
+    }
+
+    .page-head p {
+      color: rgba(255, 255, 255, 0.82);
+      font-size: 12px;
+      line-height: 1.55;
+      max-width: 880px;
+    }
+
+    .source-tag {
+      margin-top: 12px;
+      display: inline-block;
+      font-size: 10px;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      padding: 4px 10px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .content {
+      padding: 18px 20px 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .status-banner {
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .status-banner.error {
+      border-color: #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+    }
+
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px 14px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: var(--kpi-color, #4b7ea8);
+      opacity: 0.95;
+    }
+
+    .kpi-label {
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+      font-weight: 700;
+    }
+
+    .kpi-value {
+      font-size: 26px;
+      line-height: 1.05;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .kpi-note {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    /* Filters */
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+      gap: 10px;
+      align-items: end;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .filter-item label {
+      display: block;
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+      font-weight: 700;
+    }
+
+    .filter-item select,
+    .filter-item input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 12px;
+      padding: 8px 9px;
+    }
+
+    .btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #0f172a;
+      font-weight: 600;
+      padding: 8px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: #f1f5f9; }
+
+    /* Charts */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .chart-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 14px;
+      min-height: 260px;
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+
+    .chart-subtitle {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .chart-holder {
+      position: relative;
+      height: 210px;
+    }
+
+    /* Section heading */
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .section-head h2 {
+      font-size: 15px;
+      color: #0f172a;
+      margin-bottom: 3px;
+    }
+
+    .section-head p {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.45;
+    }
+
+    .legend-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Monitor cards */
+    .monitor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+      gap: 14px;
+    }
+
+    .monitor-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .monitor-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--st-color, var(--accent));
+    }
+
+    .mc-body {
+      padding: 15px 16px 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .mc-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .mc-id {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      color: #334155;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 2px 8px;
+    }
+
+    .mc-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 3px 9px;
+      border-radius: 999px;
+      color: var(--st-color);
+      background: color-mix(in srgb, var(--st-color) 12%, white);
+      border: 1px solid color-mix(in srgb, var(--st-color) 32%, white);
+    }
+
+    .mc-status .legend-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--st-color);
+    }
+
+    .mc-metric {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      line-height: 1.35;
+    }
+
+    .mc-baseline {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+
+    .mc-baseline strong { color: #334155; }
+
+    .mc-progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .mc-progress {
+      flex: 1;
+      height: 7px;
+      border-radius: 999px;
+      background: #eef2f7;
+      overflow: hidden;
+    }
+
+    .mc-progress span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: var(--st-color, var(--accent));
+    }
+
+    .mc-progress.is-empty {
+      background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 6px, #e7ecf3 6px, #e7ecf3 12px);
+    }
+
+    .mc-progress-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #475569;
+      white-space: nowrap;
+      min-width: 78px;
+      text-align: right;
+    }
+
+    .mc-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .chip {
+      display: inline-block;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border: 1px solid #d1d5db;
+      background: #f8fafc;
+      color: #334155;
+      white-space: nowrap;
+    }
+
+    .mc-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      border-top: 1px solid #eef2f7;
+      border-bottom: 1px solid #eef2f7;
+      padding: 9px 0;
+    }
+
+    .mc-stat-val {
+      font-size: 15px;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.1;
+    }
+
+    .mc-stat-lbl {
+      font-size: 9.5px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .mc-narrative {
+      font-size: 11.5px;
+      color: #475569;
+      line-height: 1.5;
+    }
+
+    .mc-narrative .nlabel {
+      font-weight: 800;
+      color: #334155;
+      text-transform: uppercase;
+      font-size: 9.5px;
+      letter-spacing: 0.05em;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .mc-gap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #b45309;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      padding: 3px 8px;
+      width: fit-content;
+    }
+
+    .mc-footer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      font-size: 10.5px;
+      color: #64748b;
+      margin-top: auto;
+      padding-top: 4px;
+    }
+
+    .mc-footer b { color: #334155; font-weight: 700; }
+
+    .empty-state {
+      border: 1px dashed #cbd5e1;
+      border-radius: 10px;
+      background: #fbfdff;
+      padding: 28px;
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .chart-grid { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 680px) {
+      body { padding: 12px; }
+      .content { padding: 12px; }
+      .filters { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .monitor-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page-wrap">
+    <header class="page-head">
+      <h1>Look West Monitor</h1>
+      <p>
+        The executive view of the Look West strategy &mdash; at a glance, what was committed,
+        what is moving, where it stands, and where the data gaps are. Each target shows its metric,
+        rolled-up status, investment and jobs signal, owner, and a qualitative narrative where
+        quantified data is not yet available. Depth lives in the Data Hub; this page surfaces the signal.
+      </p>
+      <span class="source-tag">Source: Targets &amp; Target Tracking</span>
+    </header>
+
+    <div class="content">
+      <div class="status-banner" id="status-banner">Loading Look West Monitor...</div>
+
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div class="filters">
+        <div class="filter-item">
+          <label for="filter-page">Strategy Page</label>
+          <select id="filter-page"></select>
+        </div>
+        <div class="filter-item">
+          <label for="filter-stream">Stream</label>
+          <select id="filter-stream"></select>
+        </div>
+        <div class="filter-item">
+          <label for="filter-status">Status</label>
+          <select id="filter-status"></select>
+        </div>
+        <div class="filter-item">
+          <label for="filter-search" style="visibility:hidden">Search</label>
+          <button class="btn" id="reset-filters" type="button">Reset</button>
+        </div>
+        <div class="filter-item" style="grid-column: 1 / -1;">
+          <label for="filter-search">Search targets</label>
+          <input id="filter-search" type="text" placeholder="Search target, theme, sector, ministry, narrative">
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <article class="chart-card">
+          <div class="chart-title">Status of Targets in View</div>
+          <div class="chart-subtitle">Rolled up from linked tracker activity</div>
+          <div class="chart-holder"><canvas id="chart-status-mix"></canvas></div>
+        </article>
+        <article class="chart-card">
+          <div class="chart-title">Investment Attracted by Stream ($M)</div>
+          <div class="chart-subtitle">Sum of linked tracker investment, targets in view</div>
+          <div class="chart-holder"><canvas id="chart-investment-stream"></canvas></div>
+        </article>
+      </div>
+
+      <div class="section-head">
+        <div>
+          <h2>Targets</h2>
+          <p>One card per Look West target. Click-through depth lives in the trackers.</p>
+        </div>
+        <div class="legend-row" id="status-legend"></div>
+      </div>
+
+      <div class="monitor-grid" id="monitor-grid"></div>
+    </div>
+  </section>
+
+  <script>
+    const DATA_FILES = {
+      targets: [
+        "../../../../data/Targets.csv",
+        "../../../../data/look_west_strategy/Targets.csv"
+      ],
+      tracking: [
+        "../../../../data/Target Tracking.csv",
+        "../../../../data/look_west_strategy/Target Tracking.csv"
+      ]
+    };
+
+    const STATUS_ORDER = ["Complete", "In Progress", "Initiated", "Not Started"];
+    const STATUS_COLOR = {
+      "Complete": "#16a34a",
+      "In Progress": "#2563eb",
+      "Initiated": "#b45309",
+      "Not Started": "#64748b"
+    };
+
+    const state = {
+      targets: [],
+      trackers: [],
+      targetMap: new Map(),
+      byTarget: new Map(),
+      charts: {},
+      filtered: []
+    };
+
+    // ---- CSV + helpers (shared pattern with the tracker pages) ----
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i += 1) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (inQuotes) {
+          if (ch === '"' && next === '"') { value += '"'; i += 1; }
+          else if (ch === '"') { inQuotes = false; }
+          else { value += ch; }
+        } else if (ch === '"') { inQuotes = true; }
+        else if (ch === ",") { row.push(value); value = ""; }
+        else if (ch === "\n") { row.push(value); rows.push(row); row = []; value = ""; }
+        else if (ch !== "\r") { value += ch; }
+      }
+      if (value.length > 0 || row.length > 0) { row.push(value); rows.push(row); }
+      if (!rows.length) return [];
+
+      const headers = rows[0].map((h) => String(h || "").trim());
+      return rows.slice(1)
+        .filter((r) => r.some((cell) => String(cell || "").trim() !== ""))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = String(r[idx] || "").trim(); });
+          return obj;
+        });
+    }
+
+    function getField(row, names) {
+      for (const name of names) {
+        if (Object.prototype.hasOwnProperty.call(row, name)) {
+          return String(row[name] || "").trim();
+        }
+      }
+      return "";
+    }
+
+    function parseNumber(value) {
+      const txt = String(value || "").replace(/[$,%\s]/g, "").replace(/,/g, "");
+      if (!txt) return null;
+      const num = Number(txt);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("en-CA", { maximumFractionDigits: 0 }).format(value || 0);
+    }
+
+    function formatMoney(value) {
+      if (value === null || value === undefined || Number.isNaN(value)) return "-";
+      return new Intl.NumberFormat("en-CA", { maximumFractionDigits: value >= 100 ? 0 : 1 }).format(value);
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function setStatus(message, isError) {
+      const banner = document.getElementById("status-banner");
+      banner.textContent = message;
+      banner.classList.toggle("error", !!isError);
+      banner.style.display = "";
+    }
+    function hideStatus() { document.getElementById("status-banner").style.display = "none"; }
+
+    async function fetchCsvWithFallback(urls, label) {
+      let lastError = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (res.ok) return res.text();
+          lastError = new Error(`${label}: HTTP ${res.status} for ${url}`);
+        } catch (err) { lastError = err; }
+      }
+      throw lastError || new Error(`${label}: no available source`);
+    }
+
+    // ---- Normalization ----
+    function normalizeTargets(rows) {
+      return rows.map((row) => ({
+        targetId: getField(row, ["Target ID"]),
+        stream: getField(row, ["Stream"]) || "Unspecified",
+        pillar: getField(row, ["Pillar"]) || "Unspecified",
+        theme: getField(row, ["Theme"]) || "Unspecified",
+        sector: getField(row, ["Sector"]) || "Unspecified",
+        page: getField(row, ["Page", "Section"]) || "Unspecified",
+        target: getField(row, ["Target"]),
+        baseline: getField(row, ["Baseline"]),
+        note: getField(row, ["Note"]),
+        contacts: getField(row, ["Contacts"]),
+        timeframe: getField(row, ["Timeframe"]),
+        directedCollective: getField(row, ["Directed / Collective"]),
+        leadMinistry: getField(row, ["Lead Ministry.lookupValue", "Lead Ministry"])
+      })).filter((t) => t.targetId);
+    }
+
+    function normalizeTrackers(rows) {
+      return rows.map((row, idx) => {
+        const announcementId = getField(row, ["Announcement ID.lookupValue", "Announcement ID"]);
+        const targetId = getField(row, ["Target ID.lookupValue", "Target ID"]);
+        const description = getField(row, ["Description"]);
+        const achievement = getField(row, ["Achievment", "Achievement"]);
+        const jobsCreated = parseNumber(getField(row, ["Jobs created", "Jobs created "]));
+        const jobsSaved = parseNumber(getField(row, ["Jobs Saved"]));
+        const revenueBc = parseNumber(getField(row, ["Revenue to BC (GDP - $M)", "Revenue to BC (GDP - $M) "]));
+        const revenueGov = parseNumber(getField(row, ["Revenue to BC Gov ($M)"]));
+        const investment = parseNumber(getField(row, ["Investment Attracted ($M)"]));
+
+        const hasContent = announcementId || targetId || description || achievement ||
+          jobsCreated !== null || jobsSaved !== null || revenueBc !== null ||
+          revenueGov !== null || investment !== null;
+        if (!hasContent) return null;
+
+        return {
+          rowId: idx + 1, announcementId, targetId, description,
+          achievement: achievement || "Not specified",
+          jobsCreated, jobsSaved, revenueBc, revenueGov, investment
+        };
+      }).filter(Boolean);
+    }
+
+    // Roll a target's status up from its linked tracker rows.
+    function rollupStatus(rows) {
+      if (!rows.length) return "Not Started";
+      const ach = rows.map((r) => String(r.achievement || "").toLowerCase());
+      const total = ach.length;
+      const complete = ach.filter((a) => a.includes("complete") || a.includes("achieved") || a.includes("done")).length;
+      const inProgress = ach.filter((a) => a.includes("progress") || a.includes("ongoing") || a.includes("active")).length;
+      const planned = ach.filter((a) => a.includes("plan") || a.includes("pending") || a.includes("start")).length;
+
+      if (complete === total) return "Complete";
+      if (inProgress > 0 || complete > 0) return "In Progress";
+      if (planned === total) return "Initiated";
+      return "In Progress";
+    }
+
+    function sumField(rows, field) {
+      let any = false;
+      const total = rows.reduce((acc, r) => {
+        if (r[field] !== null && r[field] !== undefined) { any = true; return acc + r[field]; }
+        return acc;
+      }, 0);
+      return any ? total : null;
+    }
+
+    // Build the enriched per-target model the Monitor renders.
+    function buildTargetModels() {
+      const byTarget = new Map();
+      state.trackers.forEach((r) => {
+        if (!r.targetId) return;
+        if (!byTarget.has(r.targetId)) byTarget.set(r.targetId, []);
+        byTarget.get(r.targetId).push(r);
+      });
+      state.byTarget = byTarget;
+
+      return state.targets.map((t) => {
+        const rows = byTarget.get(t.targetId) || [];
+        const status = rollupStatus(rows);
+        const completeCount = rows.filter((r) => /complete|achieved|done/i.test(r.achievement)).length;
+        const investment = sumField(rows, "investment");
+        const jobsCreated = sumField(rows, "jobsCreated");
+        const hasQuantified = investment !== null || jobsCreated !== null ||
+          sumField(rows, "revenueBc") !== null;
+        const dataGap = rows.length === 0 || !hasQuantified;
+        const progressPct = rows.length ? Math.round((completeCount / rows.length) * 100) : 0;
+
+        return {
+          ...t, rows, status, completeCount, investment, jobsCreated,
+          updates: rows.length, hasQuantified, dataGap, progressPct
+        };
+      });
+    }
+
+    // ---- KPIs ----
+    function renderKpis(models) {
+      const inProgress = models.filter((m) => m.status === "In Progress").length;
+      const complete = models.filter((m) => m.status === "Complete").length;
+      const gaps = models.filter((m) => m.dataGap).length;
+      const investment = models.reduce((a, m) => a + (m.investment || 0), 0);
+      const jobs = models.reduce((a, m) => a + (m.jobsCreated || 0), 0);
+
+      const cards = [
+        { label: "Targets in View", value: formatNumber(models.length), note: "Filtered target records", color: "#4b7ea8" },
+        { label: "In Progress", value: formatNumber(inProgress), note: "Active tracked movement", color: STATUS_COLOR["In Progress"] },
+        { label: "Complete", value: formatNumber(complete), note: "All linked activity complete", color: STATUS_COLOR["Complete"] },
+        { label: "Data Gaps", value: formatNumber(gaps), note: "No quantified data yet", color: "#b45309" },
+        { label: "Investment Attracted", value: "$" + formatMoney(investment) + "M", note: "Sum of linked tracker updates", color: "#4f8d7a" },
+        { label: "Jobs Created", value: formatNumber(jobs), note: "Sum of linked tracker updates", color: "#7d78a8" }
+      ];
+
+      document.getElementById("kpi-grid").innerHTML = cards.map((c) => `
+        <article class="kpi" style="--kpi-color:${c.color}">
+          <div class="kpi-label">${escapeHtml(c.label)}</div>
+          <div class="kpi-value">${escapeHtml(c.value)}</div>
+          <div class="kpi-note">${escapeHtml(c.note)}</div>
+        </article>
+      `).join("");
+    }
+
+    function renderLegend() {
+      document.getElementById("status-legend").innerHTML = STATUS_ORDER.map((s) => `
+        <span class="legend-item">
+          <span class="legend-dot" style="background:${STATUS_COLOR[s]}"></span>${escapeHtml(s)}
+        </span>
+      `).join("");
+    }
+
+    // ---- Charts ----
+    function destroyChart(id) {
+      if (state.charts[id]) { state.charts[id].destroy(); delete state.charts[id]; }
+    }
+
+    function renderStatusChart(models) {
+      const counts = STATUS_ORDER.map((s) => models.filter((m) => m.status === s).length);
+      destroyChart("statusMix");
+      state.charts.statusMix = new Chart(document.getElementById("chart-status-mix"), {
+        type: "doughnut",
+        data: {
+          labels: STATUS_ORDER,
+          datasets: [{
+            data: counts,
+            borderWidth: 1,
+            borderColor: "#ffffff",
+            backgroundColor: STATUS_ORDER.map((s) => STATUS_COLOR[s])
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: "bottom", labels: { boxWidth: 12, color: "#334155", font: { size: 11 } } } }
+        }
+      });
+    }
+
+    function renderInvestmentChart(models) {
+      const map = new Map();
+      models.forEach((m) => {
+        if (m.investment === null || m.investment === undefined) return;
+        map.set(m.stream, (map.get(m.stream) || 0) + m.investment);
+      });
+      const entries = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+      const labels = entries.length ? entries.map((e) => e[0]) : ["No data"];
+      const values = entries.length ? entries.map((e) => Math.round(e[1] * 10) / 10) : [0];
+
+      destroyChart("investmentStream");
+      state.charts.investmentStream = new Chart(document.getElementById("chart-investment-stream"), {
+        type: "bar",
+        data: { labels, datasets: [{ label: "Investment ($M)", data: values, backgroundColor: "rgba(79, 141, 122, 0.82)", borderRadius: 6, borderWidth: 0 }] },
+        options: {
+          indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, ticks: { color: "#64748b", font: { size: 10 } }, grid: { color: "rgba(148,163,184,0.18)" } },
+            y: { ticks: { color: "#64748b", font: { size: 10 }, autoSkip: false }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    // ---- Monitor cards ----
+    function renderCards(models) {
+      const grid = document.getElementById("monitor-grid");
+      if (!models.length) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">No targets match the current filters.</div>`;
+        return;
+      }
+
+      grid.innerHTML = models.map((m) => {
+        const color = STATUS_COLOR[m.status] || "#5b3fb7";
+        const progressEmptyCls = m.updates ? "" : "is-empty";
+        const progressLabel = m.updates
+          ? `${m.progressPct}% &middot; ${m.completeCount}/${m.updates} complete`
+          : "No tracked updates";
+
+        const chips = [m.stream, m.pillar, m.theme, m.sector]
+          .filter((v) => v && v !== "Unspecified")
+          .map((v) => `<span class="chip">${escapeHtml(v)}</span>`).join("");
+
+        const gapFlag = m.dataGap
+          ? `<div class="mc-gap">&#9888; Data gap &mdash; ${m.updates ? "qualitative only" : "no tracked data"}</div>`
+          : "";
+
+        const narrativeText = m.note
+          ? m.note
+          : (m.dataGap ? "Quantified progress data is not yet available for this target." : "");
+        const narrative = narrativeText
+          ? `<div class="mc-narrative"><span class="nlabel">Narrative</span>${escapeHtml(narrativeText)}</div>`
+          : "";
+
+        const baseline = m.baseline
+          ? `<div class="mc-baseline"><strong>Baseline:</strong> ${escapeHtml(m.baseline)}${m.timeframe ? ` &middot; <strong>Timeframe:</strong> ${escapeHtml(m.timeframe)}` : ""}</div>`
+          : (m.timeframe ? `<div class="mc-baseline"><strong>Timeframe:</strong> ${escapeHtml(m.timeframe)}</div>` : "");
+
+        return `
+          <article class="monitor-card" style="--st-color:${color}">
+            <div class="mc-body">
+              <div class="mc-top">
+                <span class="mc-id">${escapeHtml(m.targetId)}</span>
+                <span class="mc-status"><span class="legend-dot"></span>${escapeHtml(m.status)}</span>
+              </div>
+
+              <div class="mc-metric">${escapeHtml(m.target || "(Untitled target)")}</div>
+              ${baseline}
+
+              <div class="mc-progress-wrap">
+                <div class="mc-progress ${progressEmptyCls}"><span style="width:${m.updates ? m.progressPct : 0}%"></span></div>
+                <div class="mc-progress-label">${progressLabel}</div>
+              </div>
+
+              <div class="mc-chips">${chips || '<span class="chip">Unclassified</span>'}</div>
+
+              <div class="mc-stats">
+                <div>
+                  <div class="mc-stat-val">${m.investment === null ? "&mdash;" : "$" + escapeHtml(formatMoney(m.investment)) + "M"}</div>
+                  <div class="mc-stat-lbl">Investment</div>
+                </div>
+                <div>
+                  <div class="mc-stat-val">${m.jobsCreated === null ? "&mdash;" : escapeHtml(formatNumber(m.jobsCreated))}</div>
+                  <div class="mc-stat-lbl">Jobs Created</div>
+                </div>
+                <div>
+                  <div class="mc-stat-val">${escapeHtml(formatNumber(m.updates))}</div>
+                  <div class="mc-stat-lbl">Updates</div>
+                </div>
+              </div>
+
+              ${gapFlag}
+              ${narrative}
+
+              <div class="mc-footer">
+                <span><b>Owner:</b> ${escapeHtml(m.leadMinistry || "Unassigned")}</span>
+                ${m.contacts ? `<span><b>Contacts:</b> ${escapeHtml(m.contacts)}</span>` : ""}
+                <span><b>Page:</b> ${escapeHtml(m.page)}</span>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    // ---- Filters ----
+    function fillSelect(selectEl, values, defaultLabel) {
+      selectEl.innerHTML = [`<option value="__all__">${escapeHtml(defaultLabel)}</option>`]
+        .concat(values.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`)).join("");
+    }
+
+    function initFilters() {
+      const pages = Array.from(new Set(state.models.map((m) => m.page))).sort((a, b) => a.localeCompare(b));
+      const streams = Array.from(new Set(state.models.map((m) => m.stream))).sort((a, b) => a.localeCompare(b));
+
+      fillSelect(document.getElementById("filter-page"), pages, "All Pages");
+      fillSelect(document.getElementById("filter-stream"), streams, "All Streams");
+      fillSelect(document.getElementById("filter-status"), STATUS_ORDER, "All Statuses");
+
+      document.getElementById("filter-page").addEventListener("change", applyFilters);
+      document.getElementById("filter-stream").addEventListener("change", applyFilters);
+      document.getElementById("filter-status").addEventListener("change", applyFilters);
+      document.getElementById("filter-search").addEventListener("input", applyFilters);
+      document.getElementById("reset-filters").addEventListener("click", () => {
+        document.getElementById("filter-page").value = "__all__";
+        document.getElementById("filter-stream").value = "__all__";
+        document.getElementById("filter-status").value = "__all__";
+        document.getElementById("filter-search").value = "";
+        applyFilters();
+      });
+    }
+
+    function applyFilters() {
+      const page = document.getElementById("filter-page").value;
+      const stream = document.getElementById("filter-stream").value;
+      const status = document.getElementById("filter-status").value;
+      const search = String(document.getElementById("filter-search").value || "").trim().toLowerCase();
+
+      state.filtered = state.models.filter((m) => {
+        if (page !== "__all__" && m.page !== page) return false;
+        if (stream !== "__all__" && m.stream !== stream) return false;
+        if (status !== "__all__" && m.status !== status) return false;
+        if (search) {
+          const blob = [m.targetId, m.target, m.stream, m.pillar, m.theme, m.sector,
+            m.leadMinistry, m.note, m.contacts, m.timeframe].join(" ").toLowerCase();
+          if (!blob.includes(search)) return false;
+        }
+        return true;
+      });
+
+      renderKpis(state.filtered);
+      renderStatusChart(state.filtered);
+      renderInvestmentChart(state.filtered);
+      renderCards(state.filtered);
+    }
+
+    // ---- Boot ----
+    async function loadData() {
+      setStatus("Loading Look West Monitor...", false);
+      try {
+        const [targetsText, trackingText] = await Promise.all([
+          fetchCsvWithFallback(DATA_FILES.targets, "Targets dataset"),
+          fetchCsvWithFallback(DATA_FILES.tracking, "Target Tracking dataset")
+        ]);
+
+        state.targets = normalizeTargets(parseCsv(targetsText));
+        state.targetMap = new Map(state.targets.map((t) => [t.targetId, t]));
+        state.trackers = normalizeTrackers(parseCsv(trackingText));
+        state.models = buildTargetModels();
+
+        renderLegend();
+        initFilters();
+        applyFilters();
+        hideStatus();
+      } catch (error) {
+        console.error(error);
+        const protoHint = location.protocol === "file:"
+          ? " Serve via local server, e.g. http://localhost:8080/dashboards/look_west_tracker/html/pages/lw_monitor.html"
+          : "";
+        setStatus(`Could not load Look West Monitor data. ${error.message || error}.${protoHint}`, true);
+      }
+    }
+
+    function bootPage() {
+      if (location.protocol === "file:") {
+        setStatus(
+          "Opened as a local file. Start a local server (e.g. `python scripts/serve.py`) and open `http://localhost:8080/dashboards/look_west_tracker/html/pages/lw_monitor.html`.",
+          true
+        );
+        return;
+      }
+      loadData();
+    }
+
+    document.addEventListener("DOMContentLoaded", bootPage);
+  </script>
+</body>
+</html>
