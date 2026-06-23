@@ -622,36 +622,27 @@ body {
 <nav class="app-nav">
   <div class="nav-inner">
 
-    <button class="nav-btn active" data-section="macro" onclick="navigate('macro')">
+    <button class="nav-btn active" id="nav-macro" data-section="macro" onclick="navigate('macro')">
       BC Economy Snapshot
     </button>
 
-    <button class="nav-btn" data-section="strategy" onclick="navigate('strategy')">
-      Look West Strategy
+    <button class="nav-btn" id="nav-strategy" data-section="strategy" onclick="navigate('strategy')">
+      Look West Strategy Monitor
     </button>
+
+    <button class="nav-btn" id="nav-goals" data-section="tracker" onclick="navigateTrackerPage('goals')">
+      Look West Goals Tracker
+    </button>
+
     <div class="nav-dropdown-wrap">
-      <button class="nav-btn" data-section="tracker" onclick="navigateTrackerHub()">
-        Look West Tracker
+      <button class="nav-btn" id="nav-more" onclick="navigate('sectors')">
+        More
         <span class="nav-chevron">v</span>
       </button>
-      <div class="nav-dropdown" id="tracker-dd">
+      <div class="nav-dropdown" id="more-dd">
         <!-- filled by JS -->
       </div>
     </div>
-
-    <div class="nav-dropdown-wrap">
-      <button class="nav-btn" data-section="sectors" onclick="navigate('sectors')">
-        Sectors
-        <span class="nav-chevron">v</span>
-      </button>
-      <div class="nav-dropdown" id="sectors-dd">
-        <!-- filled by JS -->
-      </div>
-    </div>
-
-    <button class="nav-btn" data-section="projects" onclick="navigate('projects')">
-      Projects
-    </button>
 
   </div>
 </nav>
@@ -857,7 +848,7 @@ const TRACKER_PAGES = [
 const SECTIONS = {
   macro:          { label: 'BC Economy Snapshot', color: '#1565C0' },
   outlook:        { label: 'B.C. Economy Outlook & Forecasts', color: '#0F4C81' },
-  strategy:       { label: 'Look West Strategy', color: '#00796B' },
+  strategy:       { label: 'Look West Strategy Monitor', color: '#00796B' },
   tracker:        { label: 'Look West Tracker',  color: '#5B3FB7' },
   sectors:        { label: 'Sectors',            color: '#4527A0' },
   'sector-detail':{ label: 'Sector',             color: '#4527A0' },
@@ -1012,10 +1003,12 @@ function navigate(section, sectorId) {
   }
 
   /* -- nav active state -- */
-  document.querySelectorAll('.nav-btn[data-section]').forEach(btn => {
-    const match = btn.dataset.section === section ||
-      (section === 'sector-detail' && btn.dataset.section === 'sectors');
-    btn.classList.toggle('active', match);
+  let activeNavId = 'nav-more';
+  if (section === 'macro') activeNavId = 'nav-macro';
+  else if (section === 'strategy') activeNavId = 'nav-strategy';
+  else if (section === 'tracker' && APP.trackerPage === 'goals') activeNavId = 'nav-goals';
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === activeNavId);
   });
 
   /* -- show/hide panels -- */
@@ -1106,6 +1099,48 @@ function buildTrackerDropdown() {
       ${dotHtml}
     `;
     dd.appendChild(item);
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   "MORE" DROPDOWN — sectors, projects, and all other tracker pages
+══════════════════════════════════════════════════════════════════════════ */
+function buildMoreDropdown() {
+  const dd = document.getElementById('more-dd');
+  if (!dd) return;
+  dd.innerHTML = '';
+
+  const addHeader = (txt) => {
+    const h = document.createElement('div');
+    h.className = 'nav-dd-header';
+    h.textContent = txt;
+    dd.appendChild(h);
+  };
+  const addItem = (icon, name, opts = {}) => {
+    const enabled = opts.enabled !== false;
+    const item = document.createElement('div');
+    item.className = 'nav-dd-item' + (enabled ? '' : ' disabled');
+    if (enabled && opts.onClick) item.onclick = opts.onClick;
+    const dot = opts.dot ? `<span class="dd-dot ${opts.dot}"></span>` : '';
+    item.innerHTML = `
+      <span class="dd-icon">${icon}</span>
+      <span class="dd-name">${name}</span>
+      ${dot}
+    `;
+    dd.appendChild(item);
+  };
+
+  addHeader('Explore');
+  addItem('🏭', 'Sectors',  { onClick: () => navigate('sectors'),  dot: 'live' });
+  addItem('🏗️', 'Projects', { onClick: () => navigate('projects'), dot: 'live' });
+
+  addHeader('Look West Trackers');
+  TRACKER_PAGES.filter(p => p.id !== 'goals').forEach(p => {
+    addItem(p.icon, p.name, {
+      enabled: p.enabled,
+      onClick: () => navigateTrackerPage(p.id),
+      dot: p.enabled ? 'live' : ''
+    });
   });
 }
 
@@ -1695,8 +1730,7 @@ function init() {
   });
 
   /* Build navigation components */
-  buildTrackerDropdown();
-  buildSectorsDropdown();
+  buildMoreDropdown();
   buildSectorsGrid();
 
   /* Set initial accent color */
