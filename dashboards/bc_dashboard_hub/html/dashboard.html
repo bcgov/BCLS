@@ -218,34 +218,8 @@ body {
 
 .section-wrap { padding: 28px 28px; max-width: 1600px; margin: 0 auto; }
 
-/* Actuals tabs */
-.actuals-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-  border-bottom: 1px solid var(--border);
-}
-.actuals-tab-btn {
-  border: 0;
-  border-bottom: 3px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 10px 14px 9px;
-  cursor: pointer;
-}
-.actuals-tab-btn:hover {
-  color: var(--text);
-  background: #F7FAFC;
-}
-.actuals-tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.actuals-tab-panel { display: none; }
-.actuals-tab-panel.active { display: block; }
+/* BC Economy Snapshot: GDP, Labour Market, and Trade are combined into a single
+   embedded page (bc_macroeconomy), so no in-hub tabs or sub-headers are needed. */
 
 /* Section header */
 .section-hdr {
@@ -649,7 +623,7 @@ body {
   <div class="nav-inner">
 
     <button class="nav-btn active" data-section="macro" onclick="navigate('macro')">
-      B.C. Economy Actuals Snapshot
+      BC Economy Snapshot
     </button>
 
     <button class="nav-btn" data-section="strategy" onclick="navigate('strategy')">
@@ -697,25 +671,9 @@ body {
   <!-- ════════════════════  MACRO ECONOMY  ════════════════════ -->
   <section class="section-panel active" id="panel-macro">
     <div class="section-wrap">
-      <div class="actuals-tabs" role="tablist" aria-label="B.C. Economy Actuals tabs">
-        <button class="actuals-tab-btn active" type="button" data-actuals-tab="gdp" onclick="setActualsTab('gdp')">GDP</button>
-        <button class="actuals-tab-btn" type="button" data-actuals-tab="labour" onclick="setActualsTab('labour')">Labour Market</button>
-        <button class="actuals-tab-btn" type="button" data-actuals-tab="trade" onclick="setActualsTab('trade')">Trade</button>
-      </div>
-      <div class="actuals-tab-panel active" data-actuals-panel="gdp">
-        <div class="dashboard-iframe-wrap">
-          <iframe class="dashboard-iframe" src="../../bc_macroeconomy/html/dashboard.html?actualsView=gdp" title="B.C. GDP Actuals Snapshot Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
-        </div>
-      </div>
-      <div class="actuals-tab-panel" data-actuals-panel="labour">
-        <div class="dashboard-iframe-wrap">
-          <iframe class="dashboard-iframe" src="../../bc_macroeconomy/html/dashboard.html?actualsView=labour" title="B.C. Labour Market Actuals Snapshot Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
-        </div>
-      </div>
-      <div class="actuals-tab-panel" data-actuals-panel="trade">
-        <div class="dashboard-iframe-wrap">
-          <iframe class="dashboard-iframe" src="../../bc_trade_analysis/html/dashboard.html" title="B.C. Trade Actuals Snapshot Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
-        </div>
+      <!-- BC Economy Snapshot: GDP, Labour Market, and Trade combined on one page -->
+      <div class="dashboard-iframe-wrap">
+        <iframe class="dashboard-iframe" src="../../bc_macroeconomy/html/dashboard.html" title="BC Economy Snapshot Dashboard" onload="onEmbeddedFrameLoad(this)" scrolling="no"></iframe>
       </div>
     </div>
   </section>
@@ -888,6 +846,7 @@ function getVisibleSectors() {
 
 const TRACKER_PAGES = [
   { id: 'targets', name: 'LW Targets Tracker', icon: 'TG', enabled: true },
+  { id: 'goals', name: 'LW Goals Tracker', icon: 'GL', enabled: true },
   { id: 'policy-regulation', name: 'LW Policy & Regulations Tracker', icon: 'PR', enabled: false },
   { id: 'funding-investment', name: 'LW Funding and Investment Tracker', icon: 'FI', enabled: false },
   { id: 'infrastructure', name: 'LW Infrastructure Tracker', icon: 'IN', enabled: false },
@@ -896,7 +855,7 @@ const TRACKER_PAGES = [
 
 /* Section metadata */
 const SECTIONS = {
-  macro:          { label: 'B.C. Economy Actuals Snapshot', color: '#1565C0' },
+  macro:          { label: 'BC Economy Snapshot', color: '#1565C0' },
   outlook:        { label: 'B.C. Economy Outlook & Forecasts', color: '#0F4C81' },
   strategy:       { label: 'Look West Strategy', color: '#00796B' },
   tracker:        { label: 'Look West Tracker',  color: '#5B3FB7' },

@@ -16,7 +16,7 @@
     } catch (_) {}
   })();
   </script>
-  <title>B.C. Economy Actuals Snapshot</title>
+  <title>BC Economy Snapshot</title>
 <script src="../../../shared/vendor/chart.umd.min.js"></script>
 <script src="../../../shared/vendor/xlsx.full.min.js"></script>
   <style>
@@ -708,8 +708,8 @@ body {
       <!-- Hero strip -->
       <div class="macro-hero">
         <div>
-          <div class="macro-hero-title">B.C. Economy Actuals Snapshot</div>
-          <div class="macro-hero-sub">Current and historical view of B.C.'s economy based on actual Statistics Canada data.</div>
+          <div class="macro-hero-title">BC Economy Snapshot</div>
+          <div class="macro-hero-sub">Current and historical view of B.C.'s economy &mdash; GDP, labour market, and trade &mdash; based on Statistics Canada data.</div>
         </div>
         <div class="macro-hero-tools">
           <div class="macro-updated-info macro-updated-info-hero">
@@ -724,7 +724,7 @@ body {
       </div>
 
       <!-- KPI cards row -->
-      <div class="kpi-grid" id="macro-kpi-grid" style="grid-template-columns:repeat(5,1fr); margin-bottom:24px;">
+      <div class="kpi-grid" id="macro-kpi-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:24px;">
         <div class="kpi-card loading" style="--accent:var(--c-macro);">
           <div class="kpi-label">GDP (Current $)</div>
           <div class="kpi-value" style="color:var(--c-macro);" id="kpi-gdp">--</div>
@@ -759,6 +759,27 @@ body {
           <div class="kpi-change flat" id="kpi-labour-chg">MoM: -- | YoY: --</div>
           <div class="kpi-period" id="kpi-labour-per">Loading...</div>
           <div class="kpi-source"><span class="ds-tag">14-10-0355-01</span></div>
+        </div>
+        <div class="kpi-card loading" style="--accent:var(--c-macro);">
+          <div class="kpi-label">International Exports</div>
+          <div class="kpi-value" style="color:var(--c-macro);" id="kpi-exports">--</div>
+          <div class="kpi-change flat" id="kpi-exports-chg">YoY: --</div>
+          <div class="kpi-period" id="kpi-exports-per">Loading...</div>
+          <div class="kpi-source"><span class="ds-tag">36-10-0709-01</span></div>
+        </div>
+        <div class="kpi-card loading" style="--accent:var(--c-macro);">
+          <div class="kpi-label">International Imports</div>
+          <div class="kpi-value" style="color:var(--c-macro);" id="kpi-imports">--</div>
+          <div class="kpi-change flat" id="kpi-imports-chg">YoY: --</div>
+          <div class="kpi-period" id="kpi-imports-per">Loading...</div>
+          <div class="kpi-source"><span class="ds-tag">36-10-0709-01</span></div>
+        </div>
+        <div class="kpi-card loading" style="--accent:var(--c-macro);">
+          <div class="kpi-label">Trade Balance</div>
+          <div class="kpi-value" style="color:var(--c-macro);" id="kpi-balance">--</div>
+          <div class="kpi-change flat" id="kpi-balance-chg">YoY: --</div>
+          <div class="kpi-period" id="kpi-balance-per">Loading...</div>
+          <div class="kpi-source"><span class="ds-tag">36-10-0709-01</span></div>
         </div>
       </div>
 
@@ -1780,6 +1801,39 @@ function setKpiCardState(valueId, ok) {
   else card.classList.add('error');
 }
 
+/* Populate the Exports / Imports / Trade Balance KPI cards from the
+   international trade series (values are already in CAD billions). */
+function updateTradeKpis(refs, exportsVals, importsVals, netVals) {
+  let i = (refs ? refs.length : 0) - 1;
+  while (i >= 0 && (exportsVals[i] == null || importsVals[i] == null)) i--;
+  if (i < 0) return;
+  const year = fmtYear(refs[i]);
+  const prev = i >= 1 ? i - 1 : null;
+
+  const signedB = v => (v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(1) + 'B';
+  const setTradeKpi = (valId, chgId, perId, val, prevVal, fmt) => {
+    setText(valId, val == null ? '--' : fmt(val));
+    const chgEl = chgId ? document.getElementById(chgId) : null;
+    if (chgEl) {
+      if (val == null || prevVal == null || prevVal === 0) {
+        chgEl.textContent = 'YoY: --';
+        chgEl.className = 'kpi-change flat';
+      } else {
+        const d = ((val - prevVal) / Math.abs(prevVal)) * 100;
+        chgEl.textContent = `YoY: ${d >= 0 ? '+' : ''}${d.toFixed(1)}%`;
+        chgEl.className = `kpi-change ${d >= 0 ? 'up' : 'down'}`;
+      }
+    }
+    setText(perId, 'Latest: ' + year);
+    setKpiCardState(valId, val != null);
+  };
+
+  const plainB = v => '$' + v.toFixed(1) + 'B';
+  setTradeKpi('kpi-exports', 'kpi-exports-chg', 'kpi-exports-per', exportsVals[i], prev != null ? exportsVals[prev] : null, plainB);
+  setTradeKpi('kpi-imports', 'kpi-imports-chg', 'kpi-imports-per', importsVals[i], prev != null ? importsVals[prev] : null, plainB);
+  setTradeKpi('kpi-balance', 'kpi-balance-chg', 'kpi-balance-per', netVals[i], prev != null ? netVals[prev] : null, signedB);
+}
+
 function setGdpKpiFromStored(stored) {
   const g = stored && stored.charts && stored.charts['chart-gdp'];
   if (!g) {
@@ -2069,6 +2123,8 @@ function renderChartFromData(def, stored) {
       const b = mapB.has(r) ? mapB.get(r) : 0;
       return (isFinite(a) && isFinite(b)) ? (a - b) : null;
     });
+
+    if (def.flow === 'international') updateTradeKpis(refs, exportsVals, importsVals, netVals);
 
     const datasets = [
       {
@@ -2841,36 +2897,30 @@ function tidyActualsChartGrids() {
 }
 
 function applyActualsView() {
-  const view = getActualsView();
-  const isGdp = view === 'gdp';
-
-  const title = document.querySelector('.macro-hero-title');
-  const sub = document.querySelector('.macro-hero-sub');
-  if (title) title.textContent = isGdp ? 'B.C. Economy Actuals Snapshot: GDP' : 'B.C. Economy Actuals Snapshot: Labour Market';
-  if (sub) {
-    sub.textContent = isGdp
-      ? 'Current and historical view of B.C. GDP based on actual Statistics Canada data.'
-      : 'Current and historical view of B.C. employment, unemployment, labour force, and industry movement data.';
-  }
-
-  const kpiGrid = document.getElementById('macro-kpi-grid');
-  if (kpiGrid) kpiGrid.style.gridTemplateColumns = isGdp ? 'repeat(1, minmax(240px, 360px))' : 'repeat(3, minmax(180px, 1fr))';
-
-  setActualsCardVisible('kpi-gdp', isGdp);
+  // BC Economy Snapshot: combine the former GDP, Labour Market, and Trade tabs
+  // into one page. Show everything those three tabs contained; CPI/inflation was
+  // not part of any of them, so it stays hidden here.
+  setActualsCardVisible('kpi-gdp', true);
+  setActualsCardVisible('kpi-emp', true);
+  setActualsCardVisible('kpi-unemp', true);
+  setActualsCardVisible('kpi-labour', true);
+  setActualsCardVisible('kpi-exports', true);
+  setActualsCardVisible('kpi-imports', true);
+  setActualsCardVisible('kpi-balance', true);
   setActualsCardVisible('kpi-infl', false);
-  setActualsCardVisible('kpi-emp', !isGdp);
-  setActualsCardVisible('kpi-unemp', !isGdp);
-  setActualsCardVisible('kpi-labour', !isGdp);
 
-  setActualsCardVisible('chart-labour', !isGdp);
-  setActualsCardVisible('chart-gdp', isGdp);
-  setActualsCardVisible('chart-gdp-share', isGdp);
-  setActualsCardVisible('industry-movers-table', !isGdp);
+  setActualsCardVisible('chart-labour', true);
+  setActualsCardVisible('chart-gdp', true);
+  setActualsCardVisible('chart-gdp-share', true);
+  setActualsCardVisible('industry-movers-table', true);
+  setActualsCardVisible('chart-interprov-trade', true);
+  setActualsCardVisible('chart-international-trade', true);
 
   setActualsCardVisible('chart-cpi', false);
   setActualsCardVisible('chart-cpi-contrib', false);
-  setActualsCardVisible('chart-interprov-trade', false);
-  setActualsCardVisible('chart-international-trade', false);
+
+  const kpiGrid = document.getElementById('macro-kpi-grid');
+  if (kpiGrid) kpiGrid.style.gridTemplateColumns = 'repeat(4, minmax(160px, 1fr))';
 
   tidyActualsChartGrids();
 }

@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LW Goals Tracker</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --navy: #003366;
+      --text: #1e293b;
+      --muted: #64748b;
+      --accent: #5b3fb7;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 18px;
+    }
+
+    .page-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      min-height: 560px;
+      box-shadow: var(--shadow);
+    }
+
+    .page-head {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px 15px;
+      background: linear-gradient(90deg, #eef2ff 0%, #f8fafc 100%);
+    }
+
+    .page-head h1 { color: var(--navy); font-size: 22px; line-height: 1.2; margin-bottom: 7px; }
+    .page-head p { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    .content { padding: 18px 20px 24px; display: grid; gap: 16px; }
+
+    .status-banner {
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .status-banner.error { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+
+    /* Summary KPI strip */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .summary-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      padding: 12px 14px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .summary-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 3px;
+      background: var(--kpi-color, #5b3fb7);
+    }
+
+    .summary-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .summary-value { margin-top: 6px; font-size: 26px; line-height: 1.05; font-weight: 800; color: #0f172a; }
+    .summary-note { margin-top: 3px; font-size: 11px; color: #64748b; }
+
+    /* Filters */
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #f8fafc;
+      align-items: end;
+    }
+
+    .filter-item label {
+      display: block;
+      font-size: 10px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+      font-weight: 700;
+    }
+
+    .filter-item select, .filter-item input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #0f172a;
+      font-size: 12px;
+      padding: 8px 9px;
+    }
+
+    .btn {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #0f172a;
+      font-weight: 600;
+      padding: 8px 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #f1f5f9; }
+
+    /* Goal groups */
+    #goals-root { display: grid; gap: 26px; }
+
+    .goal-group { display: grid; gap: 14px; }
+
+    .goal-group-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 14px;
+      background: linear-gradient(90deg, #ede9fb 0%, #f6f4fe 55%, #ffffff 100%);
+      border: 1px solid #ddd6f3;
+      border-left: 6px solid var(--accent);
+      border-radius: 10px;
+      padding: 14px 16px;
+    }
+
+    .goal-group-head h2 {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--navy);
+      line-height: 1.3;
+      letter-spacing: -0.2px;
+    }
+    .goal-group-count {
+      font-size: 12px;
+      color: var(--accent);
+      font-weight: 800;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .goal-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* Each goal = a card with its narrative collapsible beneath it. */
+    .goal-item { display: flex; flex-direction: column; gap: 8px; }
+
+    .goal-card, .goal-narrative {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+    }
+
+    .goal-card {
+      position: relative;
+      overflow: hidden;
+      border-top: 3px solid var(--kpi-color, #5b3fb7);
+      padding: 14px 16px;
+    }
+
+    .goal-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .goal-meta { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-bottom: 3px; }
+    .goal-title { font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.4; }
+
+    /* Metrics inside the card */
+    .metric-primary { margin-bottom: 10px; }
+    .m-label { font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; line-height: 1.3; }
+    .metric-primary .m-label { text-transform: none; letter-spacing: 0; font-size: 11px; color: #475569; font-weight: 700; }
+    .metric-primary .m-value { font-size: 27px; font-weight: 800; color: #0f172a; line-height: 1.1; margin-top: 3px; }
+    .m-context { font-size: 11px; color: #94a3b8; margin-top: 3px; line-height: 1.4; }
+
+    .m-trend { font-weight: 700; white-space: nowrap; }
+    .m-trend.up { color: #15803d; }
+    .m-trend.down { color: #b91c1c; }
+    .m-trend.flat { color: #64748b; font-weight: 600; }
+    .m-trend-sec { display: block; font-size: 10px; margin-top: 2px; }
+
+    /* Yes/No milestones rendered as a completed/pending statement */
+    .milestone { font-weight: 800; font-size: 18px; line-height: 1.25; color: #0f172a; }
+    .milestone.small { font-size: 13px; font-weight: 700; }
+    .milestone.ok { color: #15803d; }
+    .milestone.pending { color: #64748b; }
+
+    .metric-secondary { display: grid; gap: 8px; border-top: 1px dashed #e2e8f0; padding-top: 10px; }
+    .metric-sec-item { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+    .m-sec-text { flex: 1; min-width: 0; }
+    .metric-sec-item .m-label { text-transform: none; letter-spacing: 0; font-weight: 600; color: #475569; font-size: 11px; }
+    .metric-sec-item .m-value { font-size: 14px; font-weight: 700; color: #1e293b; white-space: nowrap; }
+
+    .m-value .val-yes { color: #166534; }
+    .m-value .val-no { color: #9a3412; }
+
+    .no-metrics { font-size: 12px; color: #94a3b8; font-style: italic; padding: 6px 0; }
+
+    /* Narrative box (collapsible, sits beneath each card) */
+    .goal-narrative { background: #fcfcff; }
+    .gn-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: transparent;
+      border: 0;
+      padding: 10px 14px;
+      cursor: pointer;
+      text-align: left;
+      font: inherit;
+    }
+    .gn-toggle:hover { background: #f5f3fd; border-radius: 10px; }
+    .gn-head { font-size: 10px; color: #5b3fb7; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 800; }
+    .gn-icon { color: #64748b; font-size: 12px; line-height: 1; transition: transform 0.15s ease; }
+    .goal-narrative.collapsed .gn-icon { transform: rotate(-90deg); }
+    .gn-body { padding: 0 14px 12px; }
+    .goal-narrative.collapsed .gn-body { display: none; }
+    .gn-text { font-size: 12px; color: #334155; line-height: 1.55; white-space: pre-wrap; }
+    .gn-empty { color: #94a3b8; font-style: italic; }
+
+    /* Status chips */
+    .chip {
+      display: inline-block;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border: 1px solid #d1d5db;
+      background: #f8fafc;
+      color: #334155;
+      white-space: nowrap;
+    }
+    .chip.s-ontrack { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; }
+    .chip.s-complete { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+    .chip.s-advanced { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; }
+    .chip.s-early { border-color: #e9d5ff; background: #faf5ff; color: #7e22ce; }
+    .chip.s-risk { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+
+    .empty-state { text-align: center; color: #64748b; font-style: italic; padding: 24px; }
+
+    @media (max-width: 900px) {
+      .goal-list { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 12px; }
+      .content { padding: 12px; }
+      .filters { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <section class="page-wrap">
+    <header class="page-head">
+      <h1>LW Goals Tracker</h1>
+      <p>Goal-level progress for Look West goals, grouped by their linked target. Each goal card summarizes up to three tracked metrics (primary metric shown largest); metrics without data are omitted. A narrative accompanies each goal.</p>
+    </header>
+
+    <div class="content">
+      <div class="status-banner" id="status-banner">Loading goals datasets...</div>
+
+      <div class="summary-grid" id="summary-grid"></div>
+
+      <div class="filters">
+        <div class="filter-item">
+          <label for="filter-target">Target</label>
+          <select id="filter-target"></select>
+        </div>
+        <div class="filter-item">
+          <label for="filter-status">Status</label>
+          <select id="filter-status"></select>
+        </div>
+        <div class="filter-item">
+          <label for="filter-search">Search</label>
+          <input id="filter-search" type="text" placeholder="Search goal, metric, target, narrative">
+        </div>
+        <div class="filter-item">
+          <button class="btn" id="reset-filters" type="button">Reset</button>
+        </div>
+      </div>
+
+      <div id="goals-root"></div>
+    </div>
+  </section>
+
+  <script>
+    const DATA_FILES = {
+      goals: [
+        "../../../../data/LW Goals.csv",
+        "../../../../data/look_west_strategy/LW Goals.csv"
+      ],
+      tracker: [
+        "../../../../data/Goals Tracker.csv",
+        "../../../../data/look_west_strategy/Goals Tracker.csv"
+      ]
+    };
+
+    const SUMMARY_COLORS = ["#5b3fb7", "#4b7ea8", "#4f8d7a", "#b08a4c", "#a0617f"];
+
+    const state = {
+      goals: [],          // normalized goal defs (from LW Goals.csv), with attached tracker data
+      targets: [],        // ordered distinct target strings
+    };
+
+    /* ---------- CSV parsing (shared pattern with other tracker pages) ---------- */
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i += 1) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (inQuotes) {
+          if (ch === '"' && next === '"') { value += '"'; i += 1; }
+          else if (ch === '"') { inQuotes = false; }
+          else { value += ch; }
+        } else if (ch === '"') { inQuotes = true; }
+        else if (ch === ",") { row.push(value); value = ""; }
+        else if (ch === "\n") { row.push(value); rows.push(row); row = []; value = ""; }
+        else if (ch !== "\r") { value += ch; }
+      }
+      if (value.length > 0 || row.length > 0) { row.push(value); rows.push(row); }
+      if (!rows.length) return [];
+      const headers = rows[0].map((h) => String(h || "").trim());
+      return rows.slice(1)
+        .filter((r) => r.some((cell) => String(cell || "").trim() !== ""))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = String(r[idx] || "").trim(); });
+          return obj;
+        });
+    }
+
+    function getField(row, names) {
+      for (const name of names) {
+        if (Object.prototype.hasOwnProperty.call(row, name)) return String(row[name] || "").trim();
+      }
+      return "";
+    }
+
+    function parseNumber(value) {
+      const txt = String(value || "").replace(/[$,%\s]/g, "");
+      if (!txt) return null;
+      const num = Number(txt);
+      return Number.isFinite(num) ? num : null;
+    }
+
+    function formatNumber(value) {
+      return new Intl.NumberFormat("en-CA", { maximumFractionDigits: 1 }).format(value || 0);
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function setStatus(message, isError) {
+      const banner = document.getElementById("status-banner");
+      banner.textContent = message;
+      banner.classList.toggle("error", !!isError);
+      banner.style.display = "";
+    }
+    function hideStatus() { document.getElementById("status-banner").style.display = "none"; }
+
+    async function fetchCsvWithFallback(urls, label) {
+      let lastError = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (res.ok) return res.text();
+          lastError = new Error(`${label}: HTTP ${res.status} for ${url}`);
+        } catch (err) { lastError = err; }
+      }
+      throw lastError || new Error(`${label}: no available source`);
+    }
+
+    /* ---------- Value formatting for a tracked metric ---------- */
+    function formatMetricValue(value, unit) {
+      const raw = String(value || "").trim();
+      const u = String(unit || "").trim();
+      if (!raw) return "";
+      if (u === "Y/N") {
+        const cls = /^y(es)?$/i.test(raw) ? "val-yes" : (/^n(o)?$/i.test(raw) ? "val-no" : "");
+        return `<span class="${cls}">${escapeHtml(raw)}</span>`;
+      }
+      const num = parseNumber(raw);
+      if (num === null) return escapeHtml(raw);
+      if (u === "%") return `${formatNumber(num)}%`;
+      if (u === "$M") return `$${formatNumber(num)}M`;
+      if (u === "$") return `$${formatNumber(num)}`;
+      if (u === "days") return `${formatNumber(num)} days`;
+      return formatNumber(num);
+    }
+
+    function statusChipClass(status) {
+      const t = String(status || "").toLowerCase();
+      if (t.includes("complete")) return "s-complete";
+      if (t.includes("advanced")) return "s-advanced";
+      if (t.includes("risk")) return "s-risk";
+      if (t.includes("early")) return "s-early";
+      if (t.includes("track")) return "s-ontrack";
+      return "";
+    }
+
+    /* ---------- Normalization & join ---------- */
+    function normalizeGoals(goalRows, trackerRows) {
+      // Build tracker lookup: goalId -> { metrics: {num: latestRow}, summary: row }
+      const track = new Map();
+      const ensure = (id) => {
+        if (!track.has(id)) track.set(id, { metrics: {}, summary: null });
+        return track.get(id);
+      };
+      const isLater = (a, b) => String(a || "") > String(b || ""); // periods sort lexically (2025-Q4 < 2026-Q1)
+
+      trackerRows.forEach((row) => {
+        const id = getField(row, ["Goal ID"]);
+        if (!id) return;
+        const metricNum = getField(row, ["Metric #", "Metric"]);
+        const period = getField(row, ["Period"]);
+        const bucket = ensure(id);
+        if (/^summary$/i.test(metricNum)) {
+          if (!bucket.summary || isLater(period, bucket.summary.period)) {
+            bucket.summary = {
+              status: getField(row, ["Status"]),
+              narrative: getField(row, ["Narrative"]),
+              period
+            };
+          }
+          return;
+        }
+        if (!["1", "2", "3"].includes(metricNum)) return;
+        const value = getField(row, ["Metric Value"]);
+        if (!value) return;
+        if (!bucket.metrics[metricNum]) bucket.metrics[metricNum] = [];
+        bucket.metrics[metricNum].push({
+          value,
+          unit: getField(row, ["Unit"]),
+          period,
+          name: getField(row, ["Metric Name"])
+        });
+      });
+
+      return goalRows.map((row) => {
+        const goalId = getField(row, ["Goal ID"]);
+        const data = track.get(goalId) || { metrics: {}, summary: null };
+        const metricDefs = [
+          { num: "1", name: getField(row, ["Primary Metric"]), primary: true },
+          { num: "2", name: getField(row, ["Metric 2"]), primary: false },
+          { num: "3", name: getField(row, ["Metric 3"]), primary: false }
+        ];
+        // Only keep metrics that have a tracked value.
+        const metrics = metricDefs
+          .map((def) => {
+            const series = data.metrics[def.num];
+            if (!series || !series.length) return null;
+            const sorted = series.slice().sort((a, b) => (a.period < b.period ? -1 : (a.period > b.period ? 1 : 0)));
+            const latest = sorted[sorted.length - 1];
+            const prev = sorted.length > 1 ? sorted[sorted.length - 2] : null;
+            return {
+              num: def.num,
+              primary: def.primary,
+              name: def.name || latest.name || `Metric ${def.num}`,
+              value: latest.value,
+              unit: latest.unit,
+              period: latest.period,
+              prevValue: prev ? prev.value : null,
+              prevPeriod: prev ? prev.period : null
+            };
+          })
+          .filter(Boolean);
+
+        const summary = data.summary || {};
+        return {
+          goalId,
+          target: getField(row, ["Target"]) || "(Unlinked goal)",
+          goal: getField(row, ["Goal"]),
+          page: getField(row, ["Pg", "Page"]),
+          timeline: getField(row, ["Timeline"]),
+          ministry: getField(row, ["Ministry/Team"]),
+          metrics,
+          status: summary.status || "",
+          narrative: summary.narrative || ""
+        };
+      }).filter((g) => g.goalId);
+    }
+
+    /* ---------- Rendering ---------- */
+    function renderSummary() {
+      const total = state.goals.length;
+      const tracked = state.goals.filter((g) => g.metrics.length > 0).length;
+      const onTrack = state.goals.filter((g) => /track|advanced|complete/i.test(g.status)).length;
+      const atRisk = state.goals.filter((g) => /risk/i.test(g.status)).length;
+      const targets = state.targets.length;
+
+      const cards = [
+        { label: "Goals", value: total, note: "Look West goals in scope" },
+        { label: "Targets Covered", value: targets, note: "Linked target statements" },
+        { label: "Goals With Data", value: tracked, note: `${total - tracked} awaiting data` },
+        { label: "On Track / Advanced", value: onTrack, note: "By latest status" },
+        { label: "At Risk", value: atRisk, note: "Flagged for attention" }
+      ];
+
+      document.getElementById("summary-grid").innerHTML = cards.map((c, i) => `
+        <article class="summary-card" style="--kpi-color:${SUMMARY_COLORS[i % SUMMARY_COLORS.length]}">
+          <div class="summary-label">${escapeHtml(c.label)}</div>
+          <div class="summary-value">${escapeHtml(formatNumber(c.value))}</div>
+          <div class="summary-note">${escapeHtml(c.note)}</div>
+        </article>
+      `).join("");
+    }
+
+    // Yes/No metrics read as milestones. Turn the question form
+    // ("Construction started? (Y/N)") into a statement: "Construction Started"
+    // when achieved, "Construction Not Started" when not.
+    const MILESTONE_MINOR = new Set(["for", "and", "to", "of", "the", "a", "an", "or", "with", "in", "on", "at", "by", "vs"]);
+    const MILESTONE_VERBS = new Set([
+      "started", "completed", "established", "implemented", "signed", "published",
+      "concluded", "passed", "announced", "expanded", "launched", "approved",
+      "delivered", "commissioned", "achieved", "reached", "secured", "adopted",
+      "enacted", "ratified", "operational", "operation"
+    ]);
+
+    function milestoneTitleCase(s) {
+      return String(s || "").split(/\s+/).map((t, i) => {
+        if (/[A-Z]/.test(t)) return t;             // keep acronyms / proper nouns (AI, BC, B.C., CMRA, K-12)
+        const lower = t.toLowerCase();
+        if (i > 0 && MILESTONE_MINOR.has(lower)) return lower;
+        return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+      }).join(" ");
+    }
+
+    function milestoneClean(name) {
+      return String(name || "")
+        .replace(/\((?:y\/n|yes\/no)\)/ig, "")
+        .replace(/\?/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function milestoneText(name, achieved) {
+      const clean = milestoneClean(name);
+      if (!clean) return achieved ? "Achieved" : "Not yet";
+      if (achieved) return milestoneTitleCase(clean);
+
+      const toks = clean.split(/\s+/);
+      if (["in", "on", "at", "under"].includes(toks[0].toLowerCase())) {
+        return milestoneTitleCase("Not " + clean);
+      }
+      let vi = toks.findIndex((t) => {
+        const c = t.toLowerCase().replace(/[^a-z]/g, "");
+        return MILESTONE_VERBS.has(c) || (c.length > 3 && c.endsWith("ed"));
+      });
+      if (vi <= 0) vi = toks.length - 1;
+      const out = toks.slice(0, vi).concat(["not"]).concat(toks.slice(vi));
+      return milestoneTitleCase(out.join(" "));
+    }
+
+    // A short "what changed" line that gives the bare value meaning: direction and
+    // size of movement vs the previous period (green = favourable, red = unfavourable).
+    function trendHtml(m) {
+      if (m.prevValue === null || m.prevValue === undefined || m.prevValue === "") return "";
+      const unit = String(m.unit || "");
+      const vsPeriod = `vs ${escapeHtml(m.prevPeriod || "prior")}`;
+
+      if (unit === "Y/N") {
+        const now = /^y/i.test(m.value);
+        const was = /^y/i.test(m.prevValue);
+        if (now === was) return `<span class="m-trend flat">no change ${vsPeriod}</span>`;
+        if (now && !was) return `<span class="m-trend up">&#9650; newly achieved ${vsPeriod}</span>`;
+        return `<span class="m-trend down">&#9660; reverted ${vsPeriod}</span>`;
+      }
+
+      const now = parseNumber(m.value);
+      const was = parseNumber(m.prevValue);
+      if (now === null || was === null) return "";
+      const diff = now - was;
+      if (diff === 0) return `<span class="m-trend flat">no change ${vsPeriod}</span>`;
+
+      const higherIsBetter = unit !== "days";
+      const good = diff > 0 ? higherIsBetter : !higherIsBetter;
+      const arrow = diff > 0 ? "&#9650;" : "&#9660;";
+      let mag;
+      if (unit === "%") {
+        mag = `${formatNumber(Math.abs(diff))} pts`;
+      } else {
+        const pct = was !== 0 ? Math.abs((diff / was) * 100) : null;
+        mag = pct !== null ? `${formatNumber(Math.abs(diff))} (${formatNumber(pct)}%)` : formatNumber(Math.abs(diff));
+      }
+      return `<span class="m-trend ${good ? "up" : "down"}">${arrow} ${mag} ${vsPeriod}</span>`;
+    }
+
+    function metricsHtml(goal) {
+      if (!goal.metrics.length) {
+        return `<div class="no-metrics">No tracked metrics yet for this goal.</div>`;
+      }
+      const primary = goal.metrics.find((m) => m.primary) || goal.metrics[0];
+      const secondary = goal.metrics.filter((m) => m !== primary);
+
+      const pAsOf = `as of ${escapeHtml(primary.period || "-")}`;
+      const pTrend = trendHtml(primary);
+      const pContext = `<div class="m-context">${pAsOf}${pTrend ? " &middot; " + pTrend : ""}</div>`;
+
+      let html;
+      if (primary.unit === "Y/N") {
+        const achieved = /^y/i.test(primary.value);
+        html = `
+        <div class="metric-primary">
+          <div class="milestone ${achieved ? "ok" : "pending"}">${achieved ? "&#10003; " : ""}${escapeHtml(milestoneText(primary.name, achieved))}</div>
+          ${pContext}
+        </div>`;
+      } else {
+        html = `
+        <div class="metric-primary">
+          <div class="m-label">${escapeHtml(primary.name)}</div>
+          <div class="m-value">${formatMetricValue(primary.value, primary.unit)}</div>
+          ${pContext}
+        </div>`;
+      }
+
+      if (secondary.length) {
+        html += `<div class="metric-secondary">` + secondary.map((m) => {
+          const t = trendHtml(m);
+          if (m.unit === "Y/N") {
+            const achieved = /^y/i.test(m.value);
+            return `
+          <div class="metric-sec-item">
+            <div class="m-sec-text">
+              <span class="milestone small ${achieved ? "ok" : "pending"}">${achieved ? "&#10003; " : ""}${escapeHtml(milestoneText(m.name, achieved))}</span>
+              ${t ? `<span class="m-trend-sec">${t}</span>` : ""}
+            </div>
+          </div>`;
+          }
+          return `
+          <div class="metric-sec-item">
+            <div class="m-sec-text">
+              <span class="m-label">${escapeHtml(m.name)}</span>
+              ${t ? `<span class="m-trend-sec">${t}</span>` : ""}
+            </div>
+            <span class="m-value">${formatMetricValue(m.value, m.unit)}</span>
+          </div>`;
+        }).join("") + `</div>`;
+      }
+      return html;
+    }
+
+    function goalItemHtml(goal) {
+      const metaParts = [goal.goalId];
+      if (goal.timeline) metaParts.push(goal.timeline);
+      if (goal.page) metaParts.push("Pg " + goal.page);
+      const statusChip = goal.status
+        ? `<span class="chip ${statusChipClass(goal.status)}">${escapeHtml(goal.status)}</span>`
+        : "";
+      const narrative = goal.narrative
+        ? `<div class="gn-text">${escapeHtml(goal.narrative)}</div>`
+        : `<div class="gn-text gn-empty">No narrative recorded for this goal.</div>`;
+
+      return `
+        <div class="goal-item">
+          <article class="goal-card">
+            <div class="goal-card-head">
+              <div>
+                <div class="goal-meta">${escapeHtml(metaParts.join(" · "))}</div>
+                <div class="goal-title">${escapeHtml(goal.goal || "(Untitled goal)")}</div>
+              </div>
+              ${statusChip}
+            </div>
+            ${metricsHtml(goal)}
+          </article>
+          <div class="goal-narrative collapsed">
+            <button class="gn-toggle" type="button" onclick="toggleNarrative(this)" aria-expanded="false">
+              <span class="gn-head">Narrative</span>
+              <span class="gn-icon" aria-hidden="true">&#9662;</span>
+            </button>
+            <div class="gn-body">${narrative}</div>
+          </div>
+        </div>`;
+    }
+
+    function toggleNarrative(btn) {
+      const box = btn.closest(".goal-narrative");
+      if (!box) return;
+      const collapsed = box.classList.toggle("collapsed");
+      btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    }
+
+    function getFilters() {
+      return {
+        target: document.getElementById("filter-target").value,
+        status: document.getElementById("filter-status").value,
+        search: String(document.getElementById("filter-search").value || "").trim().toLowerCase()
+      };
+    }
+
+    function renderGoals() {
+      const { target, status, search } = getFilters();
+      const root = document.getElementById("goals-root");
+
+      const filtered = state.goals.filter((g) => {
+        if (target !== "__all__" && g.target !== target) return false;
+        if (status !== "__all__") {
+          if (status === "__none__") { if (g.status) return false; }
+          else if (g.status !== status) return false;
+        }
+        if (search) {
+          const blob = [
+            g.goalId, g.goal, g.target, g.status, g.narrative,
+            g.metrics.map((m) => m.name + " " + m.value).join(" ")
+          ].join(" ").toLowerCase();
+          if (!blob.includes(search)) return false;
+        }
+        return true;
+      });
+
+      if (!filtered.length) {
+        root.innerHTML = `<div class="empty-state">No goals match the current filters.</div>`;
+        return;
+      }
+
+      // Group by target, preserving target order from the goals dataset.
+      const groups = new Map();
+      state.targets.forEach((t) => groups.set(t, []));
+      filtered.forEach((g) => {
+        if (!groups.has(g.target)) groups.set(g.target, []);
+        groups.get(g.target).push(g);
+      });
+
+      const html = Array.from(groups.entries())
+        .filter(([, goals]) => goals.length)
+        .map(([targetText, goals]) => `
+          <section class="goal-group">
+            <div class="goal-group-head">
+              <h2>${escapeHtml(targetText)}</h2>
+              <span class="goal-group-count">${goals.length} goal${goals.length === 1 ? "" : "s"}</span>
+            </div>
+            <div class="goal-list">
+              ${goals.map(goalItemHtml).join("")}
+            </div>
+          </section>
+        `).join("");
+
+      root.innerHTML = html;
+    }
+
+    function fillSelect(el, values, allLabel, extra) {
+      const opts = [`<option value="__all__">${escapeHtml(allLabel)}</option>`]
+        .concat(values.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`));
+      if (extra) opts.push(extra);
+      el.innerHTML = opts.join("");
+    }
+
+    function initFilters() {
+      fillSelect(document.getElementById("filter-target"), state.targets, "All Targets");
+
+      const statuses = Array.from(new Set(state.goals.map((g) => g.status).filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b));
+      const hasNoStatus = state.goals.some((g) => !g.status);
+      fillSelect(
+        document.getElementById("filter-status"),
+        statuses,
+        "All Statuses",
+        hasNoStatus ? '<option value="__none__">(No status)</option>' : ""
+      );
+
+      document.getElementById("filter-target").addEventListener("change", renderGoals);
+      document.getElementById("filter-status").addEventListener("change", renderGoals);
+      document.getElementById("filter-search").addEventListener("input", renderGoals);
+      document.getElementById("reset-filters").addEventListener("click", () => {
+        document.getElementById("filter-target").value = "__all__";
+        document.getElementById("filter-status").value = "__all__";
+        document.getElementById("filter-search").value = "";
+        renderGoals();
+      });
+    }
+
+    async function loadData() {
+      setStatus("Loading goals datasets...", false);
+      try {
+        const [goalsText, trackerText] = await Promise.all([
+          fetchCsvWithFallback(DATA_FILES.goals, "LW Goals dataset"),
+          fetchCsvWithFallback(DATA_FILES.tracker, "Goals Tracker dataset")
+        ]);
+
+        const goalRows = parseCsv(goalsText);
+        const trackerRows = parseCsv(trackerText);
+        state.goals = normalizeGoals(goalRows, trackerRows);
+
+        // Ordered distinct targets (order of first appearance in the goals dataset).
+        const seen = new Set();
+        state.targets = [];
+        state.goals.forEach((g) => {
+          if (!seen.has(g.target)) { seen.add(g.target); state.targets.push(g.target); }
+        });
+
+        renderSummary();
+        initFilters();
+        renderGoals();
+        hideStatus();
+      } catch (error) {
+        console.error(error);
+        const protoHint = location.protocol === "file:"
+          ? " Open this page via local server: http://localhost:8080/dashboards/look_west_tracker/html/pages/lw_goals_tracker.html"
+          : "";
+        setStatus(`Could not load LW Goals Tracker data. ${error.message || error}.${protoHint}`, true);
+      }
+    }
+
+    function bootPage() {
+      if (location.protocol === "file:") {
+        setStatus(
+          "Opened as local file. Start local server with `python scripts/serve.py` and open `http://localhost:8080/dashboards/look_west_tracker/html/pages/lw_goals_tracker.html`.",
+          true
+        );
+        return;
+      }
+      loadData();
+    }
+
+    document.addEventListener("DOMContentLoaded", bootPage);
+  </script>
+</body>
+</html>
