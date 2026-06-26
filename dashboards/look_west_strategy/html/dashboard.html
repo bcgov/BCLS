@@ -144,6 +144,70 @@
     .kpi-value { font-size: 28px; font-weight: 700; color: var(--primary); line-height: 1.05; }
     .kpi-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
+    /* Two-level KPI cards */
+    .kpi-two-level { padding: 14px; display: grid; gap: 12px; }
+    .kpi-tier-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .kpi-tier-label.second { margin-top: 4px; }
+
+    /* Level 1 — strategic hero cards */
+    .kpi-hero-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .kpi-hero {
+      position: relative; border: 1px solid var(--border); border-radius: 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #eef4fb 100%);
+      box-shadow: var(--shadow); padding: 18px 18px 16px;
+      display: flex; flex-direction: column; gap: 8px; overflow: hidden; min-height: 120px;
+    }
+    .kpi-hero::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-2));
+    }
+    .kpi-hero-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--primary); }
+    .kpi-hero-value { font-size: 34px; font-weight: 800; color: var(--text); line-height: 1; }
+    .kpi-hero-value small { font-size: 17px; font-weight: 700; color: var(--muted); }
+    .kpi-hero-note { font-size: 11.5px; color: var(--muted); line-height: 1.4; margin-top: auto; }
+    .kpi-hero-goals { flex-direction: row; align-items: center; gap: 16px; }
+    .goal-ring {
+      --pct: 0; width: 80px; height: 80px; border-radius: 50%; flex-shrink: 0;
+      background: conic-gradient(var(--good) calc(var(--pct) * 1%), #e3ebf3 0);
+      display: grid; place-items: center;
+    }
+    .goal-ring::after {
+      content: attr(data-pct); width: 58px; height: 58px; border-radius: 50%;
+      background: #fff; display: grid; place-items: center;
+      font-size: 14px; font-weight: 800; color: var(--primary);
+    }
+    .goal-meta { display: flex; flex-direction: column; gap: 5px; }
+    .goal-meta .kpi-hero-note { margin-top: 0; }
+
+    /* Level 2 — data-coverage mini cards */
+    .kpi-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+    .kpi-mini { border: 1px solid var(--border); border-radius: 9px; background: #fbfdff; box-shadow: var(--shadow); padding: 11px 12px; }
+    .kpi-mini-value { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1; }
+    .kpi-mini-label { margin-top: 5px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); line-height: 1.3; }
+    @media (max-width: 900px) { .kpi-hero-grid { grid-template-columns: 1fr; } }
+
+    /* Data inventory (collapsible) */
+    .inventory { padding: 14px; display: grid; gap: 10px; }
+    .inv-section { border: 1px solid var(--border); border-radius: 10px; background: #fff; overflow: hidden; }
+    .inv-section > summary {
+      list-style: none; cursor: pointer; padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 700; color: var(--text);
+    }
+    .inv-section > summary::-webkit-details-marker { display: none; }
+    .inv-section > summary::before { content: '\25B8'; color: var(--muted); font-size: 11px; transition: transform .15s ease; }
+    .inv-section[open] > summary::before { transform: rotate(90deg); }
+    .inv-title { flex: 1; }
+    .inv-count { font-size: 11px; font-weight: 800; color: var(--primary); background: #e9f2fb; border: 1px solid #b8d4f1; border-radius: 999px; padding: 2px 10px; }
+    .inv-body { padding: 0 14px 14px; overflow-x: auto; }
+    .inv-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    .inv-table th { text-align: left; font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 800; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .inv-table td { padding: 6px 8px; border-bottom: 1px solid #edf1f5; color: var(--text); vertical-align: top; }
+    .inv-table tr:last-child td { border-bottom: none; }
+    .inv-empty { font-size: 12px; color: var(--muted); padding: 4px 0 8px; }
+
     .toolbar {
       padding: 12px 14px;
       display: flex;
@@ -402,7 +466,12 @@
           <div class="section-sub">Integrated strategy, announcements, funding, and policy records</div>
         </div>
       </div>
-      <div id="kpi-grid" class="kpi-grid"></div>
+      <div class="kpi-two-level">
+        <div class="kpi-tier-label">Strategic outcomes</div>
+        <div id="kpi-hero" class="kpi-hero-grid"></div>
+        <div class="kpi-tier-label second">Data coverage</div>
+        <div id="kpi-mini" class="kpi-mini-grid"></div>
+      </div>
     </section>
 
     <!-- ── Funding & Investment Charts (Life-Sciences-style) ── -->
@@ -563,6 +632,16 @@
       <div class="pager" id="pol-pager"></div>
     </section>
 
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Data Inventory</div>
+          <div class="section-sub">Everything captured for Look West, grouped by dataset. Expand a section to see the items.</div>
+        </div>
+      </div>
+      <div id="inventory" class="inventory"></div>
+    </section>
+
     <div id="error-box"></div>
   </main>
 
@@ -578,7 +657,9 @@
       news: 'LW News.csv',
       majorProjects: 'Major Projects.csv',
       policy: 'Policy & Regulations.csv',
-      targets: 'Targets.csv'
+      targets: 'Targets.csv',
+      goals: 'LW Goals.csv',
+      goalsTracker: 'Goals Tracker.csv'
     };
 
     const PILLARS = [
@@ -599,9 +680,12 @@
       news: [],
       majorProjects: [],
       targets: [],
+      goals: [],
+      goalsTracker: [],
       media: [],
       funding: [],
       policy: [],
+      policyRaw: [],
       loadedAt: null,
       dataMode: 'integrated',
       annPage: 1,
@@ -977,6 +1061,9 @@
       STATE.news = data.news || [];
       STATE.majorProjects = data.majorProjects || [];
       STATE.targets = data.targets || [];
+      STATE.goals = data.goals || [];
+      STATE.goalsTracker = data.goalsTracker || [];
+      STATE.policyRaw = data.policy || [];
       STATE.policy = (data.policy || []).map(normalizePolicyRow).filter(r => normalizeText(r.policyRegulation));
 
       const mediaRows = []
@@ -1012,9 +1099,12 @@
           news: STATE.news,
           majorProjects: STATE.majorProjects,
           targets: STATE.targets,
+          goals: STATE.goals,
+          goalsTracker: STATE.goalsTracker,
           media: STATE.media,
           funding: STATE.funding,
           policy: STATE.policy,
+          policyRaw: STATE.policyRaw,
           dataMode: STATE.dataMode || 'unknown'
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
@@ -1037,6 +1127,9 @@
         STATE.news = Array.isArray(payload.news) ? payload.news : [];
         STATE.majorProjects = Array.isArray(payload.majorProjects) ? payload.majorProjects : [];
         STATE.targets = Array.isArray(payload.targets) ? payload.targets : [];
+        STATE.goals = Array.isArray(payload.goals) ? payload.goals : [];
+        STATE.goalsTracker = Array.isArray(payload.goalsTracker) ? payload.goalsTracker : [];
+        STATE.policyRaw = Array.isArray(payload.policyRaw) ? payload.policyRaw : [];
         STATE.media = payload.media;
         STATE.funding = payload.funding;
         STATE.policy = payload.policy;
@@ -1801,25 +1894,88 @@
       const investmentPromotionsCount = investmentPromotionIds.length ? new Set(investmentPromotionIds).size : investmentPromotion.length;
       const totalFundingProgramsValue = sum(fundingPrograms, r => parseNumber(getField(r, ['Total Commitment Value'])) || 0);
 
-      const cards = [
-        { label: 'Action Plans', value: formatNumber(actionPlans.length), note: 'Strategy action plan records' },
-        { label: 'Targets', value: formatNumber(targets.length), note: 'Strategic target records' },
-        { label: 'Announcements', value: formatNumber(totalAnnouncements), note: 'Sector-relevant announcement records' },
-        { label: 'Policy / Regulation Items', value: formatNumber(policy.length), note: 'Policy and regulatory records' },
-        { label: 'Funding Programs', value: formatNumber(fundingProgramsCount), note: 'Unique Program ID records' },
-        { label: 'Infrastructures', value: formatNumber(infrastructuresCount), note: 'Unique infrastructure ID records' },
-        { label: 'Investment Promotions', value: formatNumber(investmentPromotionsCount), note: 'Unique promotion ID records' },
-        { label: 'Total Funding Programs Value', value: formatMillions(totalFundingProgramsValue), note: 'Aggregated from funding program commitments' },
-        { label: 'Jobs Created / Protected', value: `${formatNumber(jobsCreated)} / ${formatNumber(jobsProtected)}`, note: 'Sum across Funding Programs, Major Projects, Infrastructures, and Investment Promotion records' }
-      ];
-      const kpiAccentPalette = ['#4b7ea8', '#4f8d7a', '#b08a4c', '#7d78a8', '#5b8a63', '#a0617f', '#5d7f93'];
+      // Goals: total from LW Goals, achieved from those flagged complete/achieved.
+      const totalGoals = STATE.goals.length;
+      const achievedGoals = STATE.goals.filter(
+        g => /complete|achiev|met|done/i.test(getField(g, ['Progress Status', 'Status']))
+      ).length;
+      const goalsPct = totalGoals ? Math.round(achievedGoals / totalGoals * 100) : 0;
+      const metricsMonitored = STATE.goalsTracker.length;
 
-      document.getElementById('kpi-grid').innerHTML = cards.map((c, i) => `
-        <div class="kpi" style="--kpi-accent:${kpiAccentPalette[i % kpiAccentPalette.length]}">
-          <div class="kpi-label">${c.label}</div>
-          <div class="kpi-value">${c.value}</div>
-          <div class="kpi-note">${c.note}</div>
+      // ---- Level 1: strategic hero cards ----
+      const heroFlat = [
+        { label: 'Jobs Created &amp; Protected', value: formatNumber(jobsCreated + jobsProtected),
+          note: `${formatNumber(jobsCreated)} created &middot; ${formatNumber(jobsProtected)} protected` },
+        { label: 'Total Funding Programs Value', value: formatMillions(totalFundingProgramsValue),
+          note: `Committed across ${formatNumber(fundingProgramsCount)} funding programs` }
+      ];
+      document.getElementById('kpi-hero').innerHTML =
+        heroFlat.map(c => `
+          <div class="kpi-hero">
+            <div class="kpi-hero-label">${c.label}</div>
+            <div class="kpi-hero-value">${c.value}</div>
+            <div class="kpi-hero-note">${c.note}</div>
+          </div>`).join('') + `
+          <div class="kpi-hero kpi-hero-goals">
+            <div class="goal-ring" style="--pct:${goalsPct}" data-pct="${goalsPct}%"></div>
+            <div class="goal-meta">
+              <div class="kpi-hero-label">Goals Achieved</div>
+              <div class="kpi-hero-value">${formatNumber(achievedGoals)} <small>/ ${formatNumber(totalGoals)}</small></div>
+              <div class="kpi-hero-note">Goals marked complete to date</div>
+            </div>
+          </div>`;
+
+      // ---- Level 2: data-coverage mini cards ----
+      const miniCards = [
+        { label: 'Action Plans', value: actionPlans.length },
+        { label: 'Targets', value: targets.length },
+        { label: 'Goals', value: totalGoals },
+        { label: 'Metrics Monitored', value: metricsMonitored },
+        { label: 'Announcements', value: totalAnnouncements },
+        { label: 'Policy &amp; Regulation', value: policy.length },
+        { label: 'Funding Programs', value: fundingProgramsCount },
+        { label: 'Infrastructures', value: infrastructuresCount },
+        { label: 'Investment Promotions', value: investmentPromotionsCount }
+      ];
+      document.getElementById('kpi-mini').innerHTML = miniCards.map(c => `
+        <div class="kpi-mini">
+          <div class="kpi-mini-value">${formatNumber(c.value)}</div>
+          <div class="kpi-mini-label">${c.label}</div>
         </div>
+      `).join('');
+    }
+
+    // ---- Data inventory (collapsible) ----
+    function buildInventoryTable(rows, cols) {
+      if (!rows || !rows.length) return '<div class="inv-empty">No records captured yet.</div>';
+      const head = cols.map(c => `<th>${esc(c[1])}</th>`).join('');
+      const body = rows.map(r => `<tr>${
+        cols.map(c => `<td>${esc(getField(r, [c[0]]) || '—')}</td>`).join('')
+      }</tr>`).join('');
+      return `<table class="inv-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function renderInventory() {
+      const sections = [
+        { title: 'Action Plans', rows: STATE.actionPlans, cols: [['Action Plan ID', 'ID'], ['Title', 'Title'], ['Stream', 'Stream'], ['Status', 'Status'], ['Release Date', 'Released']] },
+        { title: 'Targets', rows: STATE.targets, cols: [['Target ID', 'ID'], ['Target', 'Target'], ['Stream', 'Stream'], ['Lead Ministry.lookupValue', 'Lead Ministry'], ['Timeframe', 'Timeframe']] },
+        { title: 'Goals', rows: STATE.goals, cols: [['Goal ID', 'ID'], ['Goal', 'Goal'], ['Primary Metric', 'Primary Metric'], ['Progress Status', 'Status'], ['Timeline', 'Timeline']] },
+        { title: 'Metrics Monitored', rows: STATE.goalsTracker, cols: [['Goal ID', 'Goal ID'], ['Metric Name', 'Metric'], ['Metric Value', 'Value'], ['Unit', 'Unit'], ['Status', 'Status']] },
+        { title: 'Announcements', rows: STATE.announcements, cols: [['Announcement ID', 'ID'], ['Date', 'Date'], ['Headline', 'Headline'], ['Source', 'Source'], ['Stream', 'Stream']] },
+        { title: 'Policy & Regulations', rows: STATE.policyRaw, cols: [['Policy ID', 'ID'], ['Title', 'Title'], ['Policy Type', 'Type'], ['Jurisdiction', 'Jurisdiction'], ['Date Announced', 'Announced']] },
+        { title: 'Funding Programs', rows: STATE.fundingPrograms, cols: [['Program ID', 'ID'], ['Program Name', 'Program'], ['Total Commitment Value', 'Value ($M)'], ['Commitment Status', 'Status'], ['Date Announced', 'Announced']] },
+        { title: 'Infrastructures', rows: STATE.infrastructures, cols: [['Infrastructure ID', 'ID'], ['Infrastructure Name', 'Name'], ['Total Estimated Value ($M)', 'Value ($M)'], ['Infrastructure Category', 'Category'], ['Date Announced', 'Announced']] },
+        { title: 'Investment Promotions', rows: STATE.investmentPromotion, cols: [['Promotion ID', 'ID'], ['Initiative Name', 'Initiative'], ['Estimated Value ($M)', 'Value ($M)'], ['Status', 'Status'], ['Date Announced', 'Announced']] }
+      ];
+
+      document.getElementById('inventory').innerHTML = sections.map(s => `
+        <details class="inv-section">
+          <summary>
+            <span class="inv-title">${esc(s.title)}</span>
+            <span class="inv-count">${formatNumber((s.rows || []).length)}</span>
+          </summary>
+          <div class="inv-body">${buildInventoryTable(s.rows, s.cols)}</div>
+        </details>
       `).join('');
     }
 
@@ -2247,6 +2403,7 @@
       try {
         await loadData();
         renderKPIs();
+        renderInventory();
         renderCharts();
         buildFilters();
         renderAnnouncementsTable();
@@ -2278,6 +2435,7 @@
       const hasCache = storageLoad();
       if (hasCache) {
         renderKPIs();
+        renderInventory();
         renderCharts();
         buildFilters();
         renderAnnouncementsTable();
