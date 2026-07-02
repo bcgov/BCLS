@@ -4,7 +4,7 @@ Run from the BCLS root folder:
 
     python scripts/serve.py
 
-Then open:  http://localhost:8080/dashboards/bc_dashboard_hub/html/dashboard.html
+Then open:  http://localhost:8080/dashboard/hub/html/dashboard.html
 """
 import http.server
 import io
@@ -97,7 +97,7 @@ def create_http_server(handler_cls, candidates):
 def open_browser(port):
     import time
     time.sleep(1.0)
-    webbrowser.open(f"http://localhost:{port}/dashboards/bc_dashboard_hub/html/dashboard.html")
+    webbrowser.open(f"http://localhost:{port}/dashboard/hub/html/dashboard.html")
 
 
 def ensure_excel_map_template(path_str):
@@ -658,8 +658,8 @@ except OSError as e:
 threading.Thread(target=open_browser, args=(PORT,), daemon=True).start()
 with httpd:
     print(f"[OK] Serving dashboard workspace from: {ROOT}")
-    print(f"[OK] Hub URL:      http://localhost:{PORT}/dashboards/bc_dashboard_hub/html/dashboard.html")
-    print(f"[OK] Macro URL:    http://localhost:{PORT}/dashboards/bc_macroeconomy/html/dashboard.html")
+    print(f"[OK] Hub URL:      http://localhost:{PORT}/dashboard/hub/html/dashboard.html")
+    print(f"[OK] Macro URL:    http://localhost:{PORT}/dashboard/snapshot/html/dashboard.html")
     print(f"   Press Ctrl+C to stop.\n")
     try:
         httpd.serve_forever()

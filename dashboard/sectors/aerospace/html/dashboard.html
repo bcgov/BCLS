@@ -1,0 +1,75 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+  /* BCLS_EMBED_ONLY_REDIRECT */
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../../hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'sector-detail');
+      target.searchParams.set('sector', 'aerospace');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
+  <title>Aerospace Dashboard</title>
+  <style>
+    :root {
+      --accent: #0EA5E9;
+      --bg: #f4f7fb;
+      --ink: #17324d;
+      --muted: #5c6f82;
+      --card: #ffffff;
+      --border: #d8e1ea;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Segoe UI", Arial, sans-serif; background: linear-gradient(180deg, #eef4fa 0%, var(--bg) 100%); color: var(--ink); }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 32px 24px 48px; }
+    .hero { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 28px; box-shadow: 0 18px 45px rgba(23,50,77,0.08); }
+    .eyebrow { display: inline-block; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 12px; }
+    h1 { margin: 0 0 10px; font-size: 34px; line-height: 1.15; }
+    p { margin: 0; color: var(--muted); line-height: 1.6; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 24px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 20px; }
+    .label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+    .value { font-size: 20px; font-weight: 700; color: var(--ink); }
+    .note { margin-top: 24px; padding: 18px 20px; border-left: 4px solid var(--accent); background: rgba(255,255,255,0.8); border-radius: 14px; }
+    code { background: #eef3f8; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Standalone Dashboard</div>
+      <h1>Aerospace</h1>
+      <p>Placeholder dashboard for Aerospace sector data.</p>
+      <div class="grid">
+        <div class="card">
+          <div class="label">Status</div>
+          <div class="value">Planned</div>
+        </div>
+        <div class="card">
+          <div class="label">Expected Excel File</div>
+          <div class="value">Aerospace.xlsx</div>
+        </div>
+        <div class="card">
+          <div class="label">Folder</div>
+          <div class="value">dashboard/sectors/aerospace</div>
+        </div>
+      </div>
+      <div class="note">
+        Replace this placeholder with a sector-specific dashboard when the workbook is ready.
+      </div>
+    </section>
+  </div>
+</body>
+</html>
+
+
+
+

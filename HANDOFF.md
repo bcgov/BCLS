@@ -29,9 +29,9 @@
     - deleted `launch_dashboard_hub.bat`
 
 **Files Touched**
-- `C:/Users/smehd/BCLS/dashboards/sectors/life_sciences/html/dashboard.html`
-- `C:/Users/smehd/BCLS/dashboards/sectors/life_sciences/docs/README.md`
-- `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
+- `C:/Users/smehd/BCLS/dashboard/sectors/life_sciences/html/dashboard.html`
+- `C:/Users/smehd/BCLS/dashboard/sectors/life_sciences/docs/README.md`
+- `C:/Users/smehd/BCLS/dashboard/hub/html/dashboard.html`
 - `C:/Users/smehd/BCLS/scripts/serve.py`
 - `C:/Users/smehd/BCLS/BC_Dashboard_App.bat` (new)
 - `C:/Users/smehd/BCLS/INSTALLATION_INSTRUCTION.md` (new)

@@ -15,8 +15,8 @@ Stabilize local runtime + user handoff for Windows:
 - Local server/proxy: `scripts/serve.py`
 
 **Architecture Summary**
-- Hub: `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
-- Life Sciences: `C:/Users/smehd/BCLS/dashboards/sectors/life_sciences/html/dashboard.html`
+- Hub: `C:/Users/smehd/BCLS/dashboard/hub/html/dashboard.html`
+- Life Sciences: `C:/Users/smehd/BCLS/dashboard/sectors/life_sciences/html/dashboard.html`
 - Life Sciences workbook (single source): `.../life_sciences/data/Life_Sciences_light.xlsx`
 - Windows distribution artifacts:
   - `C:/Users/smehd/BCLS/BC_Dashboard_App.bat`
@@ -37,8 +37,8 @@ Stabilize local runtime + user handoff for Windows:
 - Validate UI behavior in browser after each change.
 
 **Important Files**
-- `C:/Users/smehd/BCLS/dashboards/sectors/life_sciences/html/dashboard.html`
-- `C:/Users/smehd/BCLS/dashboards/bc_dashboard_hub/html/dashboard.html`
+- `C:/Users/smehd/BCLS/dashboard/sectors/life_sciences/html/dashboard.html`
+- `C:/Users/smehd/BCLS/dashboard/hub/html/dashboard.html`
 - `C:/Users/smehd/BCLS/scripts/serve.py`
 - `C:/Users/smehd/BCLS/BC_Dashboard_App.bat`
 - `C:/Users/smehd/BCLS/HANDOFF.md`

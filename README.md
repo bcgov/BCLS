@@ -1,14 +1,14 @@
 # BCLS Dashboard Workspace
 
 ## Runtime Model (Hub-First)
-- Single entrypoint: `dashboards/bc_dashboard_hub/html/dashboard.html`
+- Single entrypoint: `dashboard/hub/html/dashboard.html`
 - Child dashboards are now **embed-only** pages (loaded by the hub in tabs/iframes).
 - If a child dashboard is opened directly, it auto-redirects back to the hub tab.
 - Optional debug escape hatch for direct child testing: append `?standalone=1`.
 
 ## Canonical Source
 - Edit only canonical source folders:
-  - `dashboards/`
+  - `dashboard/`
   - `data/`
   - `shared/`
 - Treat `dist/BCLS_Dashboard_App/` and `spfx/bcls-dashboard-spfx/sharepoint/assets/BCLS-Dashboard/` as generated runtime targets.
@@ -26,4 +26,4 @@
 - Start local server:
   - `python scripts/serve.py`
 - Open:
-  - `http://localhost:8080/dashboards/bc_dashboard_hub/html/dashboard.html`
+  - `http://localhost:8080/dashboard/hub/html/dashboard.html`

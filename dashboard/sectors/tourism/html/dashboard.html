@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../../hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'sector-detail');
+      target.searchParams.set('sector', 'tourism');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
+  <title>B.C. Tourism Sector Dashboard</title>
+  <script src="../../../../shared/vendor/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --color-primary: #003366;
+      --color-primary-lt: #1a5276;
+      --color-primary-xlt: #ebf2fa;
+      --color-bg: #f2f5f9;
+      --color-card: #ffffff;
+      --color-border: #d6dce4;
+      --color-text: #1a202c;
+      --color-text-muted: #4a5568;
+      --color-text-subtle: #718096;
+      --rag-red: #c53030;
+      --rag-red-bg: #fff5f5;
+      --rag-amber: #c05621;
+      --rag-amber-bg: #fffbeb;
+      --rag-green: #276749;
+      --rag-green-bg: #f0fff4;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--color-text);
+      background: var(--color-bg);
+    }
+    .main { max-width: 1340px; margin: 0 auto; padding: 22px 28px 56px; }
+    .section { margin-bottom: 26px; }
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid var(--color-border);
+      padding-bottom: 9px;
+      margin-bottom: 16px;
+    }
+    .section-head h2 {
+      margin: 0;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--color-primary);
+    }
+    .section-head .sh-sub { font-size: 11px; color: var(--color-text-subtle); }
+    .card {
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .sector-def {
+      border-left: 4px solid var(--color-primary);
+      padding: 14px 18px;
+      margin-bottom: 14px;
+    }
+    .sector-def-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 5px;
+    }
+    .sector-def-body { font-size: 12px; color: var(--color-text-muted); line-height: 1.7; }
+    .def-table-wrap { overflow-x: auto; }
+    .def-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+      font-size: 12px;
+    }
+    .def-table th {
+      text-align: left;
+      padding: 10px 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--color-border);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--color-text-muted);
+    }
+    .def-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #eef2f7;
+      vertical-align: top;
+      color: var(--color-text-muted);
+      line-height: 1.45;
+    }
+    .def-table tr:last-child td { border-bottom: none; }
+    .row-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      margin: 12px 0 8px;
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 14px;
+    }
+    .kpi-card {
+      position: relative;
+      overflow: hidden;
+      padding: 16px 16px 12px;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-color, var(--color-primary));
+    }
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--color-text-muted);
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--color-primary);
+      letter-spacing: -.9px;
+    }
+    .kpi-unit { font-size: 11px; color: var(--color-text-subtle); margin-top: 4px; }
+    .kpi-source { margin-top: 8px; font-size: 10px; color: var(--color-text-subtle); }
+    .source-line { margin-top: 8px; font-size: 11px; color: var(--color-text-subtle); }
+    .source-line a { color: var(--color-primary); }
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+    .chart-card { padding: 16px; }
+    .chart-card.full { grid-column: 1 / -1; }
+    .chart-title { font-size: 13px; font-weight: 600; color: var(--color-text); margin-bottom: 2px; }
+    .chart-subtitle { font-size: 11px; color: var(--color-text-subtle); margin-bottom: 10px; }
+    .chart-wrap { position: relative; height: 250px; }
+    .chart-wrap.tall { height: 320px; }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .sum-card { text-align: center; padding: 14px 12px; }
+    .sum-value { font-size: 34px; font-weight: 700; line-height: 1; letter-spacing: -1.4px; color: var(--color-primary); }
+    .sum-value.green { color: var(--rag-green); }
+    .sum-value.amber { color: var(--rag-amber); }
+    .sum-value.red { color: var(--rag-red); }
+    .sum-label { margin-top: 4px; font-size: 10px; color: var(--color-text-subtle); text-transform: uppercase; letter-spacing: .5px; }
+    .goals-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+    }
+    .goal-card { padding: 14px; }
+    .goal-top { display: flex; gap: 8px; margin-bottom: 8px; }
+    .goal-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .goal-dot.GREEN { background: var(--rag-green); box-shadow: 0 0 0 3px var(--rag-green-bg); }
+    .goal-dot.AMBER { background: var(--rag-amber); box-shadow: 0 0 0 3px var(--rag-amber-bg); }
+    .goal-dot.RED { background: var(--rag-red); box-shadow: 0 0 0 3px var(--rag-red-bg); }
+    .goal-name { font-size: 12px; font-weight: 600; line-height: 1.35; flex: 1; }
+    .goal-meta { font-size: 10px; color: var(--color-text-subtle); margin-bottom: 8px; }
+    .goal-track { height: 7px; border-radius: 4px; background: var(--color-border); overflow: hidden; margin-bottom: 5px; }
+    .goal-fill { height: 100%; border-radius: 4px; }
+    .goal-fill.GREEN { background: var(--rag-green); }
+    .goal-fill.AMBER { background: var(--rag-amber); }
+    .goal-fill.RED { background: var(--rag-red); }
+    .goal-foot { display: flex; justify-content: space-between; font-size: 10px; color: var(--color-text-subtle); }
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .toolbar .lbl {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--color-text-subtle);
+    }
+    .toolbar select, .toolbar input {
+      font-size: 12px;
+      padding: 5px 9px;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      background: #fff;
+    }
+    .toolbar input { min-width: 220px; flex: 1; }
+    .toolbar .count { margin-left: auto; font-size: 11px; color: var(--color-text-subtle); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius); }
+    .init-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 960px;
+      font-size: 12px;
+      background: #fff;
+    }
+    .init-table th {
+      text-align: left;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--color-border);
+      background: #f8fafc;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--color-text-muted);
+      white-space: nowrap;
+    }
+    .init-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid #eef2f7;
+      vertical-align: top;
+      color: var(--color-text-muted);
+      line-height: 1.4;
+    }
+    .init-table tr:last-child td { border-bottom: none; }
+    .pill {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+      white-space: nowrap;
+    }
+    .pill.GREEN { background: var(--rag-green-bg); color: var(--rag-green); }
+    .pill.AMBER { background: var(--rag-amber-bg); color: var(--rag-amber); }
+    .pill.RED { background: var(--rag-red-bg); color: var(--rag-red); }
+    .error {
+      background: #fff5f5;
+      border: 1px solid #fecaca;
+      color: #b42318;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    @media (max-width: 900px) {
+      .main { padding: 16px 14px 32px; }
+      .charts-grid { grid-template-columns: 1fr; }
+      .chart-card.full { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <main class="main">
+    <section class="section">
+      <div class="section-head">
+        <h2>Sector Definition</h2>
+      </div>
+      <div class="card sector-def">
+        <div class="sector-def-title">B.C. Tourism Sector Dashboard</div>
+        <div class="sector-def-body">
+          The British Columbia tourism sector encompasses transportation services, accommodation providers, food and beverage services, recreation and entertainment activities, and travel-related services that support domestic and international visitors. Tourism is a major contributor to the B.C. economy, supporting businesses, employment, and regional development across the province.
+          <br><br>
+          Reference: <a href="https://ised-isde.canada.ca/site/canadian-tourism-sector/en/tourism-industries-canada-2020" target="_blank" rel="noopener">SME Profile: Tourism Industries in Canada, 2020</a>.
+        </div>
+      </div>
+      <div class="card def-table-wrap">
+        <table class="def-table">
+          <thead>
+            <tr>
+              <th>Subsector</th>
+              <th>NAICS Codes</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody id="subsector-def-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Sector Snapshot</h2>
+        <span class="sh-sub" id="snapshot-meta">Loading dataset...</span>
+      </div>
+      <div class="row-title">Real GDP by subsector (latest year)</div>
+      <div class="kpi-grid" id="gdp-cards"></div>
+      <div class="source-line">
+        Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3610071101" target="_blank" rel="noopener">StatCan 36-10-0711-01</a>
+      </div>
+      <div class="row-title">Business count by subsector (latest release)</div>
+      <div class="kpi-grid" id="biz-cards"></div>
+      <div class="source-line" id="biz-source"></div>
+
+      <div class="charts-grid">
+        <div class="card chart-card">
+          <div class="chart-title">Real GDP Trend by Subsector</div>
+          <div class="chart-subtitle">Chained (2017) dollars, millions CAD</div>
+          <div class="chart-wrap"><canvas id="chart-gdp-real"></canvas></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">Nominal GDP Trend by Subsector</div>
+          <div class="chart-subtitle">Current dollars, millions CAD (availability currently lags real series)</div>
+          <div class="chart-wrap"><canvas id="chart-gdp-nominal"></canvas></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">Business Count by Subsector</div>
+          <div class="chart-subtitle">Latest release snapshot</div>
+          <div class="chart-wrap"><canvas id="chart-biz-subsector"></canvas></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">Business Size Mix by Subsector</div>
+          <div class="chart-subtitle">Latest release, horizontal stacked composition</div>
+          <div class="chart-wrap"><canvas id="chart-biz-size"></canvas></div>
+        </div>
+        <div class="card chart-card full">
+          <div class="chart-title">Employment Trend in Tourism-related Industries</div>
+          <div class="chart-subtitle">Annual employment, thousands of persons</div>
+          <div class="chart-wrap tall"><canvas id="chart-labour"></canvas></div>
+          <div class="source-line">
+            Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=1410002301" target="_blank" rel="noopener">StatCan 14-10-0023-01</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Look West Strategy</h2>
+      </div>
+      <div class="goals-grid" id="lw-goals"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>COMMITMENTS</h2>
+      </div>
+      <div class="table-wrap">
+        <table class="init-table">
+          <thead>
+            <tr>
+              <th>Goal</th>
+              <th>Stream</th>
+              <th>Pillar</th>
+              <th>Theme</th>
+              <th>Timeframe</th>
+            </tr>
+          </thead>
+          <tbody id="commitments-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <h2>Relevant Announcements</h2>
+      </div>
+      <div class="table-wrap">
+        <table class="init-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Headline; subtitle</th>
+              <th>Source</th>
+              <th>Region</th>
+              <th>Funding</th>
+              <th>Policy/regulation</th>
+              <th>Investment Promotion</th>
+              <th>Infrastructure</th>
+            </tr>
+          </thead>
+          <tbody id="announcements-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div id="error-box"></div>
+  </main>
+
+  <script>
+    const DATA_PATHS = {
+      goals: '../../../../data/sector%20goals/sector_tourism.csv',
+      commitments: '../../../../data/Action%20Plans%20Commitments.csv',
+      announcements: '../../../../data/LW%20Announcements.csv'
+    };
+
+    const TOURISM_SUBSECTORS = [
+      {
+        subsector_id: 'TRANSPORT',
+        subsector_name: 'Transportation Services',
+        color: '#1565C0',
+        naics_codes: '4811|4812|4821|4831|4832|4851|4852|4853|4854|4855|4859|4871|4872|4879',
+        description: 'Scheduled air transportation; Non-scheduled air transportation; Rail transportation; Deep sea, coastal and Great Lakes water transportation; Inland water transportation; Urban transit systems; Interurban and rural bus transportation; Taxi and limousine service; School and employee bus transportation; Charter bus industry; Other transit and ground passenger transportation; Scenic and sightseeing transportation (land, water and other).'
+      },
+      {
+        subsector_id: 'TRAVEL',
+        subsector_name: 'Travel and Tourism Services',
+        color: '#0F766E',
+        naics_codes: '5615',
+        description: 'Travel arrangement and reservation services.'
+      },
+      {
+        subsector_id: 'RECREATION',
+        subsector_name: 'Recreation and Entertainment',
+        color: '#7C3AED',
+        naics_codes: '51213|7111|7112|7115|7121|7131|7132|7139',
+        description: 'Motion picture and video exhibition; Performing arts companies; Spectator sports; Independent artists, writers and performers; Heritage institutions; Amusement parks and arcades; Gambling industries; Other amusement and recreation industries.'
+      },
+      {
+        subsector_id: 'ACCOMMODATION',
+        subsector_name: 'Accommodation Services',
+        color: '#B45309',
+        naics_codes: '7211|721211|721212|721213|721198',
+        description: 'Traveller accommodation; RV parks and campgrounds; Hunting and fishing camps; Recreational and vacation camps; All other traveller accommodation.'
+      },
+      {
+        subsector_id: 'FOOD',
+        subsector_name: 'Food and Beverage Services',
+        color: '#BE123C',
+        naics_codes: '7224|7225',
+        description: 'Drinking places (alcoholic beverages); Full-service restaurants and limited-service eating places.'
+      }
+    ];
+
+    const TOURISM_GDP_API = {
+      endpoint: 'https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action',
+      pid: '3610071101',
+      latestN: 40,
+      checkedLevels: '3D1',
+      selectedMembers: [[10], [1, 2], [142, 143, 144, 147, 149, 160, 211, 228, 232, 233]]
+    };
+
+    const TOURISM_GDP_SERIES_MAP = {
+      TRANSPORT: {
+        naicsLabels: [
+          'Air transportation [481]',
+          'Rail transportation [482]',
+          'Water transportation [483]',
+          'Urban transit systems [4851]',
+          'Taxi and limousine service [4853]'
+        ],
+        note: 'Partial coverage of transport tourism codes in this table.'
+      },
+      TRAVEL: {
+        naicsLabels: ['Travel arrangement and reservation services [5615]'],
+        note: 'Direct match.'
+      },
+      RECREATION: {
+        naicsLabels: ['Motion picture and video industries [5121]', 'Amusement, gambling and recreation industries [713]'],
+        note: 'Uses available aggregates for recreation activities.'
+      },
+      ACCOMMODATION: {
+        naicsLabels: ['Accommodation services [721]'],
+        note: 'Direct aggregate match.'
+      },
+      FOOD: {
+        naicsLabels: ['Food services and drinking places [722]'],
+        note: 'Direct aggregate match.'
+      }
+    };
+
+    const TOURISM_BUSINESS_API = {
+      endpoint: 'https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action',
+      pid: '3310109501',
+      latestN: 24,
+      checkedLevels: '3D1',
+      selectedMembers: [[11], [1, 2, 3, 4, 5, 6, 7, 8, 9], [300, 301, 302, 303, 304, 307, 308, 309, 310, 311, 312, 316, 317, 318, 373, 1021, 405, 406, 409, 410, 411, 412, 413, 414, 1291, 1292, 1293, 1290, 418, 419]]
+    };
+
+    const TOURISM_BUSINESS_SUBSECTOR_LABELS = {
+      TRANSPORT: [
+        'Scheduled air transportation [4811]',
+        'Non-scheduled air transportation [4812]',
+        'Rail transportation [4821]',
+        'Deep sea, coastal and Great Lakes water transportation [4831]',
+        'Inland water transportation [4832]',
+        'Urban transit systems [4851]',
+        'Interurban and rural bus transportation [4852]',
+        'Taxi and limousine service [4853]',
+        'School and employee bus transportation [4854]',
+        'Charter bus industry [4855]',
+        'Other transit and ground passenger transportation [4859]',
+        'Scenic and sightseeing transportation, land [4871]',
+        'Scenic and sightseeing transportation, water [4872]',
+        'Scenic and sightseeing transportation, other [4879]'
+      ],
+      TRAVEL: ['Travel arrangement and reservation services [5615]'],
+      RECREATION: [
+        'Motion picture and video exhibition [512130]',
+        'Performing arts companies [7111]',
+        'Spectator sports [7112]',
+        'Independent artists, writers and performers [7115]',
+        'Heritage institutions [7121]',
+        'Amusement parks and arcades [7131]',
+        'Gambling industries [7132]',
+        'Other amusement and recreation industries [7139]'
+      ],
+      ACCOMMODATION: [
+        'Traveller accommodation [7211]',
+        'Recreational vehicle (RV) parks and campgrounds [721211]',
+        'Hunting and fishing camps [721212]',
+        'Recreational (except hunting and fishing) and vacation camps [721213]',
+        'All other traveller accommodation [721198]'
+      ],
+      FOOD: [
+        'Drinking places (alcoholic beverages) [7224]',
+        'Full-service restaurants and limited-service eating places [7225]'
+      ]
+    };
+
+    const TOURISM_BUSINESS_SIZE_ORDER = [
+      '1 to 4 employees',
+      '5 to 9 employees',
+      '10 to 19 employees',
+      '20 to 49 employees',
+      '50 to 99 employees',
+      '100 to 199 employees',
+      '200 to 499 employees',
+      '500 plus employees'
+    ];
+
+    const TOURISM_LABOUR_API = {
+      endpoint: 'https://www150.statcan.gc.ca/t1/tbl1/en/dtl!downloadDbLoadingData-nonTraduit.action',
+      pid: '1410002301',
+      latestN: 40,
+      checkedLevels: '5D1',
+      selectedMembers: [[11], [2], [17, 22, 25, 26], [1], [1]]
+    };
+
+    const TOURISM_LABOUR_SERIES = [
+      {
+        series_id: 'LAB_TRANSPORT',
+        series_name: 'Transportation and warehousing',
+        subsector_id: 'TRANSPORT',
+        naics_label: 'Transportation and warehousing [48-49]'
+      },
+      {
+        series_id: 'LAB_TRAVEL_PROXY',
+        series_name: 'Business, building and other support services',
+        subsector_id: 'TRAVEL',
+        naics_label: 'Business, building and other support services [55, 56]'
+      },
+      {
+        series_id: 'LAB_RECREATION',
+        series_name: 'Information, culture and recreation',
+        subsector_id: 'RECREATION',
+        naics_label: 'Information, culture and recreation [51, 71]'
+      },
+      {
+        series_id: 'LAB_ACCOM_FOOD',
+        series_name: 'Accommodation and food services',
+        subsector_id: 'ACCOMMODATION_FOOD',
+        naics_label: 'Accommodation and food services [72]'
+      }
+    ];
+
+    const STATE = {
+      subsectors: TOURISM_SUBSECTORS.slice(),
+      gdp: [],
+      business: [],
+      businessSize: [],
+      labour: [],
+      goals: [],
+      commitments: [],
+      announcements: [],
+      meta: null,
+      charts: []
+    };
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+      const src = String(text || '');
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        const next = src[i + 1];
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            cell += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+        if (ch === ',' && !inQuotes) {
+          row.push(cell);
+          cell = '';
+          continue;
+        }
+        if ((ch === '\n' || ch === '\r') && !inQuotes) {
+          if (ch === '\r' && next === '\n') i += 1;
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = '';
+          continue;
+        }
+        cell += ch;
+      }
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell);
+        rows.push(row);
+      }
+      if (!rows.length) return [];
+      const headers = rows[0].map((h) => String(h || '').trim());
+      return rows.slice(1)
+        .filter((r) => r.some((v) => String(v || '').trim() !== ''))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = String(r[idx] || '').trim(); });
+          return obj;
+        });
+    }
+
+    async function loadCsv(path) {
+      const url = new URL(path, window.location.href).toString();
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(url + ' HTTP ' + res.status);
+      return parseCsv(await res.text());
+    }
+
+    function useLocalStatsCanProxy() {
+      const h = String(location.hostname || '').toLowerCase();
+      const p = String(location.protocol || '').toLowerCase();
+      return h === 'localhost' || h === '127.0.0.1' || h === '' || p === 'file:';
+    }
+
+    function proxyApiCandidates(path) {
+      const p = String(path || '');
+      const out = [];
+      try {
+        if (/^https?:/i.test(location.origin || '')) out.push(new URL(p, location.origin).href);
+      } catch (_) {}
+      [8080, 8081, 8090].forEach((port) => {
+        out.push(`http://localhost:${port}${p}`);
+        out.push(`http://127.0.0.1:${port}${p}`);
+      });
+      return Array.from(new Set(out));
+    }
+
+    async function fetchProxyWithFallback(path, options) {
+      let lastErr = null;
+      const tried = [];
+      for (const url of proxyApiCandidates(path)) {
+        try {
+          tried.push(url);
+          return await fetch(url, options);
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      if (lastErr) {
+        throw new Error(
+          `Failed to reach local proxy (${path}). Tried: ${tried.join(', ')}. Last error: ${lastErr && lastErr.message ? lastErr.message : String(lastErr)}`
+        );
+      }
+      return fetch(path, options);
+    }
+
+    function buildStatsCanCsvUrl(apiCfg) {
+      const params = new URLSearchParams({
+        pid: apiCfg.pid,
+        latestN: String(apiCfg.latestN),
+        startDate: '',
+        endDate: '',
+        csvLocale: 'en',
+        selectedMembers: JSON.stringify(apiCfg.selectedMembers),
+        checkedLevels: apiCfg.checkedLevels
+      });
+      return `${apiCfg.endpoint}?${params.toString()}`;
+    }
+
+    async function fetchStatsCanCsvText(apiCfg, label) {
+      const reqBody = {
+        pid: apiCfg.pid,
+        latestN: apiCfg.latestN,
+        selectedMembers: apiCfg.selectedMembers,
+        checkedLevels: apiCfg.checkedLevels,
+        startDate: '',
+        endDate: ''
+      };
+
+      if (useLocalStatsCanProxy()) {
+        try {
+          const proxyRes = await fetchProxyWithFallback('/api/statcan-csv', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'text/csv,text/plain,*/*' },
+            body: JSON.stringify(reqBody)
+          });
+          if (proxyRes.ok) {
+            const txt = await proxyRes.text();
+            if (txt && txt.indexOf('REF_DATE') !== -1) return txt;
+          } else {
+            let detail = '';
+            try {
+              const j = await proxyRes.json();
+              detail = [j.error, j.details].filter(Boolean).join(' | ');
+            } catch (_) {}
+            throw new Error(`${label} proxy error (HTTP ${proxyRes.status})${detail ? ': ' + detail : ''}`);
+          }
+        } catch (err) {
+          console.warn(`${label} proxy unavailable, trying direct fetch.`, err);
+        }
+      }
+
+      const directRes = await fetch(buildStatsCanCsvUrl(apiCfg), {
+        method: 'POST',
+        headers: { 'Accept': 'text/csv,text/plain,*/*' }
+      });
+      if (!directRes.ok) throw new Error(`${label} HTTP ${directRes.status}`);
+      const directTxt = await directRes.text();
+      if (!directTxt || directTxt.indexOf('REF_DATE') === -1) {
+        throw new Error(`${label} returned an unexpected CSV payload.`);
+      }
+      return directTxt;
+    }
+
+    async function fetchTourismGdpCsvText() {
+      return fetchStatsCanCsvText(TOURISM_GDP_API, 'StatCan GDP API (36-10-0711-01)');
+    }
+
+    function buildTourismGdpSeries(rowsRaw) {
+      const subById = {};
+      TOURISM_SUBSECTORS.forEach((s) => { subById[s.subsector_id] = s; });
+
+      const rows = (rowsRaw || []).filter((r) => {
+        const geo = String(r.GEO || '').trim();
+        const price = String(r.Prices || '').trim();
+        const year = Number(r.REF_DATE);
+        const value = Number(String(r.VALUE || '').replace(/,/g, '').trim());
+        return geo === 'British Columbia' &&
+          (price === 'Current dollars' || price === 'Chained (2017) dollars') &&
+          Number.isFinite(year) &&
+          Number.isFinite(value);
+      });
+
+      const out = [];
+      Object.keys(TOURISM_GDP_SERIES_MAP).forEach((subsectorId) => {
+        const cfg = TOURISM_GDP_SERIES_MAP[subsectorId];
+        const labelSet = new Set(cfg.naicsLabels);
+        const grouped = new Map();
+        rows.forEach((r) => {
+          const label = String(r['North American Industry Classification System (NAICS)'] || '').trim();
+          if (!labelSet.has(label)) return;
+          const price = String(r.Prices || '').trim();
+          const year = Number(r.REF_DATE);
+          const value = Number(String(r.VALUE || '').replace(/,/g, '').trim());
+          const key = `${price}|${year}`;
+          if (!grouped.has(key)) grouped.set(key, { sum: 0, labels: new Set() });
+          const bucket = grouped.get(key);
+          bucket.sum += value;
+          bucket.labels.add(label);
+        });
+
+        grouped.forEach((bucket, key) => {
+          const parts = key.split('|');
+          const priceType = parts[0];
+          const year = Number(parts[1]);
+          const sub = subById[subsectorId];
+          out.push({
+            year,
+            price_type: priceType,
+            subsector_id: subsectorId,
+            subsector_name: sub ? sub.subsector_name : subsectorId,
+            value_millions: Math.round(bucket.sum * 10) / 10,
+            naics_series_used: Array.from(bucket.labels).sort().join(' | '),
+            source_table: 'StatCan 36-10-0711-01',
+            note: cfg.note
+          });
+        });
+      });
+
+      return out.sort((a, b) =>
+        Number(a.year) - Number(b.year) ||
+        String(a.price_type).localeCompare(String(b.price_type)) ||
+        String(a.subsector_id).localeCompare(String(b.subsector_id))
+      );
+    }
+
+    async function loadTourismGdpFromApi() {
+      const csvText = await fetchTourismGdpCsvText();
+      const rows = parseCsv(csvText);
+      return buildTourismGdpSeries(rows);
+    }
+
+    function buildTourismBusinessSnapshots(rowsRaw) {
+      const subById = {};
+      TOURISM_SUBSECTORS.forEach((s) => { subById[s.subsector_id] = s; });
+
+      const allIndustryLabels = new Set();
+      Object.values(TOURISM_BUSINESS_SUBSECTOR_LABELS).forEach((labels) => {
+        labels.forEach((label) => allIndustryLabels.add(label));
+      });
+
+      const rows = (rowsRaw || [])
+        .map((r) => ({
+          ref_date: String(r.REF_DATE || '').trim(),
+          geo: String(r.GEO || '').trim(),
+          employment_size: String(r['Employment size'] || '').trim(),
+          naics_label: String(r['North American Industry Classification System (NAICS)'] || '').trim(),
+          value: Number(String(r.VALUE || '').replace(/,/g, '').trim())
+        }))
+        .filter((r) =>
+          r.geo === 'British Columbia' &&
+          r.ref_date &&
+          r.employment_size &&
+          allIndustryLabels.has(r.naics_label) &&
+          Number.isFinite(r.value)
+        );
+
+      const refDates = Array.from(new Set(rows.map((r) => r.ref_date))).sort((a, b) => String(a).localeCompare(String(b)));
+      const latestRefDate = refDates.length ? refDates[refDates.length - 1] : null;
+
+      const business = [];
+      const businessSize = [];
+      Object.keys(TOURISM_BUSINESS_SUBSECTOR_LABELS).forEach((subsectorId) => {
+        const labels = new Set(TOURISM_BUSINESS_SUBSECTOR_LABELS[subsectorId]);
+        const sub = subById[subsectorId];
+
+        const sumFor = (sizeLabel) => rows.reduce((acc, row) => {
+          if (row.ref_date !== latestRefDate) return acc;
+          if (row.employment_size !== sizeLabel) return acc;
+          if (!labels.has(row.naics_label)) return acc;
+          return acc + row.value;
+        }, 0);
+
+        business.push({
+          ref_date: latestRefDate || '',
+          subsector_id: subsectorId,
+          subsector_name: sub ? sub.subsector_name : subsectorId,
+          business_count: Math.round(sumFor('Total, with employees')),
+          source_table: 'StatCan 33-10-1095-01'
+        });
+
+        TOURISM_BUSINESS_SIZE_ORDER.forEach((sizeLabel) => {
+          businessSize.push({
+            ref_date: latestRefDate || '',
+            subsector_id: subsectorId,
+            subsector_name: sub ? sub.subsector_name : subsectorId,
+            employment_size: sizeLabel,
+            business_count: Math.round(sumFor(sizeLabel)),
+            source_table: 'StatCan 33-10-1095-01'
+          });
+        });
+      });
+
+      return { business, businessSize, latestRefDate };
+    }
+
+    async function loadTourismBusinessFromApi() {
+      const csvText = await fetchStatsCanCsvText(TOURISM_BUSINESS_API, 'StatCan Business API (33-10-1095-01)');
+      const rows = parseCsv(csvText);
+      return buildTourismBusinessSnapshots(rows);
+    }
+
+    function buildTourismLabourSeries(rowsRaw) {
+      const byNaics = {};
+      TOURISM_LABOUR_SERIES.forEach((s) => { byNaics[s.naics_label] = s; });
+      return (rowsRaw || [])
+        .map((r) => {
+          const naicsLabel = String(r['North American Industry Classification System (NAICS)'] || '').trim();
+          const cfg = byNaics[naicsLabel];
+          if (!cfg) return null;
+          return {
+            year: Number(r.REF_DATE),
+            series_id: cfg.series_id,
+            series_name: cfg.series_name,
+            subsector_id: cfg.subsector_id,
+            value_thousands: Number(String(r.VALUE || '').replace(/,/g, '').trim()),
+            unit: 'thousands of persons',
+            source_table: 'StatCan 14-10-0023-01'
+          };
+        })
+        .filter((r) => r && Number.isFinite(r.year) && Number.isFinite(r.value_thousands))
+        .sort((a, b) => a.year - b.year || String(a.series_id).localeCompare(String(b.series_id)));
+    }
+
+    async function loadTourismLabourFromApi() {
+      const csvText = await fetchStatsCanCsvText(TOURISM_LABOUR_API, 'StatCan Labour API (14-10-0023-01)');
+      const rows = parseCsv(csvText);
+      return buildTourismLabourSeries(rows);
+    }
+
+    function toNum(v) {
+      const n = Number(String(v || '').replace(/,/g, ''));
+      return Number.isFinite(n) ? n : null;
+    }
+    function fmtInt(v) {
+      const n = toNum(v);
+      return n === null ? '--' : Math.round(n).toLocaleString('en-CA');
+    }
+    function fmtBilFromMillions(v) {
+      const n = toNum(v);
+      return n === null ? '--' : (n / 1000).toFixed(1);
+    }
+    function subsectorMap() {
+      const map = {};
+      STATE.subsectors.forEach((s) => { map[s.subsector_id] = s; });
+      return map;
+    }
+    function destroyCharts() {
+      STATE.charts.forEach((c) => { try { c.destroy(); } catch (_) {} });
+      STATE.charts = [];
+    }
+
+    function renderSectorDefinition() {
+      const body = document.getElementById('subsector-def-body');
+      body.innerHTML = STATE.subsectors.map((s) => `
+        <tr>
+          <td><strong>${s.subsector_name}</strong></td>
+          <td><code>${s.naics_codes}</code></td>
+          <td>${s.description}</td>
+        </tr>`).join('');
+    }
+
+    function renderKpis() {
+      const gdpCards = document.getElementById('gdp-cards');
+      const bizCards = document.getElementById('biz-cards');
+      const metaEl = document.getElementById('snapshot-meta');
+      const bizSource = document.getElementById('biz-source');
+      const realRows = STATE.gdp.filter((r) => r.price_type === 'Chained (2017) dollars');
+      const nominalRows = STATE.gdp.filter((r) => r.price_type === 'Current dollars');
+      const latestReal = realRows.length ? Math.max(...realRows.map((r) => Number(r.year))) : null;
+      const latestNominal = nominalRows.length ? Math.max(...nominalRows.map((r) => Number(r.year))) : null;
+      gdpCards.innerHTML = STATE.subsectors.map((s) => {
+        const row = latestReal === null ? null : realRows.find((r) => r.subsector_id === s.subsector_id && Number(r.year) === latestReal);
+        const v = row ? fmtBilFromMillions(row.value_millions) : '--';
+        return `<div class="card kpi-card" style="--card-color:${s.color};">
+          <div class="kpi-label">${s.subsector_id} - ${s.subsector_name}</div>
+          <div class="kpi-value">${v}</div>
+          <div class="kpi-unit">Billion CAD (real)${latestReal !== null ? `, ${latestReal}` : ''}</div>
+          <div class="kpi-source">Source: StatCan 36-10-0711-01</div>
+        </div>`;
+      }).join('');
+      bizCards.innerHTML = STATE.subsectors.map((s) => {
+        const row = STATE.business.find((r) => r.subsector_id === s.subsector_id);
+        const v = row ? fmtInt(row.business_count) : '--';
+        return `<div class="card kpi-card" style="--card-color:${s.color};">
+          <div class="kpi-label">${s.subsector_id} - ${s.subsector_name}</div>
+          <div class="kpi-value">${v}</div>
+          <div class="kpi-unit">Businesses with employees</div>
+          <div class="kpi-source">Source: StatCan 33-10-1095-01</div>
+        </div>`;
+      }).join('');
+      const bizRefDate = (STATE.meta && STATE.meta.business_counts_ref_date) ||
+        (STATE.business[0] && STATE.business[0].ref_date) ||
+        '--';
+      if (metaEl) {
+        metaEl.textContent = `Real GDP latest: ${latestReal !== null ? latestReal : '--'} | Nominal GDP latest: ${latestNominal !== null ? latestNominal : '--'} | Business count snapshot: ${bizRefDate}`;
+      }
+      if (bizSource) {
+        bizSource.innerHTML = `Source: <a href="https://www150.statcan.gc.ca/t1/tbl1/en/tv.action?pid=3310109501" target="_blank" rel="noopener">StatCan 33-10-1095-01</a> | Snapshot date: ${bizRefDate}`;
+      }
+    }
+
+    function renderCharts() {
+      destroyCharts();
+      const subMap = subsectorMap();
+      const order = STATE.subsectors.map((s) => s.subsector_id);
+
+      function buildSeries(priceType) {
+        const rows = STATE.gdp.filter((r) => r.price_type === priceType);
+        const years = Array.from(new Set(rows.map((r) => Number(r.year)))).sort((a, b) => a - b);
+        const datasets = order.map((sid) => {
+          const s = subMap[sid];
+          return {
+            label: sid,
+            data: years.map((y) => {
+              const row = rows.find((r) => r.subsector_id === sid && Number(r.year) === y);
+              return row ? toNum(row.value_millions) : null;
+            }),
+            borderColor: s.color,
+            backgroundColor: s.color,
+            tension: 0.25,
+            fill: false,
+            pointRadius: 2
+          };
+        });
+        return { years, datasets };
+      }
+
+      const real = buildSeries('Chained (2017) dollars');
+      const nominal = buildSeries('Current dollars');
+      const gdpTooltip = {
+        callbacks: {
+          title: (items) => 'Year: ' + items[0].label,
+          label: (ctx) => {
+            const sid = ctx.dataset.label;
+            const s = subMap[sid];
+            return `${sid} - ${s.subsector_name}: ${Number(ctx.parsed.y || 0).toLocaleString('en-CA')} million CAD`;
+          }
+        }
+      };
+
+      STATE.charts.push(new Chart(document.getElementById('chart-gdp-real'), {
+        type: 'line',
+        data: { labels: real.years, datasets: real.datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' }, tooltip: gdpTooltip },
+          scales: { y: { title: { display: true, text: 'Millions CAD (real)' } }, x: { title: { display: true, text: 'Year' } } }
+        }
+      }));
+
+      STATE.charts.push(new Chart(document.getElementById('chart-gdp-nominal'), {
+        type: 'line',
+        data: { labels: nominal.years, datasets: nominal.datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' }, tooltip: gdpTooltip },
+          scales: { y: { title: { display: true, text: 'Millions CAD (current)' } }, x: { title: { display: true, text: 'Year' } } }
+        }
+      }));
+
+      const bizBars = STATE.business.slice().sort((a, b) => order.indexOf(a.subsector_id) - order.indexOf(b.subsector_id));
+      STATE.charts.push(new Chart(document.getElementById('chart-biz-subsector'), {
+        type: 'bar',
+        data: {
+          labels: bizBars.map((r) => r.subsector_id),
+          datasets: [{ label: 'Businesses with employees', data: bizBars.map((r) => toNum(r.business_count)), backgroundColor: bizBars.map((r) => subMap[r.subsector_id].color) }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const sid = ctx.label;
+                  return `${sid} - ${subMap[sid].subsector_name}: ${Number(ctx.parsed.y || 0).toLocaleString('en-CA')}`;
+                }
+              }
+            }
+          },
+          scales: { y: { title: { display: true, text: 'Business count' } }, x: { title: { display: true, text: 'Subsector code' } } }
+        }
+      }));
+
+      const sizeOrder = TOURISM_BUSINESS_SIZE_ORDER.slice();
+      const sizeColors = ['#94A3B8','#60A5FA','#34D399','#FBBF24','#F97316','#A78BFA','#F472B6','#EF4444'];
+      const groupedSize = {};
+      STATE.businessSize.forEach((r) => {
+        if (!groupedSize[r.subsector_id]) groupedSize[r.subsector_id] = {};
+        groupedSize[r.subsector_id][r.employment_size] = toNum(r.business_count) || 0;
+      });
+      STATE.charts.push(new Chart(document.getElementById('chart-biz-size'), {
+        type: 'bar',
+        data: {
+          labels: order,
+          datasets: sizeOrder.map((sz, idx) => ({
+            label: sz,
+            data: order.map((sid) => (groupedSize[sid] && groupedSize[sid][sz]) ? groupedSize[sid][sz] : 0),
+            backgroundColor: sizeColors[idx]
+          }))
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const sid = items[0].label;
+                  return `${sid} - ${subMap[sid].subsector_name}`;
+                },
+                label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.x || 0).toLocaleString('en-CA')}`
+              }
+            }
+          },
+          scales: { x: { stacked: true, title: { display: true, text: 'Business count' } }, y: { stacked: true, title: { display: true, text: 'Subsector code' } } }
+        }
+      }));
+
+      const labourRows = STATE.labour.filter((r) => Number(r.year) >= 2014);
+      const labourYears = Array.from(new Set(labourRows.map((r) => Number(r.year)))).sort((a, b) => a - b);
+      const labourSeries = [
+        { id: 'LAB_TRANSPORT', color: subMap.TRANSPORT.color },
+        { id: 'LAB_TRAVEL_PROXY', color: subMap.TRAVEL.color },
+        { id: 'LAB_RECREATION', color: subMap.RECREATION.color },
+        { id: 'LAB_ACCOM_FOOD', color: '#8B5CF6' }
+      ];
+      STATE.charts.push(new Chart(document.getElementById('chart-labour'), {
+        type: 'line',
+        data: {
+          labels: labourYears,
+          datasets: labourSeries.map((s) => {
+            const first = labourRows.find((r) => r.series_id === s.id);
+            return {
+              label: first ? first.series_name : s.id,
+              borderColor: s.color,
+              backgroundColor: s.color,
+              tension: 0.25,
+              pointRadius: 2,
+              data: labourYears.map((y) => {
+                const row = labourRows.find((r) => r.series_id === s.id && Number(r.year) === y);
+                return row ? toNum(row.value_thousands) : null;
+              })
+            };
+          })
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${Number(ctx.parsed.y || 0).toLocaleString('en-CA')} thousand` } }
+          },
+          scales: { y: { title: { display: true, text: 'Thousands of persons' } }, x: { title: { display: true, text: 'Year' } } }
+        }
+      }));
+    }
+
+    function renderLookWest() {
+      const goalsWrap = document.getElementById('lw-goals');
+      const goals = STATE.goals;
+      goalsWrap.innerHTML = goals.map((g) => `
+        <div class="card goal-card">
+          <div class="goal-top">
+            <span class="goal-dot ${g.rag_status}"></span>
+            <div class="goal-name">${g.goal_name}</div>
+          </div>
+          <div class="goal-meta">${g.pillar} | ${g.related_subsectors}</div>
+          <div class="goal-track"><div class="goal-fill ${g.rag_status}" style="width:${Math.max(0, Math.min(100, toNum(g.progress_pct) || 0))}%"></div></div>
+          <div class="goal-foot"><span>${g.current_year}: ${g.current_value} ${g.unit}</span><span>${g.progress_pct}%</span></div>
+        </div>`).join('');
+    }
+
+    function renderActionPlanCommitments() {
+      const body = document.getElementById('commitments-body');
+      const rows = STATE.commitments
+        .filter((r) => containsTourism(pickField(r, ['Sector'])));
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="5">No commitments data available.</td></tr>';
+        return;
+      }
+      body.innerHTML = rows.map((r) => `
+        <tr>
+          <td><strong>${pickField(r, ['Goal', 'goal']) || ''}</strong></td>
+          <td>${pickField(r, ['Stream', 'stream']) || ''}</td>
+          <td>${pickField(r, ['Pillar', 'pillar']) || ''}</td>
+          <td>${pickField(r, ['Theme', 'theme']) || ''}</td>
+          <td>${pickField(r, ['Timeframe', 'timeframe']) || ''}</td>
+        </tr>`).join('');
+    }
+
+    function pickField(row, keys) {
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(row, key)) return String(row[key] || '').trim();
+      }
+      return '';
+    }
+
+    function yesTick(value) {
+      const v = String(value || '').trim().toLowerCase();
+      if (['yes', 'y', 'true', '1'].includes(v)) {
+        return '<span style="color:var(--rag-green);font-weight:700;">&#10003;</span>';
+      }
+      return '';
+    }
+
+    function containsTourism(value) {
+      return /\btourism\b/i.test(String(value || ''));
+    }
+
+    function renderRelevantAnnouncements() {
+      const body = document.getElementById('announcements-body');
+      const rows = STATE.announcements
+        .filter((r) => containsTourism(pickField(r, ['Primary Sector'])) || containsTourism(pickField(r, ['Secondary Sectors'])))
+        .sort((a, b) => {
+          const da = Date.parse(pickField(a, ['Date']));
+          const db = Date.parse(pickField(b, ['Date']));
+          if (Number.isFinite(da) && Number.isFinite(db)) return db - da;
+          if (Number.isFinite(da)) return -1;
+          if (Number.isFinite(db)) return 1;
+          return pickField(b, ['Date']).localeCompare(pickField(a, ['Date']));
+        });
+
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="8">No tourism-relevant announcements found in shared dataset.</td></tr>';
+        return;
+      }
+
+      body.innerHTML = rows.map((r) => {
+        const date = pickField(r, ['Date']);
+        const headline = pickField(r, ['Headline']);
+        const subtitle = pickField(r, ['Subtitle']);
+        const source = pickField(r, ['Source']);
+        const url = pickField(r, ['URL']);
+        const region = pickField(r, ['Region']);
+        const funding = yesTick(pickField(r, ['Funding/Investment?']));
+        const policy = yesTick(pickField(r, ['Policy/Regulation?']));
+        const investmentPromotion = yesTick(pickField(r, ['Investment Promotion?']));
+        const infrastructure = yesTick(pickField(r, ['Infrastructure?']));
+        const sourceCell = /^https?:\/\//i.test(url)
+          ? `<a href="${url}" target="_blank" rel="noopener">${source || 'Link'}</a>`
+          : (source || '--');
+        const headlineCell = subtitle
+          ? `<strong>${headline || '--'}</strong><br><span style="color:var(--color-text-subtle);font-size:11px;">${subtitle}</span>`
+          : `<strong>${headline || '--'}</strong>`;
+
+        return `<tr>
+          <td>${date || '--'}</td>
+          <td>${headlineCell}</td>
+          <td>${sourceCell}</td>
+          <td>${region || '--'}</td>
+          <td>${funding}</td>
+          <td>${policy}</td>
+          <td>${investmentPromotion}</td>
+          <td>${infrastructure}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function showError(message) {
+      document.getElementById('error-box').innerHTML = `<div class="error">${message}</div>`;
+    }
+
+    async function init() {
+      const warnings = [];
+      const [goalsRes, commitmentsRes, announcementsRes] = await Promise.allSettled([
+        loadCsv(DATA_PATHS.goals),
+        loadCsv(DATA_PATHS.commitments),
+        loadCsv(DATA_PATHS.announcements)
+      ]);
+
+      if (goalsRes.status === 'fulfilled') {
+        STATE.goals = goalsRes.value;
+      } else {
+        console.error(goalsRes.reason);
+        STATE.goals = [];
+        warnings.push('Look West goals dataset could not be loaded.');
+      }
+
+      if (commitmentsRes.status === 'fulfilled') {
+        STATE.commitments = commitmentsRes.value;
+      } else {
+        console.error(commitmentsRes.reason);
+        STATE.commitments = [];
+        warnings.push('Tourism commitments dataset could not be loaded.');
+      }
+
+      if (announcementsRes.status === 'fulfilled') {
+        STATE.announcements = announcementsRes.value;
+      } else {
+        console.error(announcementsRes.reason);
+        STATE.announcements = [];
+        warnings.push('Shared announcements dataset could not be loaded.');
+      }
+
+      const [gdpRes, businessRes, labourRes] = await Promise.allSettled([
+        loadTourismGdpFromApi(),
+        loadTourismBusinessFromApi(),
+        loadTourismLabourFromApi()
+      ]);
+
+      if (gdpRes.status === 'fulfilled') {
+        STATE.gdp = gdpRes.value;
+      } else {
+        console.error(gdpRes.reason);
+        STATE.gdp = [];
+        warnings.push('GDP API currently unavailable.');
+      }
+
+      if (businessRes.status === 'fulfilled') {
+        STATE.business = businessRes.value.business;
+        STATE.businessSize = businessRes.value.businessSize;
+        STATE.meta = { business_counts_ref_date: businessRes.value.latestRefDate || '' };
+      } else {
+        console.error(businessRes.reason);
+        STATE.business = [];
+        STATE.businessSize = [];
+        STATE.meta = { business_counts_ref_date: '' };
+        warnings.push('Business count API currently unavailable.');
+      }
+
+      if (labourRes.status === 'fulfilled') {
+        STATE.labour = labourRes.value;
+      } else {
+        console.error(labourRes.reason);
+        STATE.labour = [];
+        warnings.push('Labour API currently unavailable.');
+      }
+
+      renderSectorDefinition();
+      renderKpis();
+      renderCharts();
+      renderLookWest();
+      renderActionPlanCommitments();
+      renderRelevantAnnouncements();
+
+      if (warnings.length) {
+        showError('Some live data could not be loaded. ' + warnings.join(' '));
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
+
+

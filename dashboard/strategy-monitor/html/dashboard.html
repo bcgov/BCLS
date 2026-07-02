@@ -1,0 +1,2458 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+  /* BCLS_EMBED_ONLY_REDIRECT */
+  (function () {
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      if (params.get('standalone') === '1') return;
+      if (window.self !== window.top) return;
+      var target = new URL('../../hub/html/dashboard.html', window.location.href);
+      target.searchParams.set('section', 'strategy');
+      window.location.replace(target.toString());
+    } catch (_) {}
+  })();
+  </script>
+  <title>Look West Strategy Dashboard</title>
+  <script src="../../../shared/vendor/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f6fa;
+      --card: #ffffff;
+      --text: #1c2a39;
+      --muted: #5f7388;
+      --border: #d7e0ea;
+      --primary: #0b4f8a;
+      --primary-2: #1565a8;
+      --good: #1f7a4d;
+      --warn: #b26d00;
+      --bad: #b42318;
+      --shadow: 0 12px 28px rgba(17, 34, 51, 0.08);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, #eef3f9 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+
+    .header {
+      background: linear-gradient(110deg, var(--primary) 0%, var(--primary-2) 100%);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    .header-title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      color: #fff;
+    }
+    .header-sub { font-size: 12px; opacity: 0.9; margin-top: 3px; }
+    .header-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+    .header-meta { font-size: 11px; opacity: 0.95; }
+    .cache-line {
+      margin: 0 24px;
+      padding: 8px 0 12px;
+      font-size: 12px;
+      color: #4a5f7f;
+      border-bottom: 1px solid #dbe6f4;
+    }
+
+    .btn {
+      border: 1px solid rgba(255,255,255,0.45);
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { background: rgba(255,255,255,0.24); }
+
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+    .section-sub { font-size: 11px; color: var(--muted); }
+
+    .kpi-grid {
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 12px;
+    }
+    .kpi {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      background: #fff;
+      position: relative;
+      overflow: visible;
+      z-index: 0;
+    }
+    .kpi::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 3px;
+      border-radius: 10px 10px 0 0;
+      z-index: 1;
+      opacity: 0.95;
+      background: var(--kpi-accent, #4b7ea8);
+    }
+    .kpi-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 6px; }
+    .kpi-value { font-size: 28px; font-weight: 700; color: var(--primary); line-height: 1.05; }
+    .kpi-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* Two-level KPI cards */
+    .kpi-two-level { padding: 14px; display: grid; gap: 12px; }
+    .kpi-tier-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .kpi-tier-label.second { margin-top: 4px; }
+
+    /* Level 1 — strategic hero cards */
+    .kpi-hero-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .kpi-hero {
+      position: relative; border: 1px solid var(--border); border-radius: 12px;
+      background: linear-gradient(135deg, #ffffff 0%, #eef4fb 100%);
+      box-shadow: var(--shadow); padding: 18px 18px 16px;
+      display: flex; flex-direction: column; gap: 8px; overflow: hidden; min-height: 120px;
+    }
+    .kpi-hero::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--primary-2));
+    }
+    .kpi-hero-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--primary); }
+    .kpi-hero-value { font-size: 34px; font-weight: 800; color: var(--text); line-height: 1; }
+    .kpi-hero-value small { font-size: 17px; font-weight: 700; color: var(--muted); }
+    .kpi-hero-note { font-size: 11.5px; color: var(--muted); line-height: 1.4; margin-top: auto; }
+    .kpi-hero-goals { flex-direction: row; align-items: center; gap: 16px; }
+    .goal-ring {
+      --pct: 0; width: 80px; height: 80px; border-radius: 50%; flex-shrink: 0;
+      background: conic-gradient(var(--good) calc(var(--pct) * 1%), #e3ebf3 0);
+      display: grid; place-items: center;
+    }
+    .goal-ring::after {
+      content: attr(data-pct); width: 58px; height: 58px; border-radius: 50%;
+      background: #fff; display: grid; place-items: center;
+      font-size: 14px; font-weight: 800; color: var(--primary);
+    }
+    .goal-meta { display: flex; flex-direction: column; gap: 5px; }
+    .goal-meta .kpi-hero-note { margin-top: 0; }
+
+    /* Level 2 — data-coverage mini cards */
+    .kpi-mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; }
+    .kpi-mini { border: 1px solid var(--border); border-radius: 9px; background: #fbfdff; box-shadow: var(--shadow); padding: 11px 12px; }
+    .kpi-mini-value { font-size: 20px; font-weight: 800; color: var(--text); line-height: 1; }
+    .kpi-mini-label { margin-top: 5px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); line-height: 1.3; }
+    @media (max-width: 900px) { .kpi-hero-grid { grid-template-columns: 1fr; } }
+
+    /* Data inventory (collapsible) */
+    .inventory { padding: 14px; display: grid; gap: 10px; }
+    .inv-section { border: 1px solid var(--border); border-radius: 10px; background: #fff; overflow: hidden; }
+    .inv-section > summary {
+      list-style: none; cursor: pointer; padding: 12px 14px; display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 700; color: var(--text);
+    }
+    .inv-section > summary::-webkit-details-marker { display: none; }
+    .inv-section > summary::before { content: '\25B8'; color: var(--muted); font-size: 11px; transition: transform .15s ease; }
+    .inv-section[open] > summary::before { transform: rotate(90deg); }
+    .inv-title { flex: 1; }
+    .inv-count { font-size: 11px; font-weight: 800; color: var(--primary); background: #e9f2fb; border: 1px solid #b8d4f1; border-radius: 999px; padding: 2px 10px; }
+    .inv-body { padding: 0 14px 14px; overflow-x: auto; }
+    .inv-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    .inv-table th { text-align: left; font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 800; padding: 6px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .inv-table td { padding: 6px 8px; border-bottom: 1px solid #edf1f5; color: var(--text); vertical-align: top; }
+    .inv-table tr:last-child td { border-bottom: none; }
+    .inv-empty { font-size: 12px; color: var(--muted); padding: 4px 0 8px; }
+
+    .toolbar {
+      padding: 12px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      align-items: center;
+    }
+    .toolbar label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .toolbar select,
+    .toolbar input {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: var(--text);
+      background: #fff;
+    }
+    .toolbar input { min-width: 220px; }
+    .count { margin-left: auto; font-size: 11px; color: var(--muted); font-weight: 600; }
+
+    .table-wrap { overflow: auto; }
+    .media-table-wrap {
+      max-height: 520px;
+      overflow: auto;
+    }
+    .media-data-table {
+      table-layout: fixed;
+      width: 100%;
+    }
+    .media-data-table th,
+    .media-data-table td {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .media-data-table td:nth-child(5) {
+      max-width: 520px;
+    }
+    .media-data-table td:nth-child(6),
+    .media-data-table td:nth-child(7) {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      word-break: break-word;
+      max-width: 360px;
+    }
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      padding: 10px 12px 12px;
+      border-top: 1px solid var(--border);
+      background: #fbfdff;
+    }
+    .pager-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      min-width: 30px;
+    }
+    .pager-btn.active {
+      background: #e9f2fb;
+      border-color: #b8d4f1;
+      color: var(--primary);
+    }
+    .pager-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .pager-info {
+      margin-right: auto;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 12px;
+    }
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f7f9fc;
+      text-align: left;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      padding: 10px;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    tbody td {
+      border-bottom: 1px solid #edf1f5;
+      padding: 9px 10px;
+      vertical-align: top;
+      line-height: 1.45;
+    }
+    tbody tr:hover { background: #f8fbff; }
+
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+    .pill.status-new { background: #e8f1fd; color: #144d8a; border-color: #b8d3f3; }
+    .pill.status-scoping { background: #fff4df; color: #8a5600; border-color: #f1d39a; }
+    .pill.status-in-progress { background: #e8f7ef; color: #16623f; border-color: #b8e2cd; }
+    .pill.status-stalled { background: #feecef; color: #8e1b35; border-color: #f2bfd0; }
+    .pill.status-completed { background: #ecfdf3; color: #11663b; border-color: #b4ebc9; }
+
+    .small { font-size: 11px; color: var(--muted); }
+    .nowrap { white-space: nowrap; }
+    .text-limit {
+      max-width: 620px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .error {
+      border: 1px solid #f1c2c7;
+      background: #fff2f4;
+      color: #8b1d2c;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .header { flex-direction: column; align-items: flex-start; }
+      .header-right { width: 100%; justify-content: flex-start; }
+      .toolbar input { min-width: 160px; }
+      .count { width: 100%; margin-left: 0; }
+    }
+
+    /* ── Funding & Investment Charts (Life-Sciences-style) ──── */
+    .lw-section { margin-bottom: 28px; }
+    .lw-section-head {
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 9px; margin-bottom: 16px;
+    }
+    .lw-section-head h2 {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--primary); margin: 0;
+    }
+    .lw-section-head .sh-sub { font-size: 11px; color: var(--muted); }
+    .chart-settings-btn {
+      margin-left: auto; background: none;
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 12px; font-size: 11px; color: var(--muted);
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+    }
+    .chart-settings-btn:hover {
+      background: #eef3fa; border-color: var(--primary); color: var(--primary);
+    }
+    .lw-charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+      grid-auto-rows: 230px;
+      gap: 16px;
+      align-items: start;
+    }
+    .lw-chart-card {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+    .lw-chart-card-wide { grid-column: span 2; }
+    .lw-chart-card-tall { grid-row: span 2; }
+    .lw-chart-title { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--text); }
+    .lw-chart-subtitle { font-size: 11px; color: var(--muted); margin-bottom: 12px; }
+    .lw-chart-container { position: relative; flex: 1; min-height: 0; }
+    .lw-chart-container-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .lw-chart-container-scroll canvas {
+      display: block;
+    }
+    /* Settings panel */
+    .lw-chart-settings-panel {
+      display: none; background: var(--card);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px;
+    }
+    .lw-chart-settings-panel.open { display: block; }
+    .lw-csp-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--primary); margin-bottom: 12px;
+    }
+    .lw-csp-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px;
+    }
+    .lw-csp-item {
+      display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+      border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+      transition: background .12s;
+    }
+    .lw-csp-item:hover { background: #eef3fa; }
+    .lw-csp-item input[type=checkbox] {
+      width: 15px; height: 15px; accent-color: var(--primary); cursor: pointer; flex-shrink: 0;
+    }
+    .lw-csp-label { font-size: 12px; color: var(--muted); }
+    .lw-btn-secondary {
+      background: #fff; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 12px; font-size: 11px; cursor: pointer;
+    }
+    .lw-btn-secondary:hover { background: #f7fafc; }
+    @media (max-width: 860px) {
+      .lw-charts-grid { grid-template-columns: 1fr; }
+      .lw-chart-card-wide { grid-column: span 1; }
+      .lw-chart-card-tall { grid-row: span 1; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div>
+      <div class="header-title">Look West Strategy</div>
+      <div class="header-sub">Developed in Government of British Columbia, Ministry of Jobs and Economic Growth, Economic Strategy Branch.</div>
+    </div>
+    <div class="header-right">
+      <button class="btn" id="btn-refresh" onclick="refreshData()">Update Data</button>
+      <div class="header-meta" id="meta-status">Loading...</div>
+    </div>
+  </header>
+  <div class="cache-line" id="cache-line">No cached data - click Update Data to load.</div>
+
+  <main class="main">
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Strategy Delivery Snapshot</div>
+          <div class="section-sub">Integrated strategy, announcements, funding, and policy records</div>
+        </div>
+      </div>
+      <div class="kpi-two-level">
+        <div class="kpi-tier-label">Strategic outcomes</div>
+        <div id="kpi-hero" class="kpi-hero-grid"></div>
+        <div class="kpi-tier-label second">Data coverage</div>
+        <div id="kpi-mini" class="kpi-mini-grid"></div>
+      </div>
+    </section>
+
+    <!-- ── Funding & Investment Charts (Life-Sciences-style) ── -->
+    <div class="lw-section" id="lw-funding-charts-section" style="display:none">
+      <div class="lw-section-head">
+        <h2>Investment and Project Pipeline</h2>
+        <button class="chart-settings-btn" onclick="lwToggleChartPanel()">
+          &#9881; Select Charts
+        </button>
+      </div>
+      <div class="lw-chart-settings-panel" id="lw-chart-panel">
+        <div class="lw-csp-title">Show / hide charts</div>
+        <div class="lw-csp-grid" id="lw-csp-grid"></div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <button class="lw-btn-secondary" onclick="lwResetChartPrefs()">Reset</button>
+          <button class="lw-btn-secondary" onclick="lwToggleChartPanel()">Close</button>
+        </div>
+      </div>
+      <div class="lw-charts-grid" id="lw-charts-grid"></div>
+    </div>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Media Coverage</div>
+          <div class="section-sub">Announcements and news relevant to strategy delivery</div>
+        </div>
+      </div>
+
+      <div class="section-head" style="border-bottom:1px solid var(--border);padding-top:10px;padding-bottom:10px;">
+        <div>
+          <div class="section-title" style="font-size:11px;">Announcements</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label>Source</label><select id="ann-source" onchange="renderAnnouncementsTable()"></select>
+        <label>Pillar</label><select id="ann-pillar" onchange="renderAnnouncementsTable()"></select>
+        <label>Theme</label><select id="ann-theme" onchange="renderAnnouncementsTable()"></select>
+        <input id="ann-search" type="text" placeholder="Search headline, source, sector..." oninput="renderAnnouncementsTable()" />
+        <span class="count" id="ann-count"></span>
+      </div>
+      <div class="table-wrap media-table-wrap">
+        <table class="media-data-table">
+          <thead>
+            <tr>
+              <th onclick="setSort('announcements','date')">Date</th>
+              <th onclick="setSort('announcements','source')">Source</th>
+              <th onclick="setSort('announcements','pillar')">Pillar</th>
+              <th onclick="setSort('announcements','theme')">Theme</th>
+              <th onclick="setSort('announcements','headline')">Headline</th>
+              <th onclick="setSort('announcements','primarySector')">Primary Sector</th>
+              <th onclick="setSort('announcements','region')">Region</th>
+            </tr>
+          </thead>
+          <tbody id="ann-body"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="ann-pager"></div>
+
+      <div class="section-head" style="border-bottom:1px solid var(--border);padding-top:10px;padding-bottom:10px;">
+        <div>
+          <div class="section-title" style="font-size:11px;">News</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label>Source</label><select id="news-source" onchange="renderNewsTable()"></select>
+        <label>Pillar</label><select id="news-pillar" onchange="renderNewsTable()"></select>
+        <label>Theme</label><select id="news-theme" onchange="renderNewsTable()"></select>
+        <input id="news-search" type="text" placeholder="Search title, source, sector..." oninput="renderNewsTable()" />
+        <span class="count" id="news-count"></span>
+      </div>
+      <div class="table-wrap media-table-wrap">
+        <table class="media-data-table">
+          <thead>
+            <tr>
+              <th onclick="setSort('news','date')">Date</th>
+              <th onclick="setSort('news','source')">Source</th>
+              <th onclick="setSort('news','pillar')">Pillar</th>
+              <th onclick="setSort('news','theme')">Theme</th>
+              <th onclick="setSort('news','headline')">Title</th>
+              <th onclick="setSort('news','sector')">Sector</th>
+              <th onclick="setSort('news','region')">Region</th>
+            </tr>
+          </thead>
+          <tbody id="news-body"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="news-pager"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Investment and Project Pipeline</div>
+          <div class="section-sub">Funding, project, infrastructure, and investment promotion records</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label>Pillar</label><select id="fund-pillar" onchange="renderFundingTable()"></select>
+        <label>Theme</label><select id="fund-theme" onchange="renderFundingTable()"></select>
+        <label>Funding Source</label><select id="fund-source" onchange="renderFundingTable()"></select>
+        <input id="fund-search" type="text" placeholder="Search project, partner, region..." oninput="renderFundingTable()" />
+        <span class="count" id="fund-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="setSort('fund','date')">Date</th>
+              <th onclick="setSort('fund','project')">Project / Program</th>
+              <th onclick="setSort('fund','pillar')">Pillar</th>
+              <th onclick="setSort('fund','theme')">Theme</th>
+              <th onclick="setSort('fund','provincial')">Provincial ($M)</th>
+              <th onclick="setSort('fund','attracted')">Attracted ($M)</th>
+              <th onclick="setSort('fund','federal')">Federal ($M)</th>
+              <th onclick="setSort('fund','other')">Other ($M)</th>
+              <th onclick="setSort('fund','total')">Total ($M)</th>
+              <th onclick="setSort('fund','jobsCreated')">Jobs Created</th>
+              <th onclick="setSort('fund','region')">Region</th>
+            </tr>
+          </thead>
+          <tbody id="fund-body"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="fund-pager"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Policy &amp; Regulations</div>
+          <div class="section-sub">Regulatory and policy tracking records</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <label>Jurisdiction</label><select id="pol-jurisdiction" onchange="renderPolicyTable()"></select>
+        <label>LW Sector</label><select id="pol-sector" onchange="renderPolicyTable()"></select>
+        <label>Policy Type</label><select id="pol-type" onchange="renderPolicyTable()"></select>
+        <input id="pol-search" type="text" placeholder="Search policy, change, source..." oninput="renderPolicyTable()" />
+        <span class="count" id="pol-count"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="setSort('policy','date')">Date Announced</th>
+              <th onclick="setSort('policy','policyRegulation')">Policy / Regulation</th>
+              <th onclick="setSort('policy','jurisdiction')">Jurisdiction</th>
+              <th onclick="setSort('policy','lwSector')">LW Sector</th>
+              <th onclick="setSort('policy','policyType')">Policy Type</th>
+              <th onclick="setSort('policy','outcomeArea')">LW Outcome Area</th>
+              <th onclick="setSort('policy','source')">Source</th>
+            </tr>
+          </thead>
+          <tbody id="pol-body"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="pol-pager"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <div>
+          <div class="section-title">Data Inventory</div>
+          <div class="section-sub">Everything captured for Look West, grouped by dataset. Expand a section to see the items.</div>
+        </div>
+      </div>
+      <div id="inventory" class="inventory"></div>
+    </section>
+
+    <div id="error-box"></div>
+  </main>
+
+  <script>
+    const CSV_FILES = {
+      actionPlans: 'Action Plans.csv',
+      commitments: 'Action Plans Commitments.csv',
+      fundingPrograms: 'Funding Programs.csv',
+      fundingProgramTracker: 'Funding Program Tracker.csv',
+      infrastructures: 'Infrastructures.csv',
+      investmentPromotion: 'Investment Promotion.csv',
+      announcements: 'LW Announcements.csv',
+      news: 'LW News.csv',
+      majorProjects: 'Major Projects.csv',
+      policy: 'Policy & Regulations.csv',
+      targets: 'Targets.csv',
+      goals: 'LW Goals.csv',
+      goalsTracker: 'Goals Tracker.csv'
+    };
+
+    const PILLARS = [
+      'Strengthening Our Workforce',
+      'Delivering Major Projects Faster',
+      'Diversifying Markets',
+      'Growing Targeted Sectors'
+    ];
+
+    const STATE = {
+      actionPlans: [],
+      commitments: [],
+      fundingPrograms: [],
+      fundingProgramTracker: [],
+      infrastructures: [],
+      investmentPromotion: [],
+      announcements: [],
+      news: [],
+      majorProjects: [],
+      targets: [],
+      goals: [],
+      goalsTracker: [],
+      media: [],
+      funding: [],
+      policy: [],
+      policyRaw: [],
+      loadedAt: null,
+      dataMode: 'integrated',
+      annPage: 1,
+      annPageSize: 10,
+      newsPage: 1,
+      newsPageSize: 10,
+      fundPage: 1,
+      fundPageSize: 10,
+      polPage: 1,
+      polPageSize: 10,
+      sort: {
+        announcements: { key: 'date', dir: 'desc' },
+        news: { key: 'date', dir: 'desc' },
+        fund: { key: 'date', dir: 'desc' },
+        policy: { key: 'date', dir: 'desc' }
+      }
+    };
+    const CACHE_KEY = 'LW_DASHBOARD_CACHE_V2';
+
+    function normalizeText(v) {
+      return String(v || '').replace(/\s+/g, ' ').trim();
+    }
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+    function normalizeUrl(v) {
+      const s = normalizeText(v);
+      if (!s) return '';
+      if (/^https?:\/\//i.test(s)) return s;
+      return '';
+    }
+    function parseCsvText(text) {
+      const rows = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+      const src = String(text || '');
+      for (let i = 0; i < src.length; i += 1) {
+        const ch = src[i];
+        const next = src[i + 1];
+        if (ch === '"') {
+          if (inQuotes && next === '"') {
+            cell += '"';
+            i += 1;
+          } else {
+            inQuotes = !inQuotes;
+          }
+          continue;
+        }
+        if (ch === ',' && !inQuotes) {
+          row.push(cell);
+          cell = '';
+          continue;
+        }
+        if ((ch === '\n' || ch === '\r') && !inQuotes) {
+          if (ch === '\r' && next === '\n') i += 1;
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = '';
+          continue;
+        }
+        cell += ch;
+      }
+      if (cell.length > 0 || row.length > 0) {
+        row.push(cell);
+        rows.push(row);
+      }
+      if (!rows.length) return [];
+      const headers = rows[0].map((h) => normalizeText(h));
+      return rows.slice(1)
+        .filter((r) => r.some((v) => normalizeText(v) !== ''))
+        .map((r) => {
+          const obj = {};
+          headers.forEach((h, idx) => { obj[h] = String(r[idx] || '').trim(); });
+          return obj;
+        });
+    }
+    function csvUrls(fileName) {
+      return [
+        new URL(`../../../data/${fileName}`, window.location.href).toString(),
+        new URL(`../../../data/look_west_strategy/${fileName}`, window.location.href).toString()
+      ];
+    }
+    async function loadCsvFile(fileName) {
+      const urls = csvUrls(fileName);
+      let lastErr = null;
+      for (const url of urls) {
+        try {
+          const res = await fetch(url, { cache: 'no-store' });
+          if (!res.ok) {
+            lastErr = new Error(`Failed to fetch required dataset (HTTP ${res.status})`);
+            continue;
+          }
+          return parseCsvText(await res.text());
+        } catch (err) {
+          lastErr = err;
+        }
+      }
+      throw lastErr || new Error('Failed to fetch required dataset');
+    }
+    function getField(row, candidates) {
+      if (!row || !candidates || !candidates.length) return '';
+      for (const k of candidates) {
+        if (Object.prototype.hasOwnProperty.call(row, k) && normalizeText(row[k])) return row[k];
+      }
+      const wanted = candidates.map(c => normalizeText(c).toLowerCase());
+      for (const rk of Object.keys(row)) {
+        const n = normalizeText(rk).toLowerCase();
+        if (wanted.includes(n) && normalizeText(row[rk])) return row[rk];
+      }
+      return '';
+    }
+
+    function parseNumber(v) {
+      if (v === null || v === undefined) return null;
+      const s = normalizeText(v).replace(/[$,]/g, '');
+      if (!s || s.toUpperCase() === 'N/A') return null;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : null;
+    }
+
+    function toDateValue(v) {
+      if (v instanceof Date && !isNaN(v)) return v;
+      if (typeof v === 'number' && typeof XLSX !== 'undefined' && XLSX.SSF && XLSX.SSF.parse_date_code) {
+        const d = XLSX.SSF.parse_date_code(v);
+        if (d && d.y) return new Date(d.y, d.m - 1, d.d);
+      }
+      const s = normalizeText(v);
+      if (!s) return null;
+      const d = new Date(s);
+      return isNaN(d) ? null : d;
+    }
+
+    function formatDate(v) {
+      const d = v instanceof Date ? v : toDateValue(v);
+      if (!d) return '-';
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${d.getFullYear()}-${mm}-${dd}`;
+    }
+
+    function canonicalStatus(raw) {
+      const s = normalizeText(raw).toLowerCase();
+      if (!s) return '';
+      if (s.includes('in progress') || s.includes('in-progress')) return 'In Progress';
+      if (s.includes('scoping')) return 'Scoping';
+      if (s.includes('completed') || s.includes('complete')) return 'Completed';
+      if (s.includes('stalled') || s.includes('paused') || s.includes('delay')) return 'Stalled';
+      if (s.includes('new')) return 'New';
+      return '';
+    }
+
+    function canonicalTheme(raw) {
+      const s = normalizeText(raw).toLowerCase();
+      if (!s) return '';
+      if (s.includes('skills')) return 'Skills Training';
+      if (s.includes('policy')) return 'policy';
+      if (s.includes('investment')) return 'Investment Attraction';
+      if (s.includes('permit') || s.includes('authorization')) return 'Permitting & Authorizations';
+      if (s.includes('tech') || s.includes('ai') || s.includes('digital')) return 'Tech adoption';
+      if (s.includes('supply') || s.includes('logistics') || s.includes('gateway')) return 'Supply Chain';
+      if (s.includes('partner') || s.includes('mou') || s.includes('delegation')) return 'Partnerships';
+      return '';
+    }
+
+    function extractToken(text, token) {
+      const rx = new RegExp(token + '\\s*:\\s*([^|;\\n]+)', 'i');
+      const m = String(text || '').match(rx);
+      return m ? normalizeText(m[1]) : '';
+    }
+    function normalizeFlag(value) {
+      const s = normalizeText(value).toLowerCase();
+      if (!s) return '';
+      if (['yes', 'y', 'true', '1', 'warm', 'hot'].includes(s)) return 'Y';
+      return 'N';
+    }
+
+    function inferPillar(text) {
+      const s = normalizeText(text).toLowerCase();
+      if (/(skills|workforce|apprentice|training|credential|co-op)/.test(s)) return 'Strengthening Our Workforce';
+      if (/(permit|approval|major project|infrastructure|review|fast-track|authorizations)/.test(s)) return 'Delivering Major Projects Faster';
+      if (/(export|market|trade mission|indo-pacific|diversif)/.test(s)) return 'Diversifying Markets';
+      return 'Growing Targeted Sectors';
+    }
+    function sourceAmounts(total, sourceText) {
+      const src = normalizeText(sourceText).toLowerCase();
+      const amt = Number(total) || 0;
+      const out = { provincial: 0, attracted: 0, federal: 0, other: 0 };
+      if (!amt) return out;
+      if (src.includes('provincial')) out.provincial = amt;
+      else if (src.includes('federal')) out.federal = amt;
+      else if (src.includes('attracted') || src.includes('private') || src.includes('investor')) out.attracted = amt;
+      else out.other = amt;
+      return out;
+    }
+    function normalizeMediaFromNews(row) {
+      const theme = canonicalTheme(row['Theme']) || 'Partnerships';
+      return {
+        date: toDateValue(row['Date']),
+        sourceType: 'News',
+        source: normalizeText(row['Ministry']) || normalizeText(row['Source']) || 'News',
+        sector: normalizeText(row['Sector']),
+        headline: normalizeText(row['Title']),
+        headlineUrl: normalizeUrl(row['URL']),
+        message: normalizeText(row['Key Message']),
+        tempCheck: normalizeFlag(row['LW Mentioned?'] || row['Temperature Rate']),
+        theme,
+        status: canonicalStatus(row['Temperature Rate']) || 'In Progress',
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Sector'], row['Title'], row['Key Message'], theme].join(' '))
+      };
+    }
+    function normalizeMediaFromAnnouncement(row) {
+      const theme = canonicalTheme(row['Theme']) || 'Partnerships';
+      return {
+        date: toDateValue(row['Date']),
+        sourceType: 'Announcement',
+        source: normalizeText(row['Source']) || normalizeText(row['Ministry']) || 'Announcement',
+        sector: [normalizeText(row['Primary Sector']), normalizeText(row['Secondary Sectors'])].filter(Boolean).join('; '),
+        headline: [normalizeText(row['Headline']), normalizeText(row['Subtitle'])].filter(Boolean).join(' - '),
+        headlineUrl: normalizeUrl(row['URL']),
+        message: normalizeText(row['Key Message']),
+        tempCheck: normalizeFlag(row['LW Mentioned?']),
+        theme,
+        status: 'In Progress',
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Primary Sector'], row['Headline'], row['Key Message'], theme].join(' '))
+      };
+    }
+    function normalizeMediaFromActionPlan(row) {
+      const theme = canonicalTheme(row['Theme']) || 'Partnerships';
+      return {
+        date: toDateValue(row['Release Date']),
+        sourceType: 'Action Plan',
+        source: normalizeText(row['Lead Ministry']) || 'Action Plan',
+        sector: normalizeText(row['Sector']),
+        headline: normalizeText(row['Title']),
+        headlineUrl: normalizeUrl(row['URL']),
+        message: normalizeText(row['Description']),
+        tempCheck: 'Y',
+        theme,
+        status: canonicalStatus(row['Status']) || 'In Progress',
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Sector'], row['Title'], row['Description'], theme].join(' '))
+      };
+    }
+    function normalizeFundingFromProgram(row) {
+      const total = parseNumber(row['Total Commitment Value']) || 0;
+      const parts = sourceAmounts(total, row['Lead Funding Source']);
+      return {
+        date: toDateValue(row['Date Announced']),
+        source: normalizeText(row['Lead Funding Source']) || 'Other',
+        project: normalizeText(row['Program Name']) || normalizeText(row['Program ID']),
+        pillar: normalizeText(row['Pillar.lookupValue']) || inferPillar(row['Description']),
+        lwSector: normalizeText(row['Sector.lookupValue']),
+        theme: canonicalTheme(row['Theme.lookupValue']) || 'Partnerships',
+        status: canonicalStatus(row['Commitment Status']) || 'In Progress',
+        partner: normalizeText(row['Partner Organizations']),
+        details: normalizeText(row['Description']),
+        provincial: parts.provincial,
+        attracted: parts.attracted,
+        federal: parts.federal,
+        other: parts.other,
+        total,
+        jobsCreated: parseNumber(row['Jobs Created']) || 0,
+        jobsProtected: parseNumber(row['Jobs Protected']) || 0,
+        region: normalizeText(row['Region.lookupValue']),
+        dataSource: 'Funding Programs.csv'
+      };
+    }
+    function normalizeFundingFromMajorProject(row) {
+      const total = parseNumber(row['Total Commitment Value']) || 0;
+      const parts = sourceAmounts(total, row['Funding Source']);
+      return {
+        date: toDateValue(row['Date Announced']),
+        source: normalizeText(row['Funding Source']) || 'Other',
+        project: normalizeText(row['Project Name']),
+        pillar: normalizeText(row['Pillar']) || inferPillar(row['Description']),
+        lwSector: normalizeText(row['Sector']),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        status: canonicalStatus(row['Status']) || 'In Progress',
+        partner: normalizeText(row['Lead Ministry']),
+        details: normalizeText(row['Description']),
+        provincial: parts.provincial,
+        attracted: parts.attracted,
+        federal: parts.federal,
+        other: parts.other,
+        total,
+        jobsCreated: parseNumber(row['Jobs Created']) || 0,
+        jobsProtected: parseNumber(row['Jobs Protected']) || 0,
+        region: normalizeText(row['Region']),
+        dataSource: 'Major Projects.csv'
+      };
+    }
+    function normalizeFundingFromInfrastructure(row) {
+      const total = parseNumber(row['Total Estimated Value ($M)']) || 0;
+      const parts = sourceAmounts(total, row['Funding Source']);
+      return {
+        date: toDateValue(row['Date Announced']),
+        source: normalizeText(row['Funding Source']) || 'Other',
+        project: normalizeText(row['Infrastructure Name']),
+        pillar: normalizeText(row['Pillar']) || inferPillar(row['Description']),
+        lwSector: normalizeText(row['Sector']),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        status: 'In Progress',
+        partner: normalizeText(row['Partner/Stakeholder']),
+        details: normalizeText(row['Description']),
+        provincial: parts.provincial,
+        attracted: parts.attracted,
+        federal: parts.federal,
+        other: parts.other,
+        total,
+        jobsCreated: parseNumber(row['Jobs Created']) || 0,
+        jobsProtected: parseNumber(row['Jobs Protected']) || 0,
+        region: normalizeText(row['Region']),
+        dataSource: 'Infrastructures.csv'
+      };
+    }
+    function normalizeFundingFromInvestmentPromotion(row) {
+      const total = parseNumber(row['Estimated Value ($M)']) || 0;
+      const parts = sourceAmounts(total, 'Attracted');
+      return {
+        date: toDateValue(row['Date Announced']),
+        source: 'Attracted',
+        project: normalizeText(row['Initiative Name']),
+        pillar: normalizeText(row['Pillar']) || inferPillar(row['Description']),
+        lwSector: normalizeText(row['Sector']),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        status: canonicalStatus(row['Status']) || 'In Progress',
+        partner: normalizeText(row['Partner Organizations']),
+        details: normalizeText(row['Description']),
+        provincial: parts.provincial,
+        attracted: parts.attracted,
+        federal: parts.federal,
+        other: parts.other,
+        total,
+        jobsCreated: 0,
+        jobsProtected: 0,
+        region: normalizeText(row['Region']),
+        dataSource: 'Investment Promotion.csv'
+      };
+    }
+    function normalizePolicyRow(row) {
+      return {
+        date: toDateValue(row['Date Announced'] || row['Date']),
+        policyRegulation: normalizeText(row['Policy / Regulation'] || row['Policy/Regulation']),
+        jurisdiction: normalizeText(row['Jurisdiction']),
+        lwSector: normalizeText(row['Sector'] || row['LW Sector']),
+        secondarySector: normalizeText(row['Secondary Sector']),
+        policyType: normalizeText(row['Policy Type']),
+        whatChanged: normalizeText(row['Description'] || row['What Changed']),
+        outcomeArea: normalizeText(row['LW Outcome Area']),
+        source: normalizeText(row['Source']),
+        sourceUrl: normalizeUrl(row['URL'] || row['Source URL'] || row['Source Url'])
+      };
+    }
+
+    async function loadData() {
+      const entries = Object.entries(CSV_FILES);
+      const loaded = await Promise.all(entries.map(async ([key, name]) => [key, await loadCsvFile(name)]));
+      const data = Object.fromEntries(loaded);
+
+      STATE.actionPlans = data.actionPlans || [];
+      STATE.commitments = data.commitments || [];
+      STATE.fundingPrograms = data.fundingPrograms || [];
+      STATE.fundingProgramTracker = data.fundingProgramTracker || [];
+      STATE.infrastructures = data.infrastructures || [];
+      STATE.investmentPromotion = data.investmentPromotion || [];
+      STATE.announcements = data.announcements || [];
+      STATE.news = data.news || [];
+      STATE.majorProjects = data.majorProjects || [];
+      STATE.targets = data.targets || [];
+      STATE.goals = data.goals || [];
+      STATE.goalsTracker = data.goalsTracker || [];
+      STATE.policyRaw = data.policy || [];
+      STATE.policy = (data.policy || []).map(normalizePolicyRow).filter(r => normalizeText(r.policyRegulation));
+
+      const mediaRows = []
+        .concat(STATE.news.map(normalizeMediaFromNews))
+        .concat(STATE.announcements.map(normalizeMediaFromAnnouncement))
+        .concat(STATE.actionPlans.map(normalizeMediaFromActionPlan))
+        .filter(r => r.date || r.headline);
+
+      const fundingRows = []
+        .concat(STATE.fundingPrograms.map(normalizeFundingFromProgram))
+        .concat(STATE.majorProjects.map(normalizeFundingFromMajorProject))
+        .concat(STATE.infrastructures.map(normalizeFundingFromInfrastructure))
+        .concat(STATE.investmentPromotion.map(normalizeFundingFromInvestmentPromotion))
+        .filter(r => normalizeText(r.project));
+
+      STATE.media = mediaRows;
+      STATE.funding = fundingRows;
+      STATE.loadedAt = new Date();
+      STATE.dataMode = 'integrated';
+    }
+
+    function storageSave() {
+      try {
+        const payload = {
+          loadedAt: STATE.loadedAt ? STATE.loadedAt.toISOString() : null,
+          actionPlans: STATE.actionPlans,
+          commitments: STATE.commitments,
+          fundingPrograms: STATE.fundingPrograms,
+          fundingProgramTracker: STATE.fundingProgramTracker,
+          infrastructures: STATE.infrastructures,
+          investmentPromotion: STATE.investmentPromotion,
+          announcements: STATE.announcements,
+          news: STATE.news,
+          majorProjects: STATE.majorProjects,
+          targets: STATE.targets,
+          goals: STATE.goals,
+          goalsTracker: STATE.goalsTracker,
+          media: STATE.media,
+          funding: STATE.funding,
+          policy: STATE.policy,
+          policyRaw: STATE.policyRaw,
+          dataMode: STATE.dataMode || 'unknown'
+        };
+        localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
+      } catch (_) {}
+    }
+
+    function storageLoad() {
+      try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (!raw) return false;
+        const payload = JSON.parse(raw);
+        if (!payload || !Array.isArray(payload.media) || !Array.isArray(payload.funding) || !Array.isArray(payload.policy)) return false;
+        STATE.actionPlans = Array.isArray(payload.actionPlans) ? payload.actionPlans : [];
+        STATE.commitments = Array.isArray(payload.commitments) ? payload.commitments : [];
+        STATE.fundingPrograms = Array.isArray(payload.fundingPrograms) ? payload.fundingPrograms : [];
+        STATE.fundingProgramTracker = Array.isArray(payload.fundingProgramTracker) ? payload.fundingProgramTracker : [];
+        STATE.infrastructures = Array.isArray(payload.infrastructures) ? payload.infrastructures : [];
+        STATE.investmentPromotion = Array.isArray(payload.investmentPromotion) ? payload.investmentPromotion : [];
+        STATE.announcements = Array.isArray(payload.announcements) ? payload.announcements : [];
+        STATE.news = Array.isArray(payload.news) ? payload.news : [];
+        STATE.majorProjects = Array.isArray(payload.majorProjects) ? payload.majorProjects : [];
+        STATE.targets = Array.isArray(payload.targets) ? payload.targets : [];
+        STATE.goals = Array.isArray(payload.goals) ? payload.goals : [];
+        STATE.goalsTracker = Array.isArray(payload.goalsTracker) ? payload.goalsTracker : [];
+        STATE.policyRaw = Array.isArray(payload.policyRaw) ? payload.policyRaw : [];
+        STATE.media = payload.media;
+        STATE.funding = payload.funding;
+        STATE.policy = payload.policy;
+        STATE.loadedAt = payload.loadedAt ? new Date(payload.loadedAt) : null;
+        STATE.dataMode = payload.dataMode || 'integrated';
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function dataModeLabel() {
+      if (STATE.dataMode === 'integrated') return 'Integrated data';
+      return 'Data';
+    }
+
+    function sum(arr, fn) {
+      return arr.reduce((acc, x) => acc + (Number(fn(x)) || 0), 0);
+    }
+
+    function formatNumber(n) {
+      return Number(n || 0).toLocaleString('en-CA');
+    }
+
+    function formatMillions(n) {
+      return '$' + formatNumber(Math.round(n)) + 'M';
+    }
+
+
+    /* ── LW Funding Charts — display prefs (localStorage) ─── */
+    const LW_CHART_PREFS_KEY = 'lw_chart_prefs_v1';
+
+    const LW_CHART_DEFS = [
+      { id: 'funding-programs', title: 'Funding Programs: Total Commitment by Funding Source ($M)' },
+      { id: 'funding-programs-donut', title: 'Funding Programs: Total Commitment by Funding Source ($M)' },
+      { id: 'funding-programs-horizontal', title: 'Funding Programs: Commitment by Program and Type ($M)' },
+      { id: 'infrastructures', title: 'Infrastructures: Estimated Value by Category ($M)' },
+      { id: 'infrastructures-horizontal', title: 'Infrastructures: Estimated Value by Region ($M)' },
+      { id: 'investment-promotion', title: 'Investment Promotion: Estimated Value by Sector ($M)' },
+      { id: 'investment-promotion-donut', title: 'Investment Promotion: Initiative Mix by Status' },
+      { id: 'major-projects', title: 'Major Projects: Total Commitment by Status ($M)' },
+      { id: 'major-projects-combo', title: 'Major Projects: Commitment and Jobs by Project' },
+      { id: 'policy-regulations', title: 'Policy & Regulations: Item Count by Policy Type' },
+      { id: 'policy-regulations-donut', title: 'Policy & Regulations: Item Share by Policy Type' },
+      { id: 'targets', title: 'Targets: Item Count by Pillar' },
+      { id: 'targets-horizontal', title: 'Targets: Directed/Collective Mix by Sector' }
+    ];
+
+    function lwGetChartPrefs() {
+      try { return JSON.parse(localStorage.getItem(LW_CHART_PREFS_KEY) || '{}') || {}; }
+      catch(e) { return {}; }
+    }
+    function lwSaveChartPrefs(p) {
+      try { localStorage.setItem(LW_CHART_PREFS_KEY, JSON.stringify(p || {})); } catch(e) {}
+    }
+    function lwIsChartShown(id) {
+      const p = lwGetChartPrefs();
+      const hidden = Array.isArray(p.hidden) ? p.hidden : [];
+      return !hidden.includes(id);
+    }
+    function lwSetChartShown(id, checked) {
+      const p = lwGetChartPrefs();
+      const set = new Set(Array.isArray(p.hidden) ? p.hidden : []);
+      if (checked) set.delete(id); else set.add(id);
+      p.hidden = Array.from(set);
+      lwSaveChartPrefs(p);
+    }
+    function lwResetChartPrefs() {
+      lwSaveChartPrefs({});
+      lwBuildChartPanel();
+      renderCharts();
+    }
+    function lwToggleChartPanel() {
+      const panel = document.getElementById('lw-chart-panel');
+      if (!panel) return;
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) lwBuildChartPanel();
+    }
+    function lwBuildChartPanel() {
+      const grid = document.getElementById('lw-csp-grid');
+      if (!grid) return;
+      grid.innerHTML = LW_CHART_DEFS.map(c => `
+        <label class="lw-csp-item">
+          <input type="checkbox" ${lwIsChartShown(c.id) ? 'checked' : ''}
+                 onchange="lwSetChartShown('${c.id}',this.checked);renderCharts()">
+          <span class="lw-csp-label">${c.title}</span>
+        </label>
+      `).join('');
+    }
+
+    /* ── LW Chart rendering ─────────────────────────────────── */
+    function lwDestroyChart(id) {
+      const el = document.getElementById('lw-chart-' + id);
+      if (!el) return;
+      const inst = Chart.getChart(el);
+      if (inst) inst.destroy();
+    }
+
+    const LW_SERIES_COLORS = ['#0b4f8a', '#1f7a4d', '#5b8ec9', '#b26d00', '#7d78a8', '#5d7f93', '#a0617f', '#4f8d7a'];
+
+    function lwLabel(value, fallback) {
+      const s = normalizeText(value);
+      return s || (fallback || 'Unspecified');
+    }
+
+    function lwFundingSourceBucket(value) {
+      const s = normalizeText(value).toLowerCase();
+      if (s.includes('provincial')) return 'Provincial contribution';
+      if (s.includes('federal')) return 'Federal contribution';
+      return 'Other contributions';
+    }
+
+    const LW_FUNDING_TYPE_ORDER = ['Provincial contribution', 'Federal contribution', 'Other contributions'];
+
+    function lwZeroFundingSplit() {
+      return {
+        'Provincial contribution': 0,
+        'Federal contribution': 0,
+        'Other contributions': 0
+      };
+    }
+
+    function lwFundingProgramTrackerSplitMap() {
+      const map = new Map();
+      (STATE.fundingProgramTracker || []).forEach((row) => {
+        const programId = normalizeText(getField(row, ['Program ID']));
+        const amount = parseNumber(getField(row, ['Amount ($M)', 'Amount']));
+        if (!programId || !(Number(amount) > 0)) return;
+        const type = lwFundingSourceBucket(getField(row, ['Transaction Type', 'Funding source detail', 'Funding Source']));
+        if (!map.has(programId)) map.set(programId, lwZeroFundingSplit());
+        const split = map.get(programId);
+        split[type] += Number(amount) || 0;
+      });
+      return map;
+    }
+
+    function lwFundingProgramTypeBreakdown(row, trackerSplitMap) {
+      const programId = normalizeText(getField(row, ['Program ID']));
+      if (trackerSplitMap && programId && trackerSplitMap.has(programId)) {
+        const fromTracker = trackerSplitMap.get(programId) || lwZeroFundingSplit();
+        return {
+          'Provincial contribution': Number(fromTracker['Provincial contribution']) || 0,
+          'Federal contribution': Number(fromTracker['Federal contribution']) || 0,
+          'Other contributions': Number(fromTracker['Other contributions']) || 0
+        };
+      }
+
+      const total = parseNumber(getField(row, ['Total Commitment Value'])) || 0;
+      const pRaw = parseNumber(getField(row, ['Provincial Contribution ($M)', 'Provincial Contribution', 'Provincial ($M)', 'Provincial']));
+      const fRaw = parseNumber(getField(row, ['Federal Contribution ($M)', 'Federal Contribution', 'Federal ($M)', 'Federal']));
+      const oRaw = parseNumber(getField(row, ['Other Contribution ($M)', 'Other Contribution', 'Other ($M)', 'Other']));
+      const hasExplicit = [pRaw, fRaw, oRaw].some(v => v !== null && v !== undefined);
+
+      let provincial = Number(pRaw) || 0;
+      let federal = Number(fRaw) || 0;
+      let other = Number(oRaw) || 0;
+
+      if (hasExplicit) {
+        const explicitSum = provincial + federal + other;
+        if (total > 0 && explicitSum < total) other += (total - explicitSum);
+        if (total > 0 && explicitSum > total) {
+          const scale = total / explicitSum;
+          provincial *= scale;
+          federal *= scale;
+          other *= scale;
+        }
+        return {
+          'Provincial contribution': provincial,
+          'Federal contribution': federal,
+          'Other contributions': other
+        };
+      }
+
+      const bucket = lwFundingSourceBucket(getField(row, ['Lead Funding Source']));
+      return {
+        'Provincial contribution': bucket === 'Provincial contribution' ? total : 0,
+        'Federal contribution': bucket === 'Federal contribution' ? total : 0,
+        'Other contributions': bucket === 'Other contributions' ? total : 0
+      };
+    }
+
+    function lwFundingProgramTotals(rows) {
+      const totals = lwZeroFundingSplit();
+      const trackerSplitMap = lwFundingProgramTrackerSplitMap();
+      const uniquePrograms = new Map();
+      (rows || []).forEach((row, idx) => {
+        const programId = normalizeText(getField(row, ['Program ID'])) || `__row_${idx}`;
+        if (!uniquePrograms.has(programId)) uniquePrograms.set(programId, row);
+      });
+      uniquePrograms.forEach((row) => {
+        const split = lwFundingProgramTypeBreakdown(row, trackerSplitMap);
+        LW_FUNDING_TYPE_ORDER.forEach((type) => {
+          totals[type] += Number(split[type]) || 0;
+        });
+      });
+      return totals;
+    }
+
+    function lwBuildStackedData(rows, groupAccessor, seriesAccessor, valueAccessor, limit) {
+      const grouped = new Map();
+      const seriesSet = new Set();
+      (rows || []).forEach((row) => {
+        const group = lwLabel(groupAccessor(row));
+        const series = lwLabel(seriesAccessor(row));
+        const value = Number(valueAccessor(row)) || 0;
+        if (!grouped.has(group)) grouped.set(group, {});
+        const bucket = grouped.get(group);
+        bucket[series] = (bucket[series] || 0) + value;
+        seriesSet.add(series);
+      });
+
+      const labels = Array.from(grouped.keys()).sort((a, b) => {
+        const ta = Object.values(grouped.get(a) || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+        const tb = Object.values(grouped.get(b) || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+        return tb - ta;
+      });
+      const keptLabels = Number(limit) > 0 ? labels.slice(0, Number(limit)) : labels;
+      const series = Array.from(seriesSet.values());
+      const datasets = series.map((name, idx) => ({
+        label: name,
+        data: keptLabels.map((g) => Math.round((grouped.get(g) || {})[name] || 0)),
+        backgroundColor: LW_SERIES_COLORS[idx % LW_SERIES_COLORS.length],
+        borderRadius: 3,
+        stack: 's'
+      }));
+      return { labels: keptLabels, datasets };
+    }
+
+    function lwBuildSeriesData(rows, labelAccessor, valueAccessor, limit) {
+      const totals = new Map();
+      (rows || []).forEach((row) => {
+        const label = lwLabel(labelAccessor(row));
+        const value = Number(valueAccessor(row)) || 0;
+        totals.set(label, (totals.get(label) || 0) + value);
+      });
+      const entries = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
+      const kept = Number(limit) > 0 ? entries.slice(0, Number(limit)) : entries;
+      return {
+        labels: kept.map(([k]) => k),
+        data: kept.map(([, v]) => Math.round(v))
+      };
+    }
+
+    function lwBuildDoughnutData(rows, labelAccessor, valueAccessor, limit) {
+      const series = lwBuildSeriesData(rows, labelAccessor, valueAccessor, limit);
+      return {
+        labels: series.labels,
+        datasets: [{
+          data: series.data,
+          backgroundColor: series.labels.map((_, idx) => LW_SERIES_COLORS[idx % LW_SERIES_COLORS.length]),
+          borderWidth: 2,
+          borderColor: '#fff',
+          hoverOffset: 6
+        }]
+      };
+    }
+
+    function lwTruncateLabel(text, maxChars) {
+      const src = String(text || '').trim();
+      const limit = Number(maxChars) > 8 ? Number(maxChars) : 28;
+      if (!src) return '';
+      if (src.length <= limit) return src;
+      return src.slice(0, Math.max(1, limit - 3)).trimEnd() + '...';
+    }
+
+    function lwRenderNoData(el, message) {
+      const wrap = el && el.parentElement;
+      if (!wrap) return;
+      wrap.innerHTML = `<div class="small" style="height:100%;display:flex;align-items:center;justify-content:center;text-align:center;">${esc(message || 'No data available')}</div>`;
+    }
+
+    function lwRenderStackedBar(el, data, options) {
+      const cfg = options || {};
+      if (!data || !Array.isArray(data.labels) || !data.labels.length || !Array.isArray(data.datasets) || !data.datasets.length) {
+        lwRenderNoData(el, cfg.noDataMessage || 'No records available');
+        return;
+      }
+      const moneyMode = cfg.moneyMode === true;
+      const horizontal = cfg.horizontal === true;
+      const legendPosition = cfg.legendPosition || 'bottom';
+      const responsive = cfg.responsive !== false;
+      new Chart(el, {
+        type: 'bar',
+        data: {
+          labels: data.labels,
+          datasets: data.datasets
+        },
+        options: {
+          responsive,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: legendPosition, labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  if (!Array.isArray(items) || !items.length) return '';
+                  const idx = items[0].dataIndex;
+                  if (Array.isArray(cfg.fullLabels) && idx >= 0 && idx < cfg.fullLabels.length) {
+                    return String(cfg.fullLabels[idx] || '');
+                  }
+                  return String(items[0].label || '');
+                },
+                label: (ctx) => {
+                  if (moneyMode) return ` ${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-CA')}M`;
+                  return ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('en-CA')}`;
+                }
+              }
+            }
+          },
+          indexAxis: horizontal ? 'y' : 'x',
+          scales: horizontal ? {
+            x: {
+              stacked: true,
+              grid: { color: '#edf1f5' },
+              ticks: {
+                font: { size: 11 },
+                callback: (v) => moneyMode ? ('$' + v + 'M') : formatNumber(v)
+              }
+            },
+            y: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { autoSkip: false, font: { size: 11 } }
+            }
+          } : {
+            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 0, minRotation: 0 } },
+            y: {
+              stacked: true,
+              grid: { color: '#edf1f5' },
+              ticks: {
+                font: { size: 11 },
+                callback: (v) => moneyMode ? ('$' + v + 'M') : formatNumber(v)
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function lwRenderDoughnut(el, data, options) {
+      const cfg = options || {};
+      if (!data || !Array.isArray(data.labels) || !data.labels.length || !Array.isArray(data.datasets) || !data.datasets.length) {
+        lwRenderNoData(el, cfg.noDataMessage || 'No records available');
+        return;
+      }
+      const moneyMode = cfg.moneyMode === true;
+      new Chart(el, {
+        type: 'doughnut',
+        data,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '58%',
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  if (moneyMode) return ` ${ctx.label}: $${Number(ctx.parsed || 0).toLocaleString('en-CA')}M`;
+                  return ` ${ctx.label}: ${Number(ctx.parsed || 0).toLocaleString('en-CA')}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function lwRenderComboBarLine(el, labels, barData, lineData, options) {
+      const cfg = options || {};
+      if (!Array.isArray(labels) || !labels.length) {
+        lwRenderNoData(el, cfg.noDataMessage || 'No records available');
+        return;
+      }
+      new Chart(el, {
+        data: {
+          labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: cfg.barLabel || 'Total Value ($M)',
+              data: barData,
+              backgroundColor: '#0b4f8a',
+              borderRadius: 3,
+              yAxisID: 'y'
+            },
+            {
+              type: 'line',
+              label: cfg.lineLabel || 'Jobs',
+              data: lineData,
+              borderColor: '#b26d00',
+              backgroundColor: '#b26d00',
+              tension: 0.25,
+              pointRadius: 3,
+              pointHoverRadius: 4,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  if (ctx.dataset.type === 'line') return ` ${ctx.dataset.label}: ${Number(ctx.parsed.y || 0).toLocaleString('en-CA')}`;
+                  return ` ${ctx.dataset.label}: $${Number(ctx.parsed.y || 0).toLocaleString('en-CA')}M`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 35, minRotation: 0 } },
+            y: {
+              position: 'left',
+              grid: { color: '#edf1f5' },
+              ticks: { font: { size: 11 }, callback: (v) => '$' + v + 'M' }
+            },
+            y1: {
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: { font: { size: 11 }, callback: (v) => formatNumber(v) }
+            }
+          }
+        }
+      });
+    }
+
+    function renderCharts() {
+      if (typeof Chart === 'undefined') return;
+      const section = document.getElementById('lw-funding-charts-section');
+      const grid    = document.getElementById('lw-charts-grid');
+      const hasAny = [
+        STATE.fundingPrograms,
+        STATE.infrastructures,
+        STATE.investmentPromotion,
+        STATE.majorProjects,
+        STATE.policy,
+        STATE.targets
+      ].some(arr => Array.isArray(arr) && arr.length > 0);
+      if (!hasAny) {
+        if (section) section.style.display = 'none';
+        return;
+      }
+      if (section) section.style.display = '';
+
+      Chart.defaults.font.family = '"Segoe UI", Arial, sans-serif';
+      Chart.defaults.color = '#5f7388';
+
+      /* Build visible chart cards */
+      grid.innerHTML = LW_CHART_DEFS.filter(c => lwIsChartShown(c.id)).map(c => {
+        const extraClass = c.id === 'funding-programs-horizontal' ? ' lw-chart-card-wide lw-chart-card-tall' : '';
+        const containerClass = c.id === 'funding-programs-horizontal' ? 'lw-chart-container lw-chart-container-scroll' : 'lw-chart-container';
+        return `
+        <div class="card lw-chart-card${extraClass}">
+          <div class="lw-chart-title">${c.title}</div>
+          <div class="${containerClass}"><canvas id="lw-chart-${c.id}"></canvas></div>
+        </div>
+      `;
+      }).join('');
+
+      LW_CHART_DEFS.forEach(c => {
+        if (!lwIsChartShown(c.id)) return;
+        const el = document.getElementById('lw-chart-' + c.id);
+        if (!el) return;
+        lwDestroyChart(c.id);
+        const inst = Chart.getChart(el);
+        if (inst) inst.destroy();
+        lwBuildChart(c.id, el);
+      });
+    }
+
+    function lwChartSubtitle(id) {
+      if (id === 'funding-programs') return 'Funding Programs only · grouped by Federal, Provincial, and Other contributions';
+      if (id === 'funding-programs-donut') return '';
+      if (id === 'funding-programs-horizontal') return '';
+      if (id === 'infrastructures') return 'Infrastructures only · breakdown: Category × Funding Source';
+      if (id === 'infrastructures-horizontal') return 'Infrastructures only · top regions by estimated value (horizontal bar)';
+      if (id === 'investment-promotion') return 'Investment Promotion only · breakdown: Sector × Status';
+      if (id === 'investment-promotion-donut') return 'Investment Promotion only · initiative count mix by status (doughnut)';
+      if (id === 'major-projects') return 'Major Projects only · breakdown: Status × Funding Source';
+      if (id === 'major-projects-combo') return 'Major Projects only · commitments ($M) vs total jobs by project (combo)';
+      if (id === 'policy-regulations') return 'Policy & Regulations only · breakdown: Policy Type × Jurisdiction';
+      if (id === 'policy-regulations-donut') return 'Policy & Regulations only · item share by policy type (doughnut)';
+      if (id === 'targets') return 'Targets only · breakdown: Pillar × Directed/Collective';
+      if (id === 'targets-horizontal') return 'Targets only · directed/collective mix by sector (horizontal stacked bar)';
+      return '';
+    }
+
+    function lwBuildChart(id, el) {
+      if (id === 'funding-programs') {
+        const rows = STATE.fundingPrograms || [];
+        const totals = lwFundingProgramTotals(rows);
+        const data = {
+          labels: LW_FUNDING_TYPE_ORDER,
+          datasets: [{
+            label: 'Total Commitment ($M)',
+            data: LW_FUNDING_TYPE_ORDER.map((k) => Math.round(totals[k] || 0)),
+            backgroundColor: ['#0b4f8a', '#5b8ec9', '#b26d00'],
+            borderRadius: 3,
+            stack: 's'
+          }]
+        };
+        lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No funding program records available' });
+        return;
+      }
+
+      if (id === 'funding-programs-donut') {
+        const rows = STATE.fundingPrograms || [];
+        const totals = lwFundingProgramTotals(rows);
+        const data = {
+          labels: LW_FUNDING_TYPE_ORDER,
+          datasets: [{
+            data: LW_FUNDING_TYPE_ORDER.map((k) => Math.round(totals[k] || 0)),
+            backgroundColor: ['#0b4f8a', '#5b8ec9', '#b26d00'],
+            borderWidth: 2,
+            borderColor: '#fff',
+            hoverOffset: 6
+          }]
+        };
+        lwRenderDoughnut(el, data, { moneyMode: true, noDataMessage: 'No funding program records available' });
+        return;
+      }
+
+      if (id === 'funding-programs-horizontal') {
+        const programNameById = new Map();
+        (STATE.fundingPrograms || []).forEach((r) => {
+          const idKey = normalizeText(getField(r, ['Program ID']));
+          const name = normalizeText(getField(r, ['Program Name']));
+          if (!idKey) return;
+          if (name) programNameById.set(idKey, name);
+        });
+
+        const grouped = new Map();
+        (STATE.fundingProgramTracker || []).forEach((r, idx) => {
+          const amount = parseNumber(getField(r, ['Amount ($M)', 'Amount'])) || 0;
+          if (amount <= 0) return;
+          const programId = normalizeText(getField(r, ['Program ID'])) || `__tracker_row_${idx}`;
+          const type = lwFundingSourceBucket(getField(r, ['Transaction Type']));
+          if (!grouped.has(programId)) {
+            const programName = programNameById.get(programId);
+            grouped.set(programId, {
+              program: lwLabel(programName, programId),
+              total: 0,
+              byType: lwZeroFundingSplit()
+            });
+          }
+          const g = grouped.get(programId);
+          g.total += amount;
+          g.byType[type] = (g.byType[type] || 0) + amount;
+        });
+        const rows = Array.from(grouped.values())
+          .sort((a, b) => b.total - a.total)
+          .filter((r) => r.total > 0);
+        const rawLabels = rows.map((r) => r.program);
+        const labels = rawLabels.map((name) => lwTruncateLabel(name, 42));
+        const colors = {
+          'Provincial contribution': '#0b4f8a',
+          'Federal contribution': '#5b8ec9',
+          'Other contributions': '#b26d00'
+        };
+        const data = {
+          labels,
+          datasets: LW_FUNDING_TYPE_ORDER.map((type) => ({
+            label: type,
+            data: rows.map((r) => Math.round((r.byType[type] || 0))),
+            backgroundColor: colors[type],
+            borderRadius: 3,
+            barThickness: 18,
+            maxBarThickness: 24,
+            categoryPercentage: 0.9,
+            barPercentage: 0.9,
+            stack: 's'
+          }))
+        };
+        const parent = el && el.parentElement;
+        if (el && parent) {
+          const dynamicHeight = Math.max(460, (rows.length * 34) + 80);
+          const fixedWidth = Math.max(640, parent.clientWidth - 4);
+          el.height = dynamicHeight;
+          el.style.height = `${dynamicHeight}px`;
+          el.width = fixedWidth;
+          el.style.width = `${fixedWidth}px`;
+        }
+        lwRenderStackedBar(el, data, { moneyMode: true, horizontal: true, legendPosition: 'bottom', fullLabels: rawLabels, responsive: false, noDataMessage: 'No funding program records available' });
+        return;
+      }
+
+      if (id === 'infrastructures') {
+        const rows = STATE.infrastructures || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Infrastructure Category']),
+          r => getField(r, ['Funding Source']),
+          r => parseNumber(getField(r, ['Total Estimated Value ($M)'])) || 0,
+          10
+        );
+        lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No infrastructure records available' });
+        return;
+      }
+
+      if (id === 'infrastructures-horizontal') {
+        const rows = STATE.infrastructures || [];
+        const series = lwBuildSeriesData(
+          rows,
+          r => getField(r, ['Region']),
+          r => parseNumber(getField(r, ['Total Estimated Value ($M)'])) || 0,
+          10
+        );
+        const data = {
+          labels: series.labels,
+          datasets: [{
+            label: 'Estimated Value ($M)',
+            data: series.data,
+            backgroundColor: '#0b4f8a',
+            borderRadius: 3,
+            stack: 's'
+          }]
+        };
+        lwRenderStackedBar(el, data, { moneyMode: true, horizontal: true, noDataMessage: 'No infrastructure records available' });
+        return;
+      }
+
+      if (id === 'investment-promotion') {
+        const rows = STATE.investmentPromotion || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Sector']),
+          r => getField(r, ['Status']),
+          r => parseNumber(getField(r, ['Estimated Value ($M)'])) || 0,
+          10
+        );
+        lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No investment promotion records available' });
+        return;
+      }
+
+      if (id === 'investment-promotion-donut') {
+        const rows = STATE.investmentPromotion || [];
+        const data = lwBuildDoughnutData(
+          rows,
+          r => getField(r, ['Status']),
+          () => 1,
+          10
+        );
+        lwRenderDoughnut(el, data, { moneyMode: false, noDataMessage: 'No investment promotion records available' });
+        return;
+      }
+
+      if (id === 'major-projects') {
+        const rows = STATE.majorProjects || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Status']),
+          r => getField(r, ['Funding Source']),
+          r => parseNumber(getField(r, ['Total Commitment Value'])) || 0,
+          10
+        );
+        lwRenderStackedBar(el, data, { moneyMode: true, noDataMessage: 'No major project records available' });
+        return;
+      }
+
+      if (id === 'major-projects-combo') {
+        const rows = (STATE.majorProjects || []).slice().sort((a, b) =>
+          (parseNumber(getField(b, ['Total Commitment Value'])) || 0) - (parseNumber(getField(a, ['Total Commitment Value'])) || 0)
+        ).slice(0, 10);
+        const labels = rows.map(r => lwLabel(getField(r, ['Project Name'])));
+        const commitments = rows.map(r => Math.round(parseNumber(getField(r, ['Total Commitment Value'])) || 0));
+        const jobs = rows.map(r =>
+          Math.round((parseNumber(getField(r, ['Jobs Created'])) || 0) + (parseNumber(getField(r, ['Jobs Protected'])) || 0))
+        );
+        lwRenderComboBarLine(
+          el,
+          labels,
+          commitments,
+          jobs,
+          {
+            barLabel: 'Total Commitment ($M)',
+            lineLabel: 'Jobs Created + Protected',
+            noDataMessage: 'No major project records available'
+          }
+        );
+        return;
+      }
+
+      if (id === 'policy-regulations') {
+        const rows = STATE.policy || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => r.policyType,
+          r => r.jurisdiction,
+          () => 1,
+          12
+        );
+        lwRenderStackedBar(el, data, { moneyMode: false, noDataMessage: 'No policy/regulation records available' });
+        return;
+      }
+
+      if (id === 'policy-regulations-donut') {
+        const rows = STATE.policy || [];
+        const data = lwBuildDoughnutData(
+          rows,
+          r => r.policyType,
+          () => 1,
+          10
+        );
+        lwRenderDoughnut(el, data, { moneyMode: false, noDataMessage: 'No policy/regulation records available' });
+        return;
+      }
+
+      if (id === 'targets') {
+        const rows = STATE.targets || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Pillar']),
+          r => getField(r, ['Directed / Collective']),
+          () => 1,
+          12
+        );
+        lwRenderStackedBar(el, data, { moneyMode: false, noDataMessage: 'No target records available' });
+        return;
+      }
+
+      if (id === 'targets-horizontal') {
+        const rows = STATE.targets || [];
+        const data = lwBuildStackedData(
+          rows,
+          r => getField(r, ['Sector']),
+          r => getField(r, ['Directed / Collective']),
+          () => 1,
+          12
+        );
+        lwRenderStackedBar(el, data, { moneyMode: false, horizontal: true, noDataMessage: 'No target records available' });
+      }
+    }
+
+    function renderKPIs() {
+      const media = STATE.media;
+      const funding = STATE.funding;
+      const policy = STATE.policy;
+      const actionPlans = STATE.actionPlans;
+      const targets = STATE.targets;
+      const fundingPrograms = STATE.fundingPrograms;
+      const infrastructures = STATE.infrastructures;
+      const investmentPromotion = STATE.investmentPromotion;
+      const totalAnnouncements = STATE.announcements.filter(r => normalizeText(r['Announcement ID']) || normalizeText(r['Headline'])).length;
+
+      const jobsCreated = sum(funding, r => r.jobsCreated);
+      const jobsProtected = sum(funding, r => r.jobsProtected);
+      const fundingProgramIds = fundingPrograms
+        .map(r => normalizeText(getField(r, ['Program ID'])))
+        .filter(Boolean);
+      const infrastructureIds = infrastructures
+        .map(r => normalizeText(getField(r, ['Infrastructure ID'])))
+        .filter(Boolean);
+      const investmentPromotionIds = investmentPromotion
+        .map(r => normalizeText(getField(r, ['Promotion ID'])))
+        .filter(Boolean);
+      const fundingProgramsCount = fundingProgramIds.length ? new Set(fundingProgramIds).size : fundingPrograms.length;
+      const infrastructuresCount = infrastructureIds.length ? new Set(infrastructureIds).size : infrastructures.length;
+      const investmentPromotionsCount = investmentPromotionIds.length ? new Set(investmentPromotionIds).size : investmentPromotion.length;
+      const totalFundingProgramsValue = sum(fundingPrograms, r => parseNumber(getField(r, ['Total Commitment Value'])) || 0);
+
+      // Goals: total from LW Goals, achieved from those flagged complete/achieved.
+      const totalGoals = STATE.goals.length;
+      const achievedGoals = STATE.goals.filter(
+        g => /complete|achiev|met|done/i.test(getField(g, ['Progress Status', 'Status']))
+      ).length;
+      const goalsPct = totalGoals ? Math.round(achievedGoals / totalGoals * 100) : 0;
+      const metricsMonitored = STATE.goalsTracker.length;
+
+      // ---- Level 1: strategic hero cards ----
+      const heroFlat = [
+        { label: 'Jobs Created &amp; Protected', value: formatNumber(jobsCreated + jobsProtected),
+          note: `${formatNumber(jobsCreated)} created &middot; ${formatNumber(jobsProtected)} protected` },
+        { label: 'Total Funding Programs Value', value: formatMillions(totalFundingProgramsValue),
+          note: `Committed across ${formatNumber(fundingProgramsCount)} funding programs` }
+      ];
+      document.getElementById('kpi-hero').innerHTML =
+        heroFlat.map(c => `
+          <div class="kpi-hero">
+            <div class="kpi-hero-label">${c.label}</div>
+            <div class="kpi-hero-value">${c.value}</div>
+            <div class="kpi-hero-note">${c.note}</div>
+          </div>`).join('') + `
+          <div class="kpi-hero kpi-hero-goals">
+            <div class="goal-ring" style="--pct:${goalsPct}" data-pct="${goalsPct}%"></div>
+            <div class="goal-meta">
+              <div class="kpi-hero-label">Goals Achieved</div>
+              <div class="kpi-hero-value">${formatNumber(achievedGoals)} <small>/ ${formatNumber(totalGoals)}</small></div>
+              <div class="kpi-hero-note">Goals marked complete to date</div>
+            </div>
+          </div>`;
+
+      // ---- Level 2: data-coverage mini cards ----
+      const miniCards = [
+        { label: 'Action Plans', value: actionPlans.length },
+        { label: 'Targets', value: targets.length },
+        { label: 'Goals', value: totalGoals },
+        { label: 'Metrics Monitored', value: metricsMonitored },
+        { label: 'Announcements', value: totalAnnouncements },
+        { label: 'Policy &amp; Regulation', value: policy.length },
+        { label: 'Funding Programs', value: fundingProgramsCount },
+        { label: 'Infrastructures', value: infrastructuresCount },
+        { label: 'Investment Promotions', value: investmentPromotionsCount }
+      ];
+      document.getElementById('kpi-mini').innerHTML = miniCards.map(c => `
+        <div class="kpi-mini">
+          <div class="kpi-mini-value">${formatNumber(c.value)}</div>
+          <div class="kpi-mini-label">${c.label}</div>
+        </div>
+      `).join('');
+    }
+
+    // ---- Data inventory (collapsible) ----
+    function buildInventoryTable(rows, cols) {
+      if (!rows || !rows.length) return '<div class="inv-empty">No records captured yet.</div>';
+      const head = cols.map(c => `<th>${esc(c[1])}</th>`).join('');
+      const body = rows.map(r => `<tr>${
+        cols.map(c => `<td>${esc(getField(r, [c[0]]) || '—')}</td>`).join('')
+      }</tr>`).join('');
+      return `<table class="inv-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function renderInventory() {
+      const sections = [
+        { title: 'Action Plans', rows: STATE.actionPlans, cols: [['Action Plan ID', 'ID'], ['Title', 'Title'], ['Stream', 'Stream'], ['Status', 'Status'], ['Release Date', 'Released']] },
+        { title: 'Targets', rows: STATE.targets, cols: [['Target ID', 'ID'], ['Target', 'Target'], ['Stream', 'Stream'], ['Lead Ministry.lookupValue', 'Lead Ministry'], ['Timeframe', 'Timeframe']] },
+        { title: 'Goals', rows: STATE.goals, cols: [['Goal ID', 'ID'], ['Goal', 'Goal'], ['Primary Metric', 'Primary Metric'], ['Progress Status', 'Status'], ['Timeline', 'Timeline']] },
+        { title: 'Metrics Monitored', rows: STATE.goalsTracker, cols: [['Goal ID', 'Goal ID'], ['Metric Name', 'Metric'], ['Metric Value', 'Value'], ['Unit', 'Unit'], ['Status', 'Status']] },
+        { title: 'Announcements', rows: STATE.announcements, cols: [['Announcement ID', 'ID'], ['Date', 'Date'], ['Headline', 'Headline'], ['Source', 'Source'], ['Stream', 'Stream']] },
+        { title: 'Policy & Regulations', rows: STATE.policyRaw, cols: [['Policy ID', 'ID'], ['Title', 'Title'], ['Policy Type', 'Type'], ['Jurisdiction', 'Jurisdiction'], ['Date Announced', 'Announced']] },
+        { title: 'Funding Programs', rows: STATE.fundingPrograms, cols: [['Program ID', 'ID'], ['Program Name', 'Program'], ['Total Commitment Value', 'Value ($M)'], ['Commitment Status', 'Status'], ['Date Announced', 'Announced']] },
+        { title: 'Infrastructures', rows: STATE.infrastructures, cols: [['Infrastructure ID', 'ID'], ['Infrastructure Name', 'Name'], ['Total Estimated Value ($M)', 'Value ($M)'], ['Infrastructure Category', 'Category'], ['Date Announced', 'Announced']] },
+        { title: 'Investment Promotions', rows: STATE.investmentPromotion, cols: [['Promotion ID', 'ID'], ['Initiative Name', 'Initiative'], ['Estimated Value ($M)', 'Value ($M)'], ['Status', 'Status'], ['Date Announced', 'Announced']] }
+      ];
+
+      document.getElementById('inventory').innerHTML = sections.map(s => `
+        <details class="inv-section">
+          <summary>
+            <span class="inv-title">${esc(s.title)}</span>
+            <span class="inv-count">${formatNumber((s.rows || []).length)}</span>
+          </summary>
+          <div class="inv-body">${buildInventoryTable(s.rows, s.cols)}</div>
+        </details>
+      `).join('');
+    }
+
+    function setOptions(selectId, values) {
+      const el = document.getElementById(selectId);
+      if (!el) return;
+      const current = el.value;
+      const opts = ['<option value="ALL">All</option>'].concat(
+        values.filter(Boolean).sort().map(v => `<option value="${String(v).replace(/"/g, '&quot;')}">${v}</option>`)
+      );
+      el.innerHTML = opts.join('');
+      if ([...el.options].some(o => o.value === current)) el.value = current;
+    }
+
+    function buildFilters() {
+      const annRows = STATE.announcements.map((r) => ({
+        source: normalizeText(r['Source'] || r['Ministry']),
+        pillar: normalizeText(r['Pillar']),
+        theme: canonicalTheme(r['Theme']) || 'Partnerships'
+      }));
+      const newsRows = STATE.news.map((r) => ({
+        source: normalizeText(r['Source'] || r['Ministry']),
+        pillar: normalizeText(r['Pillar']),
+        theme: canonicalTheme(r['Theme']) || 'Partnerships'
+      }));
+      setOptions('ann-source', [...new Set(annRows.map(r => r.source))]);
+      setOptions('ann-pillar', [...new Set(annRows.map(r => r.pillar))]);
+      setOptions('ann-theme', [...new Set(annRows.map(r => r.theme))]);
+      setOptions('news-source', [...new Set(newsRows.map(r => r.source))]);
+      setOptions('news-pillar', [...new Set(newsRows.map(r => r.pillar))]);
+      setOptions('news-theme', [...new Set(newsRows.map(r => r.theme))]);
+
+      setOptions('fund-pillar', [...new Set(STATE.funding.map(r => r.pillar))]);
+      setOptions('fund-theme', [...new Set(STATE.funding.map(r => r.theme))]);
+      setOptions('fund-source', [...new Set(STATE.funding.map(r => r.source))]);
+      setOptions('pol-jurisdiction', [...new Set(STATE.policy.map(r => r.jurisdiction))]);
+      setOptions('pol-sector', [...new Set(STATE.policy.map(r => r.lwSector))]);
+      setOptions('pol-type', [...new Set(STATE.policy.map(r => r.policyType))]);
+    }
+
+    function setSort(section, key) {
+      const s = STATE.sort[section];
+      if (!s) return;
+      if (s.key === key) s.dir = s.dir === 'asc' ? 'desc' : 'asc';
+      else { s.key = key; s.dir = 'asc'; }
+      if (section === 'announcements') renderAnnouncementsTable();
+      if (section === 'news') renderNewsTable();
+      if (section === 'fund') renderFundingTable();
+      if (section === 'policy') renderPolicyTable();
+    }
+
+    function sortRows(rows, section) {
+      const { key, dir } = STATE.sort[section];
+      const m = dir === 'asc' ? 1 : -1;
+      return [...rows].sort((a, b) => {
+        let av = a[key];
+        let bv = b[key];
+        if (av instanceof Date) av = av.getTime();
+        if (bv instanceof Date) bv = bv.getTime();
+        if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * m;
+        return String(av || '').localeCompare(String(bv || ''), 'en', { sensitivity: 'base' }) * m;
+      });
+    }
+
+    function statusPill(status) {
+      const cls = String(status || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      return `<span class="pill status-${cls || 'unknown'}">${esc(status || '-')}</span>`;
+    }
+
+    function normalizeAnnouncementRow(row) {
+      return {
+        date: toDateValue(row['Date']),
+        source: normalizeText(row['Source'] || row['Ministry']),
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Primary Sector'], row['Headline'], row['Key Message']].join(' ')),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        headline: normalizeText(row['Headline']),
+        subtitle: normalizeText(row['Subtitle']),
+        headlineUrl: normalizeUrl(row['URL']),
+        primarySector: normalizeText(row['Primary Sector']),
+        region: normalizeText(row['Region']),
+        keyMessage: normalizeText(row['Key Message'])
+      };
+    }
+
+    function normalizeNewsRow(row) {
+      return {
+        date: toDateValue(row['Date']),
+        source: normalizeText(row['Source'] || row['Ministry']),
+        pillar: normalizeText(row['Pillar']) || inferPillar([row['Sector'], row['Title'], row['Key Message']].join(' ')),
+        theme: canonicalTheme(row['Theme']) || 'Partnerships',
+        headline: normalizeText(row['Title']),
+        headlineUrl: normalizeUrl(row['URL']),
+        sector: normalizeText(row['Sector']),
+        region: normalizeText(row['Region']),
+        keyMessage: normalizeText(row['Key Message'])
+      };
+    }
+
+    function renderAnnouncementsTable() {
+      const source = document.getElementById('ann-source').value;
+      const pillar = document.getElementById('ann-pillar').value;
+      const theme = document.getElementById('ann-theme').value;
+      const q = normalizeText(document.getElementById('ann-search').value).toLowerCase();
+
+      let rows = STATE.announcements.map(normalizeAnnouncementRow).filter(r => r.date || r.headline);
+      rows = rows.filter(r => {
+        if (source !== 'ALL' && r.source !== source) return false;
+        if (pillar !== 'ALL' && r.pillar !== pillar) return false;
+        if (theme !== 'ALL' && r.theme !== theme) return false;
+        if (q) {
+          const blob = [r.source, r.pillar, r.theme, r.headline, r.subtitle, r.primarySector, r.region, r.keyMessage].join(' ').toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      });
+
+      rows = sortRows(rows, 'announcements');
+      const tbody = document.getElementById('ann-body');
+      const pager = document.getElementById('ann-pager');
+      const totalRows = rows.length;
+      const pageSize = Math.max(1, Number(STATE.annPageSize) || 10);
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      if (STATE.annPage > totalPages) STATE.annPage = totalPages;
+      if (STATE.annPage < 1) STATE.annPage = 1;
+      const startIdx = (STATE.annPage - 1) * pageSize;
+      const pageRows = rows.slice(startIdx, startIdx + pageSize);
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="small">No announcement records for current filters.</td></tr>';
+        if (pager) pager.innerHTML = '';
+      } else {
+        tbody.innerHTML = pageRows.map(r => {
+          const hoverMsg = esc(r.keyMessage || '');
+          const title = r.subtitle ? `${r.headline} - ${r.subtitle}` : r.headline;
+          return `
+          <tr>
+            <td class="nowrap" title="${hoverMsg}">${formatDate(r.date)}</td>
+            <td title="${hoverMsg}">${esc(r.source || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.pillar || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.theme || '-')}</td>
+            <td class="text-limit" title="${hoverMsg}">
+              ${r.headlineUrl
+                ? `<a href="${esc(r.headlineUrl)}" target="_blank" rel="noopener noreferrer">${esc(title || '-')}</a>`
+                : esc(title || '-')}
+            </td>
+            <td title="${hoverMsg}">${esc(r.primarySector || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.region || '-')}</td>
+          </tr>`;
+        }).join('');
+        if (pager) {
+          const pageNumbers = [];
+          const from = Math.max(1, STATE.annPage - 2);
+          const to = Math.min(totalPages, STATE.annPage + 2);
+          for (let p = from; p <= to; p++) pageNumbers.push(p);
+          pager.innerHTML = `
+            <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
+            <button class="pager-btn" onclick="setAnnPage(${STATE.annPage - 1})" ${STATE.annPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setAnnPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.annPage ? 'active' : ''}" onclick="setAnnPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setAnnPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setAnnPage(${STATE.annPage + 1})" ${STATE.annPage >= totalPages ? 'disabled' : ''}>Next</button>
+          `;
+        }
+      }
+      document.getElementById('ann-count').textContent = `${rows.length} of ${STATE.announcements.length}`;
+    }
+
+    function setAnnPage(page) {
+      const p = Number(page) || 1;
+      STATE.annPage = Math.max(1, p);
+      renderAnnouncementsTable();
+    }
+
+    function renderNewsTable() {
+      const source = document.getElementById('news-source').value;
+      const pillar = document.getElementById('news-pillar').value;
+      const theme = document.getElementById('news-theme').value;
+      const q = normalizeText(document.getElementById('news-search').value).toLowerCase();
+
+      let rows = STATE.news.map(normalizeNewsRow).filter(r => r.date || r.headline);
+      rows = rows.filter(r => {
+        if (source !== 'ALL' && r.source !== source) return false;
+        if (pillar !== 'ALL' && r.pillar !== pillar) return false;
+        if (theme !== 'ALL' && r.theme !== theme) return false;
+        if (q) {
+          const blob = [r.source, r.pillar, r.theme, r.headline, r.sector, r.region, r.keyMessage].join(' ').toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      });
+
+      rows = sortRows(rows, 'news');
+      const tbody = document.getElementById('news-body');
+      const pager = document.getElementById('news-pager');
+      const totalRows = rows.length;
+      const pageSize = Math.max(1, Number(STATE.newsPageSize) || 10);
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      if (STATE.newsPage > totalPages) STATE.newsPage = totalPages;
+      if (STATE.newsPage < 1) STATE.newsPage = 1;
+      const startIdx = (STATE.newsPage - 1) * pageSize;
+      const pageRows = rows.slice(startIdx, startIdx + pageSize);
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="small">No news records for current filters.</td></tr>';
+        if (pager) pager.innerHTML = '';
+      } else {
+        tbody.innerHTML = pageRows.map(r => {
+          const hoverMsg = esc(r.keyMessage || '');
+          return `
+          <tr>
+            <td class="nowrap" title="${hoverMsg}">${formatDate(r.date)}</td>
+            <td title="${hoverMsg}">${esc(r.source || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.pillar || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.theme || '-')}</td>
+            <td class="text-limit" title="${hoverMsg}">
+              ${r.headlineUrl
+                ? `<a href="${esc(r.headlineUrl)}" target="_blank" rel="noopener noreferrer">${esc(r.headline || '-')}</a>`
+                : esc(r.headline || '-')}
+            </td>
+            <td title="${hoverMsg}">${esc(r.sector || '-')}</td>
+            <td title="${hoverMsg}">${esc(r.region || '-')}</td>
+          </tr>`;
+        }).join('');
+        if (pager) {
+          const pageNumbers = [];
+          const from = Math.max(1, STATE.newsPage - 2);
+          const to = Math.min(totalPages, STATE.newsPage + 2);
+          for (let p = from; p <= to; p++) pageNumbers.push(p);
+          pager.innerHTML = `
+            <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
+            <button class="pager-btn" onclick="setNewsPage(${STATE.newsPage - 1})" ${STATE.newsPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setNewsPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.newsPage ? 'active' : ''}" onclick="setNewsPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setNewsPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setNewsPage(${STATE.newsPage + 1})" ${STATE.newsPage >= totalPages ? 'disabled' : ''}>Next</button>
+          `;
+        }
+      }
+      document.getElementById('news-count').textContent = `${rows.length} of ${STATE.news.length}`;
+    }
+
+    function setNewsPage(page) {
+      const p = Number(page) || 1;
+      STATE.newsPage = Math.max(1, p);
+      renderNewsTable();
+    }
+
+    function renderFundingTable() {
+      const pillar = document.getElementById('fund-pillar').value;
+      const theme = document.getElementById('fund-theme').value;
+      const source = document.getElementById('fund-source').value;
+      const q = normalizeText(document.getElementById('fund-search').value).toLowerCase();
+
+      let rows = STATE.funding.filter(r => {
+        if (pillar !== 'ALL' && r.pillar !== pillar) return false;
+        if (theme !== 'ALL' && r.theme !== theme) return false;
+        if (source !== 'ALL' && r.source !== source) return false;
+        if (q) {
+          const blob = [r.project, r.partner, r.region, r.details, r.pillar, r.theme, r.status, r.source].join(' ').toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      });
+
+      rows = sortRows(rows, 'fund');
+
+      const tbody = document.getElementById('fund-body');
+      const pager = document.getElementById('fund-pager');
+      const totalRows = rows.length;
+      const pageSize = Math.max(1, Number(STATE.fundPageSize) || 10);
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      if (STATE.fundPage > totalPages) STATE.fundPage = totalPages;
+      if (STATE.fundPage < 1) STATE.fundPage = 1;
+      const startIdx = (STATE.fundPage - 1) * pageSize;
+      const pageRows = rows.slice(startIdx, startIdx + pageSize);
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="11" class="small">No funding records for current filters.</td></tr>';
+        if (pager) pager.innerHTML = '';
+      } else {
+        tbody.innerHTML = pageRows.map(r => `
+          <tr title="${esc(r.details || '')}">
+            <td class="nowrap">${formatDate(r.date)}</td>
+            <td>${esc(r.project || '-')}</td>
+            <td>${esc(r.pillar || '-')}</td>
+            <td>${esc(r.theme || '-')}</td>
+            <td class="nowrap">${formatNumber(r.provincial)}</td>
+            <td class="nowrap">${formatNumber(r.attracted)}</td>
+            <td class="nowrap">${formatNumber(r.federal)}</td>
+            <td class="nowrap">${formatNumber(r.other)}</td>
+            <td class="nowrap"><strong>${formatNumber(r.total)}</strong></td>
+            <td class="nowrap">${formatNumber(r.jobsCreated)}</td>
+            <td>${esc(r.region || '-')}</td>
+          </tr>
+        `).join('');
+        if (pager) {
+          const pageNumbers = [];
+          const from = Math.max(1, STATE.fundPage - 2);
+          const to = Math.min(totalPages, STATE.fundPage + 2);
+          for (let p = from; p <= to; p++) pageNumbers.push(p);
+          pager.innerHTML = `
+            <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
+            <button class="pager-btn" onclick="setFundPage(${STATE.fundPage - 1})" ${STATE.fundPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setFundPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.fundPage ? 'active' : ''}" onclick="setFundPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setFundPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setFundPage(${STATE.fundPage + 1})" ${STATE.fundPage >= totalPages ? 'disabled' : ''}>Next</button>
+          `;
+        }
+      }
+      document.getElementById('fund-count').textContent = `${rows.length} of ${STATE.funding.length}`;
+    }
+
+    function setFundPage(page) {
+      const p = Number(page) || 1;
+      STATE.fundPage = Math.max(1, p);
+      renderFundingTable();
+    }
+
+    function renderPolicyTable() {
+      const jurisdiction = document.getElementById('pol-jurisdiction').value;
+      const sector = document.getElementById('pol-sector').value;
+      const ptype = document.getElementById('pol-type').value;
+      const q = normalizeText(document.getElementById('pol-search').value).toLowerCase();
+
+      let rows = STATE.policy.filter(r => {
+        if (jurisdiction !== 'ALL' && r.jurisdiction !== jurisdiction) return false;
+        if (sector !== 'ALL' && r.lwSector !== sector) return false;
+        if (ptype !== 'ALL' && r.policyType !== ptype) return false;
+        if (q) {
+          const blob = [r.policyRegulation, r.jurisdiction, r.lwSector, r.secondarySector, r.policyType, r.whatChanged, r.outcomeArea, r.source].join(' ').toLowerCase();
+          if (!blob.includes(q)) return false;
+        }
+        return true;
+      });
+
+      rows = sortRows(rows, 'policy');
+      const tbody = document.getElementById('pol-body');
+      const pager = document.getElementById('pol-pager');
+      const totalRows = rows.length;
+      const pageSize = Math.max(1, Number(STATE.polPageSize) || 10);
+      const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+      if (STATE.polPage > totalPages) STATE.polPage = totalPages;
+      if (STATE.polPage < 1) STATE.polPage = 1;
+      const startIdx = (STATE.polPage - 1) * pageSize;
+      const pageRows = rows.slice(startIdx, startIdx + pageSize);
+
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="small">No policy/regulation records for current filters.</td></tr>';
+        if (pager) pager.innerHTML = '';
+      } else {
+        tbody.innerHTML = pageRows.map(r => `
+          <tr title="${esc(r.whatChanged || '')}">
+            <td class="nowrap">${formatDate(r.date)}</td>
+            <td>${esc(r.policyRegulation || '-')}</td>
+            <td>${esc(r.jurisdiction || '-')}</td>
+            <td>${esc(r.lwSector || '-')}</td>
+            <td>${esc(r.policyType || '-')}</td>
+            <td>${esc(r.outcomeArea || '-')}</td>
+            <td>
+              ${r.sourceUrl
+                ? `<a href="${esc(r.sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(r.source || '-')}</a>`
+                : esc(r.source || '-')}
+            </td>
+          </tr>
+        `).join('');
+        if (pager) {
+          const pageNumbers = [];
+          const from = Math.max(1, STATE.polPage - 2);
+          const to = Math.min(totalPages, STATE.polPage + 2);
+          for (let p = from; p <= to; p++) pageNumbers.push(p);
+          pager.innerHTML = `
+            <span class="pager-info">Showing ${startIdx + 1}-${Math.min(startIdx + pageRows.length, totalRows)} of ${totalRows}</span>
+            <button class="pager-btn" onclick="setPolicyPage(${STATE.polPage - 1})" ${STATE.polPage <= 1 ? 'disabled' : ''}>Prev</button>
+            ${from > 1 ? `<button class="pager-btn" onclick="setPolicyPage(1)">1</button><span class="small">...</span>` : ''}
+            ${pageNumbers.map(p => `<button class="pager-btn ${p === STATE.polPage ? 'active' : ''}" onclick="setPolicyPage(${p})">${p}</button>`).join('')}
+            ${to < totalPages ? `<span class="small">...</span><button class="pager-btn" onclick="setPolicyPage(${totalPages})">${totalPages}</button>` : ''}
+            <button class="pager-btn" onclick="setPolicyPage(${STATE.polPage + 1})" ${STATE.polPage >= totalPages ? 'disabled' : ''}>Next</button>
+          `;
+        }
+      }
+      document.getElementById('pol-count').textContent = `${rows.length} of ${STATE.policy.length}`;
+    }
+
+    function setPolicyPage(page) {
+      const p = Number(page) || 1;
+      STATE.polPage = Math.max(1, p);
+      renderPolicyTable();
+    }
+
+    function showError(msg) {
+      document.getElementById('error-box').innerHTML = `<div class="error">${msg}</div>`;
+    }
+
+    function clearError() {
+      document.getElementById('error-box').innerHTML = '';
+    }
+
+    function showInfo(msg) {
+      document.getElementById('error-box').innerHTML = `<div class="error" style="background:#eef6ff;border-color:#b8d8ff;color:#124b86;">${msg}</div>`;
+    }
+
+    function updateMeta(sourceLabel) {
+      const el = document.getElementById('meta-status');
+      const cacheLine = document.getElementById('cache-line');
+      const source = sourceLabel || 'Cached data';
+      if (!STATE.loadedAt) {
+        el.textContent = 'No data loaded';
+        if (cacheLine) cacheLine.textContent = 'No cached data - click Update Data to load.';
+        return;
+      }
+      const when = STATE.loadedAt.toLocaleString('en-CA');
+      const mode = dataModeLabel();
+      el.textContent = source + ' (' + mode + ') - Last updated: ' + when;
+      if (cacheLine) cacheLine.textContent = source + ' (' + mode + ') - Last updated: ' + when + ' - Click Update Data to refresh.';
+    }
+
+    async function refreshData() {
+      const btn = document.getElementById('btn-refresh');
+      btn.disabled = true;
+      btn.textContent = 'Loading...';
+      clearError();
+      try {
+        await loadData();
+        renderKPIs();
+        renderInventory();
+        renderCharts();
+        buildFilters();
+        renderAnnouncementsTable();
+        renderNewsTable();
+        renderFundingTable();
+        renderPolicyTable();
+        updateMeta('Live data');
+        storageSave();
+        btn.textContent = 'Updated';
+      } catch (e) {
+        console.error(e);
+        const protoHint = location.protocol === 'file:' ? 'You are opening this file directly. Start local server (python scripts/serve.py).' : '';
+        showError('Could not load Look West data: ' + (e && e.message ? e.message : e) + (protoHint ? ' ' + protoHint : ''));
+        btn.textContent = 'Update Data';
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.textContent = 'Update Data';
+        }, 700);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (location.protocol === 'file:') {
+        document.getElementById('meta-status').textContent = 'File mode - server required';
+        showInfo('Opened as local file. Run python scripts/serve.py and open via http://localhost:8080.');
+        return;
+      }
+      const hasCache = storageLoad();
+      if (hasCache) {
+        renderKPIs();
+        renderInventory();
+        renderCharts();
+        buildFilters();
+        renderAnnouncementsTable();
+        renderNewsTable();
+        renderFundingTable();
+        renderPolicyTable();
+        updateMeta('Cached data');
+        refreshData();
+      } else {
+        updateMeta();
+        refreshData();
+      }
+    });
+  </script>
+</body>
+</html>
+
+
+
+
