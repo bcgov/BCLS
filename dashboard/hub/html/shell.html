@@ -74,8 +74,6 @@ body {
   letter-spacing: .5px; text-transform: uppercase;
   transition: background .25s;
 }
-.hdr-date { font-size: 11px; color: rgba(255,255,255,.45); }
-.hdr-date strong { color: rgba(255,255,255,.8); font-weight: 600; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    NAVIGATION
@@ -140,8 +138,6 @@ body {
 .section-hdr-left { border-left: 4px solid var(--accent); padding-left: 14px; }
 .section-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
 .section-subtitle { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
-.section-hdr-right { font-size: 11px; color: var(--muted); text-align: right; }
-.section-hdr-right strong { display: block; color: var(--text-2); font-size: 12px; }
 
 /* ── Empty page content area ───────────────────────────────────────────── */
 .page-body { min-height: 320px; }
@@ -172,7 +168,6 @@ body {
   </div>
   <div class="hdr-right">
     <div class="hdr-section-pill" id="hdr-pill">BC Economy Snapshot</div>
-    <div class="hdr-date">Updated: <strong id="hdr-date">&mdash;</strong></div>
   </div>
 </header>
 
@@ -202,10 +197,6 @@ body {
           <div class="section-title">BC Economy Snapshot</div>
           <div class="section-subtitle">GDP, labour market, and trade indicators for British Columbia</div>
         </div>
-        <div class="section-hdr-right">
-          <strong id="upd-snapshot">&mdash;</strong>
-          Last updated
-        </div>
       </div>
       <div class="page-body" id="body-snapshot">
         <!-- page content goes here -->
@@ -220,10 +211,6 @@ body {
         <div class="section-hdr-left">
           <div class="section-title">Look West Strategy Monitor</div>
           <div class="section-subtitle">Strategy delivery, announcements, funding, and policy records</div>
-        </div>
-        <div class="section-hdr-right">
-          <strong id="upd-strategy">&mdash;</strong>
-          Last updated
         </div>
       </div>
       <div class="page-body" id="body-strategy">
@@ -240,10 +227,6 @@ body {
           <div class="section-title">Look West Media Coverage</div>
           <div class="section-subtitle">News, announcements, and media mentions tracked across the Look West strategy</div>
         </div>
-        <div class="section-hdr-right">
-          <strong id="upd-media">&mdash;</strong>
-          Last updated
-        </div>
       </div>
       <div class="page-body" id="body-media">
         <!-- page content goes here -->
@@ -259,10 +242,6 @@ body {
           <div class="section-title">Look West Goal Tracker</div>
           <div class="section-subtitle">Progress against Look West goals, targets, and commitments</div>
         </div>
-        <div class="section-hdr-right">
-          <strong id="upd-goals">&mdash;</strong>
-          Last updated
-        </div>
       </div>
       <div class="page-body" id="body-goals">
         <!-- page content goes here -->
@@ -277,10 +256,6 @@ body {
         <div class="section-hdr-left">
           <div class="section-title">Major Projects</div>
           <div class="section-subtitle">Pipeline, status, and investment value of major projects across BC</div>
-        </div>
-        <div class="section-hdr-right">
-          <strong id="upd-projects">&mdash;</strong>
-          Last updated
         </div>
       </div>
       <div class="page-body" id="body-projects">
@@ -331,12 +306,6 @@ function navigate(id) {
    INIT
 ══════════════════════════════════════════════════════════════════════════ */
 (function init() {
-  const today = new Date().toLocaleDateString('en-CA', {
-    year: 'numeric', month: 'short', day: 'numeric'
-  });
-  document.getElementById('hdr-date').textContent = today;
-  document.querySelectorAll('.section-hdr-right strong').forEach(el => el.textContent = today);
-
   const start = location.hash.slice(1);
   navigate(PAGES[start] ? start : 'snapshot');
 
